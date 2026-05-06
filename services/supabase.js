@@ -91,7 +91,7 @@ function _mediaOfType(rows, type) {
 
 /* =====================================================
    SupabaseDB — implements the same interface the
-   admin.html and index.html already call.
+   database.html and index.html already call.
 ===================================================== */
 const SupabaseDB = {
   connected: false,

@@ -212,8 +212,8 @@ audio{
                 <button class="button" id="loadSupabaseBtn">🗄 Load List</button>
                 <label class="button" for="fileInput">📁 Upload JSON</label>
                 <input type="file" id="fileInput" accept=".json" hidden>
-                <a class="button" href="./admin.html" style="background:#7c3aed;">
-                    📋 Questions Manager
+                <a class="button" href="./database.html" style="background:#7c3aed;">
+                    🗄 Database
                 </a>
             </div>
             <div class="file-name" id="fileName">Connecting to Supabase…</div>
@@ -247,7 +247,7 @@ async function initDashboard() {
         const lists = await window.SupabaseDB.getLists();
 
         if (!lists.length) {
-            fileName.innerHTML = 'No question lists found. Create one in the <a href="./admin.html" style="color:#60a5fa;">Questions Manager</a>.';
+            fileName.innerHTML = 'No question lists found. Create one in the <a href="./database.html" style="color:#60a5fa;">Database</a>.';
             return;
         }
 
