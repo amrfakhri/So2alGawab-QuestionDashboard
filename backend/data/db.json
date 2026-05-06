@@ -1,0 +1,18 @@
+{
+  "lists": [
+    {
+      "id": "moty7sjw3kl9d",
+      "title": "Game category test 1",
+      "categories": [
+        {
+          "id": "e3b2ee7e4230420d88d36671",
+          "name": "gategory 1",
+          "order": 0
+        }
+      ],
+      "questions": [],
+      "createdAt": "2026-05-06T11:02:55.820Z",
+      "updatedAt": "2026-05-06T11:03:12.092Z"
+    }
+  ]
+}

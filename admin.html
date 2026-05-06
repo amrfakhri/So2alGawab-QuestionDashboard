@@ -1,0 +1,2043 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>So2alGawab — Questions Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* =====================================================
+   VARIABLES & RESET
+===================================================== */
+:root {
+  --bg:       #0f172a;
+  --panel:    #080f1e;
+  --surface:  #1e293b;
+  --surface2: #263348;
+  --border:   rgba(255,255,255,0.08);
+  --border2:  rgba(255,255,255,0.14);
+  --text:     #f1f5f9;
+  --text2:    #94a3b8;
+  --text3:    #64748b;
+  --blue:     #2563eb;
+  --blue-h:   #1d4ed8;
+  --blue-s:   rgba(37,99,235,0.15);
+  --green:    #22c55e;
+  --green-bg: rgba(34,197,94,0.12);
+  --green-br: rgba(34,197,94,0.3);
+  --amber:    #f59e0b;
+  --red:      #ef4444;
+  --red-bg:   rgba(239,68,68,0.12);
+  --purple:   #a855f7;
+  --font-ui:  'Inter', sans-serif;
+  --font-ar:  'Cairo', sans-serif;
+  --radius:   12px;
+  --radius-sm:8px;
+  --shadow:   0 4px 24px rgba(0,0,0,0.4);
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{ font-family:var(--font-ui); background:var(--bg); color:var(--text); height:100vh; font-size:14px; }
+button{ font-family:var(--font-ui); cursor:pointer; border:none; outline:none; }
+input,textarea,select{ font-family:var(--font-ui); outline:none; }
+a{ color:inherit; text-decoration:none; }
+::-webkit-scrollbar{ width:6px; height:6px; }
+::-webkit-scrollbar-track{ background:transparent; }
+::-webkit-scrollbar-thumb{ background:var(--surface2); border-radius:99px; }
+
+/* =====================================================
+   SCREENS
+===================================================== */
+.screen{ display:none; height:100vh; overflow:hidden; flex-direction:column; }
+.screen.active{ display:flex; }
+
+/* =====================================================
+   LISTS SCREEN
+===================================================== */
+.ls-topbar{
+  height:64px; background:var(--panel);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center;
+  padding:0 32px; gap:16px; flex-shrink:0;
+}
+.ls-logo{ font-size:17px; font-weight:700; display:flex; align-items:center; gap:8px; }
+.ls-logo .accent{ color:var(--blue); }
+.ls-topbar-right{ display:flex; align-items:center; gap:10px; margin-left:auto; }
+.conn-badge{
+  display:flex; align-items:center; gap:6px;
+  padding:5px 12px; border-radius:99px;
+  font-size:12px; font-weight:500;
+}
+.conn-badge.connected{ background:var(--green-bg); color:var(--green); border:1px solid var(--green-br); }
+.conn-badge.local{ background:rgba(245,158,11,0.12); color:var(--amber); border:1px solid rgba(245,158,11,0.3); }
+.conn-badge.checking{ background:rgba(255,255,255,0.05); color:var(--text3); border:1px solid var(--border); }
+.conn-dot{ width:7px; height:7px; border-radius:50%; background:currentColor; animation:pulse 2s infinite; }
+@keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.4;} }
+
+.ls-body{ flex:1; overflow-y:auto; padding:40px 32px; }
+.ls-header{ margin-bottom:32px; }
+.ls-header h1{ font-size:26px; font-weight:700; margin-bottom:6px; }
+.ls-header p{ color:var(--text2); font-size:14px; }
+
+.ls-actions-row{ display:flex; align-items:center; gap:10px; margin-bottom:28px; }
+.ls-search-wrap{ position:relative; flex:1; max-width:340px; }
+.ls-search-wrap svg{ position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--text3); width:14px; height:14px; }
+.ls-search-input{
+  width:100%; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:9px 12px 9px 32px;
+  color:var(--text); font-size:13px; transition:.15s;
+}
+.ls-search-input:focus{ border-color:var(--blue); }
+.ls-sort{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:9px 12px;
+  color:var(--text); font-size:13px;
+}
+
+.lists-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));
+  gap:20px;
+}
+
+/* LIST CARD */
+.list-card{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); overflow:hidden;
+  display:flex; flex-direction:column;
+  transition:border-color .2s, transform .2s;
+  cursor:pointer;
+}
+.list-card:hover{ border-color:var(--border2); transform:translateY(-2px); }
+.list-card-top{
+  padding:20px 20px 16px;
+  border-bottom:1px solid var(--border);
+}
+.list-card-icon{
+  width:44px; height:44px; border-radius:var(--radius-sm);
+  background:var(--blue-s);
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; margin-bottom:14px;
+}
+.list-card-title{ font-size:16px; font-weight:600; margin-bottom:4px; line-height:1.3; }
+.list-card-id{ font-size:11px; color:var(--text3); font-family:monospace; }
+.list-card-stats{
+  padding:14px 20px;
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:10px; border-bottom:1px solid var(--border);
+}
+.stat-item{}
+.stat-val{ font-size:20px; font-weight:700; }
+.stat-lbl{ font-size:11px; color:var(--text3); margin-top:1px; }
+.list-card-meta{ padding:12px 20px; display:flex; gap:12px; font-size:11px; color:var(--text3); }
+.list-card-meta span{ display:flex; align-items:center; gap:4px; }
+.list-card-actions{
+  padding:12px 20px;
+  display:flex; gap:8px;
+  border-top:1px solid var(--border);
+}
+
+/* EMPTY STATE */
+.ls-empty{
+  text-align:center; padding:80px 20px;
+  grid-column:1/-1;
+}
+.ls-empty-icon{ font-size:56px; margin-bottom:20px; }
+.ls-empty h3{ font-size:18px; font-weight:600; margin-bottom:8px; }
+.ls-empty p{ color:var(--text2); font-size:14px; max-width:340px; margin:0 auto 24px; }
+
+/* NEW LIST MODAL */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.7);
+  z-index:200; display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none; transition:.15s;
+}
+.modal-overlay.open{ opacity:1; pointer-events:all; }
+.modal{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); width:460px; max-width:92vw;
+  transform:scale(.96); transition:.15s;
+  overflow:hidden;
+}
+.modal-overlay.open .modal{ transform:scale(1); }
+.modal-head{
+  padding:18px 20px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:10px;
+  background:var(--panel);
+}
+.modal-head h3{ font-size:15px; font-weight:600; flex:1; }
+.modal-body{ padding:20px; }
+.modal-foot{
+  padding:14px 20px; border-top:1px solid var(--border);
+  display:flex; gap:8px; justify-content:flex-end;
+  background:var(--panel);
+}
+.modal-section{ margin-bottom:16px; }
+.modal-label{ font-size:12px; font-weight:500; color:var(--text2); margin-bottom:6px; display:block; }
+.modal-input{
+  width:100%; background:var(--bg); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:10px 12px;
+  color:var(--text); font-size:14px; transition:.15s;
+}
+.modal-input:focus{ border-color:var(--blue); }
+
+/* =====================================================
+   EDITOR SCREEN  (the question editor, no sidebar)
+===================================================== */
+.editor-topbar{
+  height:60px; min-height:60px;
+  background:var(--panel);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center;
+  padding:0 20px; gap:12px; flex-shrink:0;
+}
+.breadcrumb{ display:flex; align-items:center; gap:8px; font-size:14px; }
+.breadcrumb .bc-home{ color:var(--text2); cursor:pointer; }
+.breadcrumb .bc-home:hover{ color:var(--blue); }
+.breadcrumb .bc-sep{ color:var(--text3); }
+.breadcrumb .bc-current{ font-weight:600; }
+.ed-divider{ width:1px; height:24px; background:var(--border); }
+
+.search-wrap{ position:relative; flex:1; max-width:300px; }
+.search-wrap svg{ position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--text3); width:14px; height:14px; }
+.search-input{
+  width:100%; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:7px 12px 7px 32px;
+  color:var(--text); font-size:13px; transition:.15s;
+}
+.search-input:focus{ border-color:var(--blue); }
+.select-filter{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:7px 10px;
+  color:var(--text); font-size:13px;
+}
+.topbar-actions{ display:flex; gap:8px; margin-left:auto; }
+
+/* CATEGORIES BAR */
+.categories-bar{
+  padding:0 20px; border-bottom:1px solid var(--border);
+  background:var(--panel); display:flex; align-items:center; gap:4px;
+  overflow-x:auto; min-height:48px; flex-shrink:0;
+}
+.cat-tab{
+  display:flex; align-items:center; gap:6px;
+  padding:10px 14px; border-radius:var(--radius-sm);
+  font-size:13px; font-weight:500; white-space:nowrap;
+  cursor:pointer; color:var(--text2); transition:.15s;
+  border:none; background:none; position:relative;
+}
+.cat-tab:hover{ color:var(--text); background:rgba(255,255,255,0.05); }
+.cat-tab.active{ color:var(--blue); background:rgba(37,99,235,0.12); }
+.cat-tab .cat-count{ background:rgba(255,255,255,0.1); color:var(--text3); font-size:11px; padding:1px 6px; border-radius:99px; }
+.cat-tab.active .cat-count{ background:rgba(37,99,235,0.2); color:var(--blue); }
+.cat-tab .cat-actions{ display:none; gap:2px; }
+.cat-tab:hover .cat-actions{ display:flex; }
+.btn-add-cat{
+  display:flex; align-items:center; gap:4px;
+  padding:6px 12px; border-radius:var(--radius-sm);
+  font-size:13px; color:var(--text3);
+  background:none; border:1px dashed var(--border);
+  cursor:pointer; white-space:nowrap; transition:.15s; flex-shrink:0;
+}
+.btn-add-cat:hover{ color:var(--text); border-color:var(--border2); background:rgba(255,255,255,0.04); }
+
+/* QUESTIONS AREA */
+.content-area{ flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.questions-area{ flex:1; overflow-y:auto; padding:20px; }
+.questions-toolbar{ display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+.q-count{ color:var(--text2); font-size:13px; }
+.view-toggle{ display:flex; gap:2px; background:var(--surface); border-radius:var(--radius-sm); padding:3px; margin-left:auto; }
+.view-btn{ background:none; border:none; color:var(--text3); padding:5px 8px; border-radius:6px; cursor:pointer; font-size:13px; transition:.15s; }
+.view-btn.active{ background:var(--surface2); color:var(--text); }
+
+/* TABLE */
+.q-table{ width:100%; border-collapse:collapse; }
+.q-table th{ padding:10px 12px; text-align:left; font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid var(--border); white-space:nowrap; }
+.q-table td{ padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+.q-table tr:last-child td{ border-bottom:none; }
+.q-table tr:hover td{ background:rgba(255,255,255,0.02); }
+.q-table tr.selected td{ background:rgba(37,99,235,0.06); }
+.drag-handle{ color:var(--text3); cursor:grab; padding:4px; }
+.drag-handle:active{ cursor:grabbing; }
+.q-text{ font-size:13px; font-family:var(--font-ar); direction:rtl; }
+.q-text-truncate{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:260px; }
+.q-answer{ font-size:12px; color:var(--green); font-family:var(--font-ar); direction:rtl; }
+.badge{ display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:99px; font-size:11px; font-weight:500; white-space:nowrap; }
+.badge-blue{ background:rgba(37,99,235,0.15); color:#60a5fa; }
+.badge-green{ background:var(--green-bg); color:var(--green); }
+.badge-amber{ background:rgba(245,158,11,0.15); color:var(--amber); }
+.badge-red{ background:var(--red-bg); color:var(--red); }
+.badge-purple{ background:rgba(168,85,247,0.15); color:var(--purple); }
+.badge-gray{ background:rgba(255,255,255,0.08); color:var(--text2); }
+.media-thumb{ width:40px; height:40px; border-radius:6px; object-fit:cover; background:var(--surface2); }
+.media-icon{ width:40px; height:40px; border-radius:6px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:16px; }
+.row-actions{ display:flex; gap:4px; opacity:0; transition:.15s; }
+.q-table tr:hover .row-actions{ opacity:1; }
+.empty-state{ text-align:center; padding:60px 20px; color:var(--text3); }
+.empty-state .empty-icon{ font-size:48px; margin-bottom:16px; }
+.empty-state p{ font-size:15px; margin-bottom:8px; color:var(--text2); }
+
+/* GRID VIEW */
+.q-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
+.q-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; transition:.15s; }
+.q-card:hover{ transform:translateY(-2px); border-color:var(--border2); }
+.q-card.selected{ border-color:var(--blue); background:rgba(37,99,235,0.05); }
+.q-card-media{ height:150px; background:var(--surface2); overflow:hidden; }
+.q-card-media img, .q-card-media video{ width:100%; height:100%; object-fit:cover; }
+.q-card-body{ padding:14px; }
+.q-card-badges{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.q-card-question{ font-family:var(--font-ar); direction:rtl; font-size:15px; font-weight:600; line-height:1.6; margin-bottom:10px; }
+.q-card-answer{ background:var(--green-bg); border:1px solid var(--green-br); border-radius:8px; padding:10px; }
+.q-card-answer small{ display:block; color:#86efac; font-size:11px; margin-bottom:4px; text-transform:uppercase; letter-spacing:.06em; }
+.q-card-answer span{ font-family:var(--font-ar); direction:rtl; display:block; font-size:14px; }
+
+/* BUTTONS */
+.btn{ border-radius:var(--radius-sm); padding:8px 14px; font-size:13px; font-weight:500; display:flex; align-items:center; gap:6px; transition:.15s; cursor:pointer; }
+.btn-primary{ background:var(--blue); color:#fff; }
+.btn-primary:hover{ background:var(--blue-h); }
+.btn-ghost{ background:transparent; color:var(--text2); border:1px solid var(--border); }
+.btn-ghost:hover{ background:var(--surface); color:var(--text); }
+.btn-success{ background:rgba(34,197,94,0.15); color:var(--green); border:1px solid var(--green-br); }
+.btn-success:hover{ background:rgba(34,197,94,0.25); }
+.btn-danger{ background:var(--red-bg); color:var(--red); border:1px solid rgba(239,68,68,0.3); }
+.btn-danger:hover{ background:rgba(239,68,68,0.2); }
+.icon-btn{ background:none; border:none; color:var(--text3); padding:4px; border-radius:6px; font-size:13px; line-height:1; cursor:pointer; transition:.15s; }
+.icon-btn:hover{ background:rgba(255,255,255,0.1); color:var(--text); }
+.icon-btn.danger:hover{ background:var(--red-bg); color:var(--red); }
+
+/* DRAWER */
+.drawer-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:100; opacity:0; pointer-events:none; transition:.2s; }
+.drawer-overlay.open{ opacity:1; pointer-events:all; }
+.drawer{ position:fixed; top:0; right:0; bottom:0; width:1020px; max-width:96vw; background:var(--surface); border-left:1px solid var(--border); z-index:101; display:flex; flex-direction:column; transform:translateX(100%); transition:.25s cubic-bezier(.4,0,.2,1); overflow:hidden; }
+.drawer.open{ transform:translateX(0); }
+.drawer-head{ padding:18px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; background:var(--panel); flex-shrink:0; }
+.drawer-title{ font-size:15px; font-weight:600; flex:1; }
+.drawer-body{ flex:1; overflow:hidden; display:flex; }
+.drawer-foot{ padding:16px 20px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; background:var(--panel); flex-shrink:0; }
+
+/* DRAWER TWO-PANEL */
+.form-panel{ flex:1; overflow-y:auto; padding:20px; border-right:1px solid var(--border); }
+.preview-panel{
+  width:340px; min-width:340px;
+  background:var(--panel);
+  display:flex; flex-direction:column;
+  overflow:hidden;
+}
+.preview-panel-head{
+  padding:14px 16px 10px;
+  font-size:11px; font-weight:600;
+  color:var(--text3); text-transform:uppercase;
+  letter-spacing:.08em; border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.preview-panel-body{ flex:1; overflow-y:auto; padding:16px; }
+
+/* LAYOUT THUMBS */
+.layout-thumbs{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:20px; }
+.layout-thumb{
+  border:2px solid var(--border); border-radius:var(--radius-sm);
+  padding:10px 8px 8px; cursor:pointer; transition:.15s;
+  background:var(--bg); display:flex; flex-direction:column; gap:6px;
+}
+.layout-thumb:hover{ border-color:var(--border2); }
+.layout-thumb.active{ border-color:var(--blue); background:var(--blue-s); }
+.lt-name{ font-size:10px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.06em; text-align:center; }
+.layout-thumb.active .lt-name{ color:var(--blue); }
+/* Mini card viz blocks */
+.lt-viz{ display:flex; flex-direction:column; gap:3px; }
+.lt-block{ border-radius:3px; }
+.lt-media{ background:rgba(37,99,235,0.25); height:28px; }
+.lt-q{ background:rgba(255,255,255,0.12); height:14px; }
+.lt-q2{ background:rgba(255,255,255,0.07); height:8px; width:70%; }
+.lt-a{ background:rgba(34,197,94,0.25); height:12px; }
+.lt-row{ display:flex; gap:3px; }
+.lt-row .lt-media{ flex:1; height:36px; }
+.lt-row .lt-text{ flex:1; display:flex; flex-direction:column; gap:3px; }
+
+/* LIVE PREVIEW CARD (inside preview panel) */
+.lp-card{
+  background:linear-gradient(180deg,#1e293b,#111827);
+  border-radius:16px; overflow:hidden;
+  border:1px solid rgba(255,255,255,0.08);
+}
+.lp-card-media{ background:#020617; overflow:hidden; }
+.lp-card-media img,.lp-card-media video{ width:100%; display:block; object-fit:cover; max-height:180px; }
+.lp-card-body{ padding:14px; }
+.lp-badges{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.lp-badge{ background:rgba(255,255,255,0.08); color:#cbd5e1; padding:4px 8px; border-radius:99px; font-size:11px; }
+.lp-question{ font-family:var(--font-ar); direction:rtl; font-size:16px; font-weight:700; line-height:1.7; margin-bottom:12px; color:var(--text); }
+.lp-answer{ background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.3); border-radius:10px; padding:12px; }
+.lp-answer small{ display:block; color:#86efac; font-size:10px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+.lp-answer span{ font-family:var(--font-ar); direction:rtl; display:block; font-size:14px; }
+.lp-audio{ width:100%; margin-top:10px; }
+.lp-meta{ margin-top:10px; color:#64748b; font-size:11px; display:flex; gap:10px; flex-wrap:wrap; }
+.lp-empty{ text-align:center; padding:40px 16px; color:var(--text3); font-size:13px; }
+.lp-layout-schematic{
+  border:1px solid var(--border); border-radius:var(--radius-sm);
+  padding:12px; margin-bottom:16px; background:var(--bg);
+}
+.lp-layout-label{ font-size:10px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
+.form-section{ margin-bottom:24px; }
+.form-section-title{ font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.08em; padding-bottom:10px; border-bottom:1px solid var(--border); margin-bottom:14px; }
+.form-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+.form-row.full{ grid-template-columns:1fr; }
+.form-row.triple{ grid-template-columns:1fr 1fr 1fr; }
+.form-group{ display:flex; flex-direction:column; gap:6px; }
+.form-label{ font-size:12px; font-weight:500; color:var(--text2); }
+.form-input,.form-select,.form-textarea{ background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 12px; color:var(--text); font-size:13px; transition:.15s; }
+.form-input:focus,.form-select:focus,.form-textarea:focus{ border-color:var(--blue); }
+.form-input.rtl,.form-textarea.rtl{ direction:rtl; font-family:var(--font-ar); }
+.form-textarea{ resize:vertical; min-height:80px; }
+.form-hint{ font-size:11px; color:var(--text3); }
+.media-field{ display:flex; flex-direction:column; gap:8px; }
+.media-row{ display:flex; gap:8px; align-items:center; }
+.media-preview-wrap{ position:relative; flex-shrink:0; }
+.media-preview-img{ width:60px; height:60px; border-radius:var(--radius-sm); object-fit:cover; background:var(--surface2); display:block; }
+.media-remove{ position:absolute; top:-6px; right:-6px; background:var(--red); color:#fff; border:none; border-radius:50%; width:18px; height:18px; font-size:11px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.form-input-wrap{ flex:1; display:flex; flex-direction:column; gap:6px; }
+.toggle-row{ display:flex; align-items:center; justify-content:space-between; padding:8px 0; }
+.toggle-label{ font-size:13px; color:var(--text2); }
+.toggle{ position:relative; width:38px; height:20px; }
+.toggle input{ opacity:0; width:0; height:0; position:absolute; }
+.toggle-slider{ position:absolute; inset:0; background:var(--surface2); border-radius:99px; cursor:pointer; transition:.2s; }
+.toggle-slider::before{ content:''; position:absolute; left:2px; top:2px; width:16px; height:16px; border-radius:50%; background:#fff; transition:.2s; }
+.toggle input:checked + .toggle-slider{ background:var(--blue); }
+.toggle input:checked + .toggle-slider::before{ transform:translateX(18px); }
+.notes-list{ display:flex; flex-direction:column; gap:6px; }
+.note-item{ display:flex; gap:6px; }
+.note-item .form-input{ flex:1; }
+.btn-add-note{ font-size:12px; color:var(--blue); background:none; border:none; cursor:pointer; padding:4px 0; }
+.btn-add-note:hover{ color:var(--text); }
+.unsaved-dot{ width:8px; height:8px; border-radius:50%; background:var(--amber); display:inline-block; margin-left:4px; animation:pulse 1.5s infinite; }
+
+/* PREVIEW MODAL */
+.preview-modal{ position:fixed; inset:0; background:var(--bg); z-index:200; overflow-y:auto; opacity:0; pointer-events:none; transition:.2s; }
+.preview-modal.open{ opacity:1; pointer-events:all; }
+.preview-topbar{ position:sticky; top:0; background:rgba(15,23,42,.95); backdrop-filter:blur(12px); padding:14px 32px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border); z-index:10; }
+.preview-content{ max-width:1400px; margin:auto; padding:32px; }
+.preview-category{ margin-top:48px; }
+.preview-cat-title{ font-size:26px; font-weight:700; font-family:var(--font-ar); padding-bottom:16px; margin-bottom:20px; border-bottom:1px solid var(--border); }
+.preview-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:20px; }
+.preview-card{ background:linear-gradient(180deg,#1e293b,#111827); border-radius:24px; overflow:hidden; border:1px solid rgba(255,255,255,0.08); transition:.2s; }
+.preview-card:hover{ transform:translateY(-4px); }
+.preview-card img,.preview-card video{ width:100%; height:220px; object-fit:cover; background:#020617; display:block; }
+.preview-card-body{ padding:20px; }
+.preview-badges{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+.preview-badge{ background:rgba(255,255,255,0.08); color:#cbd5e1; padding:5px 10px; border-radius:99px; font-size:12px; }
+.preview-question{ font-family:var(--font-ar); direction:rtl; font-size:18px; font-weight:700; margin-bottom:14px; line-height:1.7; }
+.preview-answer{ background:var(--green-bg); border:1px solid var(--green-br); border-radius:14px; padding:14px; }
+.preview-answer small{ display:block; color:#86efac; margin-bottom:6px; text-transform:uppercase; letter-spacing:.08em; font-size:11px; }
+.preview-answer span{ font-family:var(--font-ar); direction:rtl; display:block; font-size:15px; }
+.preview-audio{ width:100%; margin-top:14px; }
+.preview-meta{ margin-top:14px; color:#94a3b8; font-size:13px; display:flex; gap:14px; flex-wrap:wrap; }
+
+/* CONFIRM DIALOG */
+.dialog-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:300; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:.15s; }
+.dialog-overlay.open{ opacity:1; pointer-events:all; }
+.dialog{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px; width:380px; max-width:90vw; transform:scale(.95); transition:.15s; }
+.dialog-overlay.open .dialog{ transform:scale(1); }
+.dialog h3{ font-size:16px; margin-bottom:8px; }
+.dialog p{ color:var(--text2); font-size:13px; margin-bottom:20px; }
+.dialog-actions{ display:flex; gap:8px; justify-content:flex-end; }
+
+/* TOAST */
+.toast-container{ position:fixed; bottom:20px; right:20px; display:flex; flex-direction:column; gap:8px; z-index:500; }
+.toast{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 16px; font-size:13px; display:flex; align-items:center; gap:8px; box-shadow:var(--shadow); min-width:240px; animation:slideIn .2s ease; }
+@keyframes slideIn{ from{ transform:translateX(20px); opacity:0; } }
+.toast.success{ border-color:var(--green-br); }
+.toast.error{ border-color:rgba(239,68,68,0.4); }
+
+/* MISC */
+.cb{ width:16px; height:16px; accent-color:var(--blue); cursor:pointer; }
+.bulk-actions{ display:flex; gap:8px; }
+.dragging{ opacity:.4; }
+.drag-over{ outline:2px dashed var(--blue); border-radius:var(--radius-sm); }
+input[type="file"]{ display:none; }
+.spinner{ display:inline-block; width:16px; height:16px; border:2px solid var(--border); border-top-color:var(--blue); border-radius:50%; animation:spin .6s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- =====================================================
+     SCREEN 1: QUESTIONS LISTS
+===================================================== -->
+<div class="screen active" id="listsScreen">
+
+  <div class="ls-topbar">
+    <div class="ls-logo">🎮 <span class="accent">So2alGawab</span> — Questions Manager</div>
+    <div class="ls-topbar-right">
+      <div class="conn-badge checking" id="connBadge">
+        <span class="conn-dot"></span>
+        <span id="connLabel">Checking…</span>
+      </div>
+      <a class="btn btn-ghost" href="./index.html" style="font-size:13px;">← Dashboard</a>
+    </div>
+  </div>
+
+  <div class="ls-body">
+    <div class="ls-header">
+      <h1>Question Lists</h1>
+      <p>Manage your game question lists. Each list contains categories and questions exported as game-ready JSON.</p>
+    </div>
+
+    <div class="ls-actions-row">
+      <div class="ls-search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="ls-search-input" id="listsSearch" type="text" placeholder="Search lists…">
+      </div>
+      <select class="ls-sort" id="listsSort">
+        <option value="updated">Last Updated</option>
+        <option value="created">Date Created</option>
+        <option value="title">Title A–Z</option>
+        <option value="questions">Most Questions</option>
+      </select>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <label class="btn btn-ghost" for="importFileMain" title="Import JSON">⬆ Import JSON</label>
+        <input type="file" id="importFileMain" accept=".json">
+        <button class="btn btn-primary" id="btnCreateList">＋ New List</button>
+      </div>
+    </div>
+
+    <div class="lists-grid" id="listsGrid">
+      <div class="ls-empty" style="grid-column:1/-1;">
+        <div class="spinner" style="margin:0 auto 16px;width:28px;height:28px;"></div>
+        <p style="color:var(--text2);">Loading lists…</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     SCREEN 2: EDITOR
+===================================================== -->
+<div class="screen" id="editorScreen">
+
+  <div class="editor-topbar">
+    <div class="breadcrumb">
+      <span class="bc-home" id="breadcrumbHome">Questions Manager</span>
+      <span class="bc-sep">/</span>
+      <span class="bc-current" id="breadcrumbCurrent">—</span>
+    </div>
+    <div class="ed-divider"></div>
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search questions…">
+    </div>
+    <select class="select-filter" id="filterClass">
+      <option value="all">All Classes</option>
+      <option value="CLASS_200">CLASS_200</option>
+      <option value="CLASS_400">CLASS_400</option>
+      <option value="CLASS_600">CLASS_600</option>
+      <option value="CLASS_800">CLASS_800</option>
+      <option value="CLASS_1000">CLASS_1000</option>
+    </select>
+    <select class="select-filter" id="filterStatus">
+      <option value="all">All Status</option>
+      <option value="ACTIVE">ACTIVE</option>
+      <option value="INACTIVE">INACTIVE</option>
+    </select>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" id="btnPreview">👁 Preview</button>
+      <label class="btn btn-ghost" for="importFileEditor">⬆ Import</label>
+      <input type="file" id="importFileEditor" accept=".json">
+      <button class="btn btn-success" id="btnExport">⬇ Export JSON</button>
+      <button class="btn btn-primary" id="btnAddQuestion">＋ Add Question</button>
+    </div>
+  </div>
+
+  <div class="categories-bar" id="categoriesBar"></div>
+
+  <div class="content-area">
+    <div class="questions-area">
+      <div class="questions-toolbar">
+        <span class="q-count" id="qCount">0 questions</span>
+        <div class="bulk-actions" id="bulkActions" style="display:none;">
+          <button class="btn btn-danger" id="btnBulkDelete">🗑 Delete Selected</button>
+        </div>
+        <div class="view-toggle">
+          <button class="view-btn active" id="viewTable" title="Table view">☰</button>
+          <button class="view-btn" id="viewGrid" title="Grid view">⊞</button>
+        </div>
+      </div>
+      <div id="questionsContainer"></div>
+    </div>
+  </div>
+</div>
+
+<!-- QUESTION EDITOR DRAWER -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer" id="questionDrawer">
+  <div class="drawer-head">
+    <div class="drawer-title" id="drawerTitle">Add Question</div>
+    <span class="unsaved-dot" id="unsavedDot" style="display:none;"></span>
+    <button class="icon-btn" id="btnCloseDrawer">✕</button>
+  </div>
+
+  <div class="drawer-body">
+
+    <!-- LEFT: FORM -->
+    <div class="form-panel">
+      <form id="questionForm" autocomplete="off">
+
+        <!-- QUESTION SETTINGS -->
+        <div class="form-section">
+          <div class="form-section-title">Question Settings</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Points</label>
+              <input class="form-input" id="fPoints" type="number" value="200" min="0" step="100">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <select class="form-select" id="fCategoryId"></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Question Type View</label>
+              <select class="form-select" id="fQuestionTypeView">
+                <option value="Regular_Question">Regular_Question</option>
+                <option value="Image_Question">Image_Question</option>
+                <option value="Video_Question">Video_Question</option>
+                <option value="Audio_Question">Audio_Question</option>
+                <option value="MultiChoice_Question">MultiChoice_Question</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-select" id="fStatus">
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="INACTIVE">INACTIVE</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- LAYOUT TEMPLATE -->
+        <div class="form-section">
+          <div class="form-section-title">Layout Template</div>
+          <div class="layout-thumbs" id="layoutThumbs">
+
+            <div class="layout-thumb active" data-layout="1">
+              <div class="lt-name">Text Only</div>
+              <div class="lt-viz">
+                <div class="lt-block lt-q"></div>
+                <div class="lt-block lt-q2"></div>
+                <div style="height:4px;"></div>
+                <div class="lt-block lt-a"></div>
+              </div>
+            </div>
+
+            <div class="layout-thumb" data-layout="2">
+              <div class="lt-name">Media Top</div>
+              <div class="lt-viz">
+                <div class="lt-block lt-media"></div>
+                <div class="lt-block lt-q"></div>
+                <div class="lt-block lt-a"></div>
+              </div>
+            </div>
+
+            <div class="layout-thumb" data-layout="3">
+              <div class="lt-name">Large Answer</div>
+              <div class="lt-viz">
+                <div class="lt-block lt-q"></div>
+                <div class="lt-block lt-q2"></div>
+                <div style="height:2px;"></div>
+                <div class="lt-block lt-a" style="height:20px;border-radius:4px;"></div>
+              </div>
+            </div>
+
+            <div class="layout-thumb" data-layout="4">
+              <div class="lt-name">Split View</div>
+              <div class="lt-viz">
+                <div class="lt-row">
+                  <div class="lt-block lt-media"></div>
+                  <div class="lt-text">
+                    <div class="lt-block lt-q"></div>
+                    <div class="lt-block lt-q2"></div>
+                    <div class="lt-block lt-a"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <!-- hidden input keeps the value -->
+          <input type="hidden" id="fLayoutTemplate" value="1">
+        </div>
+
+        <!-- QUESTION CONTENT -->
+        <div class="form-section">
+          <div class="form-section-title">Question Content</div>
+          <div class="form-row full">
+            <div class="form-group">
+              <label class="form-label">Question Text <span style="color:var(--red)">*</span></label>
+              <textarea class="form-textarea rtl" id="fQuestion" rows="4" placeholder="اكتب السؤال هنا…" required></textarea>
+            </div>
+          </div>
+          <div class="form-row full">
+            <div class="form-group">
+              <label class="form-label">Correct Answer <span style="color:var(--red)">*</span></label>
+              <input class="form-input rtl" id="fCorrectAnswer" type="text" placeholder="الإجابة الصحيحة" required>
+            </div>
+          </div>
+          <div class="form-row full">
+            <div class="form-group">
+              <label class="form-label">Label <span style="color:var(--text3);font-weight:400;">(optional)</span></label>
+              <input class="form-input" id="fLabel" type="text" placeholder="Optional label">
+            </div>
+          </div>
+        </div>
+
+        <!-- MEDIA -->
+        <div class="form-section">
+          <div class="form-section-title">Media</div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label">Images (URLs)</label>
+            <div class="media-field" id="imageFields"></div>
+            <button type="button" class="btn-add-note" id="btnAddImage">＋ Add image URL</button>
+          </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label">Videos (URLs)</label>
+            <div class="media-field" id="videoFields"></div>
+            <button type="button" class="btn-add-note" id="btnAddVideo">＋ Add video URL</button>
+          </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label">Audio (URLs)</label>
+            <div class="media-field" id="audioFields"></div>
+            <button type="button" class="btn-add-note" id="btnAddAudio">＋ Add audio URL</button>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Correct Answer Media (URL)</label>
+            <div class="media-row">
+              <div class="media-preview-wrap" id="ansMediaPreviewWrap" style="display:none;">
+                <img class="media-preview-img" id="ansMediaPreview" src="" alt="">
+                <button type="button" class="media-remove" id="btnRemoveAnsMedia">✕</button>
+              </div>
+              <div class="form-input-wrap">
+                <input class="form-input" id="fCorrectAnswerMedia" type="text" placeholder="https://…">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADVANCED -->
+        <div class="form-section">
+          <div class="form-section-title">Advanced</div>
+          <div class="toggle-row">
+            <span class="toggle-label">Fix Question</span>
+            <label class="toggle"><input type="checkbox" id="fFixQuestion"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label">Duplicate Question</span>
+            <label class="toggle"><input type="checkbox" id="fDuplicateQuestion"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="form-group" style="margin-top:14px;">
+            <label class="form-label">Notes</label>
+            <div class="notes-list" id="notesFields"></div>
+            <button type="button" class="btn-add-note" id="btnAddNote">＋ Add note</button>
+          </div>
+          <div class="form-group" style="margin-top:14px;">
+            <label class="form-label">Hint Question (JSON)</label>
+            <textarea class="form-textarea" id="fHintQuestion" rows="2" placeholder="{}">{}</textarea>
+            <span class="form-hint">Enter a valid JSON object</span>
+          </div>
+          <div class="form-group" style="margin-top:14px;">
+            <label class="form-label">Team Index</label>
+            <input class="form-input" id="fTeamIndex" type="number" value="1" min="1" max="10">
+          </div>
+          <div class="form-group" style="margin-top:14px;">
+            <label class="form-label">User ID</label>
+            <input class="form-input" id="fUserId" type="text" placeholder="User ObjectId">
+          </div>
+        </div>
+
+      </form>
+    </div><!-- /form-panel -->
+
+    <!-- RIGHT: LIVE PREVIEW -->
+    <div class="preview-panel">
+      <div class="preview-panel-head">Live Preview</div>
+      <div class="preview-panel-body">
+
+        <!-- Layout schematic -->
+        <div class="lp-layout-schematic" id="lpSchematic">
+          <div class="lp-layout-label" id="lpSchematicLabel">Layout 1 — Text Only</div>
+          <div id="lpSchematicViz"></div>
+        </div>
+
+        <!-- Live question card -->
+        <div id="livePreviewCard">
+          <div class="lp-empty">Start filling in the form to see the question preview here.</div>
+        </div>
+
+      </div>
+    </div><!-- /preview-panel -->
+
+  </div><!-- /drawer-body -->
+
+  <div class="drawer-foot">
+    <button class="btn btn-ghost" id="btnCancelDrawer">Cancel</button>
+    <button class="btn btn-primary" id="btnSaveQuestion">Save Question</button>
+  </div>
+</div>
+
+<!-- PREVIEW MODAL -->
+<div class="preview-modal" id="previewModal">
+  <div class="preview-topbar">
+    <span style="font-size:20px;">🎮</span>
+    <span style="font-size:15px;font-weight:600;">Game Questions Preview</span>
+    <span id="previewListName" style="color:var(--text2);font-size:13px;"></span>
+    <button class="btn btn-ghost" id="btnClosePreview" style="margin-left:auto;">✕ Close Preview</button>
+  </div>
+  <div class="preview-content" id="previewContent"></div>
+</div>
+
+<!-- NEW LIST MODAL -->
+<div class="modal-overlay" id="newListModal">
+  <div class="modal">
+    <div class="modal-head">
+      <span style="font-size:20px;">📋</span>
+      <h3 id="newListModalTitle">Create New List</h3>
+      <button class="icon-btn" id="btnCloseNewListModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <label class="modal-label">List Title <span style="color:var(--red)">*</span></label>
+        <input class="modal-input" id="newListTitle" type="text" placeholder="e.g. Game Night — Season 3" maxlength="120">
+      </div>
+      <div class="modal-section" id="renameListSection" style="display:none;">
+        <p style="font-size:12px;color:var(--text3);">Renaming only updates the title. All questions and categories remain unchanged.</p>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="btnCancelNewList">Cancel</button>
+      <button class="btn btn-primary" id="btnConfirmNewList">Create List</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="dialog-overlay" id="confirmOverlay">
+  <div class="dialog">
+    <h3 id="confirmTitle">Confirm</h3>
+    <p id="confirmMsg">Are you sure?</p>
+    <div class="dialog-actions">
+      <button class="btn btn-ghost" id="confirmCancel">Cancel</button>
+      <button class="btn btn-danger" id="confirmOk">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+'use strict';
+
+/* =====================================================
+   CONFIG
+   Override window.QUESTIONS_API_BASE before this script loads
+   to point at a different backend host.
+===================================================== */
+const CONFIG = {
+  API_BASE: (typeof window.QUESTIONS_API_BASE !== 'undefined')
+    ? window.QUESTIONS_API_BASE
+    : 'http://localhost:3001/api'
+};
+
+const CLASS_POINTS = { CLASS_200:200, CLASS_400:400, CLASS_600:600, CLASS_800:800, CLASS_1000:1000 };
+const STORAGE_KEY  = 'so2algawab_lists_v3';
+
+/* =====================================================
+   API SERVICE LAYER
+   Tries backend first; falls back to localStorage
+===================================================== */
+const DB = {
+  connected: false,
+
+  async ping() {
+    try {
+      const ctrl = new AbortController();
+      setTimeout(() => ctrl.abort(), 2500);
+      const r = await fetch(CONFIG.API_BASE + '/health', { signal: ctrl.signal });
+      this.connected = r.ok;
+    } catch { this.connected = false; }
+    updateConnBadge();
+    return this.connected;
+  },
+
+  async getLists() {
+    if (this.connected) {
+      try {
+        const r = await fetch(CONFIG.API_BASE + '/lists');
+        if (r.ok) return await r.json();
+      } catch(e) { this._onOffline(e); }
+    }
+    return LocalDB.getLists();
+  },
+
+  async getList(id) {
+    if (this.connected) {
+      try {
+        const r = await fetch(`${CONFIG.API_BASE}/lists/${id}`);
+        if (r.ok) return await r.json();
+      } catch(e) { this._onOffline(e); }
+    }
+    return LocalDB.getList(id);
+  },
+
+  async createList(payload) {
+    if (this.connected) {
+      try {
+        const r = await fetch(CONFIG.API_BASE + '/lists', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (r.ok) return await r.json();
+      } catch(e) { this._onOffline(e); }
+    }
+    return LocalDB.createList(payload);
+  },
+
+  async updateList(id, payload) {
+    if (this.connected) {
+      try {
+        const r = await fetch(`${CONFIG.API_BASE}/lists/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (r.ok) return await r.json();
+      } catch(e) { this._onOffline(e); }
+    }
+    return LocalDB.updateList(id, payload);
+  },
+
+  async deleteList(id) {
+    if (this.connected) {
+      try {
+        const r = await fetch(`${CONFIG.API_BASE}/lists/${id}`, { method: 'DELETE' });
+        if (r.ok) { LocalDB.deleteList(id); return true; }
+      } catch(e) { this._onOffline(e); }
+    }
+    return LocalDB.deleteList(id);
+  },
+
+  async exportList(id) {
+    if (this.connected) {
+      try {
+        const r = await fetch(`${CONFIG.API_BASE}/lists/${id}/export`);
+        if (r.ok) return await r.json();
+      } catch(e) { this._onOffline(e); }
+    }
+    const list = LocalDB.getList(id);
+    return list ? { status: true, data: list.questions } : null;
+  },
+
+  _onOffline(e) {
+    console.warn('[DB] backend unreachable, switching to local', e?.message);
+    this.connected = false;
+    updateConnBadge();
+  }
+};
+
+/* =====================================================
+   LOCAL DB  (localStorage fallback)
+===================================================== */
+const LocalDB = {
+  _load() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  },
+  _save(lists) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(lists)); }
+    catch(e) { console.warn('localStorage save failed', e); }
+  },
+  getLists()     { return this._load(); },
+  getList(id)    { return this._load().find(l => l.id === id) || null; },
+  createList(p)  {
+    const lists = this._load();
+    lists.push(p);
+    this._save(lists);
+    return p;
+  },
+  updateList(id, p) {
+    const lists = this._load();
+    const i = lists.findIndex(l => l.id === id);
+    if (i === -1) return null;
+    lists[i] = { ...lists[i], ...p, id };
+    this._save(lists);
+    return lists[i];
+  },
+  deleteList(id) {
+    const lists = this._load().filter(l => l.id !== id);
+    this._save(lists);
+    return true;
+  }
+};
+
+/* =====================================================
+   UI HELPERS
+===================================================== */
+function updateConnBadge() {
+  const badge = document.getElementById('connBadge');
+  const label = document.getElementById('connLabel');
+  badge.className = 'conn-badge ' + (DB.connected ? 'connected' : 'local');
+  label.textContent = DB.connected ? 'Backend Connected' : 'Local Storage';
+}
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${type === 'success' ? '✅' : '❌'}</span> ${msg}`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function showConfirm(title, msg) {
+  return new Promise(resolve => {
+    document.getElementById('confirmTitle').textContent  = title;
+    document.getElementById('confirmMsg').textContent    = msg;
+    const overlay = document.getElementById('confirmOverlay');
+    overlay.classList.add('open');
+    const ok = document.getElementById('confirmOk');
+    const cancel = document.getElementById('confirmCancel');
+    const cleanup = val => { overlay.classList.remove('open'); ok.onclick = cancel.onclick = overlay.onclick = null; resolve(val); };
+    ok.onclick     = () => cleanup(true);
+    cancel.onclick = () => cleanup(false);
+    overlay.onclick = e => { if (e.target === overlay) cleanup(false); };
+  });
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }); }
+  catch { return iso; }
+}
+
+function uid()          { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fakeObjectId() { return Array.from({length:24}, () => Math.floor(Math.random()*16).toString(16)).join(''); }
+function nowISO()       { return new Date().toISOString(); }
+
+/* =====================================================
+   APP STATE
+===================================================== */
+let appState = {
+  activeListId: null,
+  activeCategoryId: 'all',
+  search: '',
+  filterClass: 'all',
+  filterStatus: 'all',
+  viewMode: 'table',
+  selectedIds: new Set(),
+  editingQuestionId: null,
+  listsSearch: '',
+  listsSort: 'updated',
+  cachedLists: [],    // last fetched list array
+  activeListData: null  // full list object currently in editor
+};
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.body.style.overflow = id === 'listsScreen' ? 'hidden' : 'hidden';
+}
+
+/* =====================================================
+   LISTS SCREEN
+===================================================== */
+async function loadListsScreen() {
+  showScreen('listsScreen');
+  appState.activeListId   = null;
+  appState.activeListData = null;
+  renderListsGrid(null); // show loading spinner
+  const lists = await DB.getLists();
+  appState.cachedLists = lists;
+  renderListsGrid(lists);
+}
+
+function renderListsGrid(lists) {
+  const grid = document.getElementById('listsGrid');
+
+  if (lists === null) {
+    grid.innerHTML = `<div class="ls-empty" style="grid-column:1/-1;"><div class="spinner" style="margin:0 auto 16px;width:28px;height:28px;"></div><p style="color:var(--text2);">Loading…</p></div>`;
+    return;
+  }
+
+  let filtered = lists;
+  const q = appState.listsSearch.toLowerCase();
+  if (q) filtered = filtered.filter(l => l.title.toLowerCase().includes(q));
+
+  const sort = appState.listsSort;
+  filtered.sort((a,b) => {
+    if (sort === 'title')     return a.title.localeCompare(b.title);
+    if (sort === 'questions') return (b.questions?.length||0) - (a.questions?.length||0);
+    if (sort === 'created')   return new Date(b.createdAt) - new Date(a.createdAt);
+    return new Date(b.updatedAt||b.createdAt) - new Date(a.updatedAt||a.createdAt);
+  });
+
+  if (!filtered.length) {
+    grid.innerHTML = `
+      <div class="ls-empty" style="grid-column:1/-1;">
+        <div class="ls-empty-icon">📭</div>
+        <h3>${q ? 'No lists match your search' : 'No question lists yet'}</h3>
+        <p>${q ? 'Try a different search term.' : 'Create your first list to get started organizing game questions.'}</p>
+        ${!q ? '<button class="btn btn-primary" onclick="openNewListModal()" style="margin:0 auto;">＋ Create First List</button>' : ''}
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(list => {
+    const qCount  = list.questions?.length || 0;
+    const catCount = list.categories?.length || 0;
+    return `
+      <div class="list-card" data-list-id="${list.id}">
+        <div class="list-card-top">
+          <div class="list-card-icon">🎮</div>
+          <div class="list-card-title">${escHtml(list.title)}</div>
+          <div class="list-card-id">ID: ${escHtml(list.id)}</div>
+        </div>
+        <div class="list-card-stats">
+          <div class="stat-item">
+            <div class="stat-val">${qCount}</div>
+            <div class="stat-lbl">Questions</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val">${catCount}</div>
+            <div class="stat-lbl">Categories</div>
+          </div>
+        </div>
+        <div class="list-card-meta">
+          <span>📅 Created ${fmtDate(list.createdAt)}</span>
+          <span>✏️ Updated ${fmtDate(list.updatedAt)}</span>
+        </div>
+        <div class="list-card-actions">
+          <button class="btn btn-primary" style="flex:1;justify-content:center;" data-action="open-list" data-id="${list.id}">Open →</button>
+          <button class="btn btn-ghost" data-action="rename-list" data-id="${list.id}" title="Rename">✏️</button>
+          <button class="btn btn-ghost" data-action="export-list" data-id="${list.id}" title="Export JSON">⬇</button>
+          <button class="icon-btn danger" data-action="delete-list" data-id="${list.id}" title="Delete" style="padding:8px;">🗑</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* =====================================================
+   EDITOR SCREEN
+===================================================== */
+async function openListEditor(listId) {
+  const list = await DB.getList(listId);
+  if (!list) { toast('Could not load list', 'error'); return; }
+  appState.activeListId   = listId;
+  appState.activeListData = JSON.parse(JSON.stringify(list)); // deep clone
+  appState.activeCategoryId = 'all';
+  appState.selectedIds.clear();
+  document.getElementById('breadcrumbCurrent').textContent = list.title;
+  showScreen('editorScreen');
+  renderCategoriesBar();
+  renderQuestions();
+}
+
+async function persistList() {
+  const list = appState.activeListData;
+  if (!list) return;
+  list.updatedAt = nowISO();
+  await DB.updateList(list.id, list);
+}
+
+/* =====================================================
+   RENDER: CATEGORIES BAR
+===================================================== */
+function renderCategoriesBar() {
+  const list = appState.activeListData;
+  const bar  = document.getElementById('categoriesBar');
+  if (!list) { bar.innerHTML = ''; return; }
+
+  const cats = [...(list.categories || [])].sort((a,b) => a.order - b.order);
+  const allActive = appState.activeCategoryId === 'all';
+
+  bar.innerHTML = `
+    <button class="cat-tab ${allActive?'active':''}" data-cat-id="all">
+      All <span class="cat-count">${list.questions.length}</span>
+    </button>
+    ${cats.map(cat => {
+      const count = list.questions.filter(q => q.categoryId === cat.id).length;
+      const isActive = appState.activeCategoryId === cat.id;
+      return `
+        <button class="cat-tab ${isActive?'active':''}" data-cat-id="${cat.id}" draggable="true" title="${escHtml(cat.name)}">
+          ${escHtml(cat.name)}
+          <span class="cat-count">${count}</span>
+          <span class="cat-actions">
+            <span class="icon-btn" data-action="rename-cat" data-id="${cat.id}">✏️</span>
+            <span class="icon-btn danger" data-action="delete-cat" data-id="${cat.id}">🗑</span>
+          </span>
+        </button>
+      `;
+    }).join('')}
+    <button class="btn-add-cat" id="btnAddCat">＋ Category</button>
+  `;
+  setupCatDrag();
+}
+
+/* =====================================================
+   RENDER: QUESTIONS
+===================================================== */
+function filteredQuestions() {
+  const list = appState.activeListData;
+  if (!list) return [];
+  let qs = list.questions;
+  if (appState.activeCategoryId !== 'all') qs = qs.filter(q => q.categoryId === appState.activeCategoryId);
+  if (appState.search) {
+    const s = appState.search.toLowerCase();
+    qs = qs.filter(q => {
+      const gq = q.GamesQuestion || {};
+      return (gq.question||'').toLowerCase().includes(s) || (gq.correctAnswer||'').toLowerCase().includes(s) || (gq.label||'').toLowerCase().includes(s);
+    });
+  }
+  if (appState.filterClass  !== 'all') qs = qs.filter(q => q.class === appState.filterClass);
+  if (appState.filterStatus !== 'all') qs = qs.filter(q => (q.GamesQuestion?.status||'') === appState.filterStatus);
+  return qs;
+}
+
+function renderQuestions() {
+  const qs = filteredQuestions();
+  const container = document.getElementById('questionsContainer');
+  document.getElementById('qCount').textContent = `${qs.length} question${qs.length !== 1 ? 's' : ''}`;
+
+  if (!qs.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>${appState.search ? 'No questions match your search.' : 'No questions yet.'}</p></div>`;
+    return;
+  }
+
+  const list = appState.activeListData;
+  if (appState.viewMode === 'grid') {
+    container.innerHTML = `<div class="q-grid">${qs.map(q => renderQCard(q, list)).join('')}</div>`;
+  } else {
+    container.innerHTML = renderQTable(qs, list);
+    setupTableDrag();
+  }
+  updateBulkActions();
+}
+
+function getCatName(list, catId) {
+  const cat = (list.categories||[]).find(c => c.id === catId);
+  return cat ? cat.name : catId ? catId.slice(0,8)+'…' : 'Unknown';
+}
+
+function badgeForClass(cls) {
+  const map = { CLASS_200:'badge-blue', CLASS_400:'badge-amber', CLASS_600:'badge-purple', CLASS_800:'badge-red', CLASS_1000:'badge-green' };
+  return `<span class="badge ${map[cls]||'badge-gray'}">${cls||'—'}</span>`;
+}
+
+function renderQTable(qs, list) {
+  const rows = qs.map(q => {
+    const gq  = q.GamesQuestion || {};
+    const sel = appState.selectedIds.has(q.questionId);
+    let mediaCell = '<span style="color:var(--text3)">—</span>';
+    if (gq.image?.[0]) mediaCell = `<img class="media-thumb" src="${escHtml(gq.image[0])}" loading="lazy" onerror="this.style.display='none'">`;
+    else if (gq.video?.[0]) mediaCell = `<div class="media-icon">🎬</div>`;
+    else if (gq.audio?.[0]) mediaCell = `<div class="media-icon">🎵</div>`;
+    const statusBadge = gq.status === 'ACTIVE' ? `<span class="badge badge-green">ACTIVE</span>` : `<span class="badge badge-red">${gq.status||'—'}</span>`;
+    return `
+      <tr data-q-id="${q.questionId}" draggable="true" class="${sel?'selected':''}">
+        <td><span class="drag-handle">⠿</span></td>
+        <td><input class="cb" type="checkbox" data-q-id="${q.questionId}" ${sel?'checked':''}></td>
+        <td><span style="color:var(--text3);font-size:12px;">#${q.id}</span></td>
+        <td>
+          <div class="q-text q-text-truncate" title="${escHtml(gq.question||'')}">${escHtml(gq.question||'—')}</div>
+          <div class="q-answer">${escHtml(gq.correctAnswer||'')}</div>
+        </td>
+        <td><span style="font-size:12px;color:var(--text2);">${escHtml(getCatName(list,q.categoryId))}</span></td>
+        <td>${badgeForClass(q.class)}</td>
+        <td><span class="badge badge-blue">${q.points||0} pts</span></td>
+        <td>${mediaCell}</td>
+        <td>${statusBadge}</td>
+        <td>
+          <div class="row-actions">
+            <button class="icon-btn" data-action="edit-q" data-q-id="${q.questionId}">✏️</button>
+            <button class="icon-btn" data-action="dupe-q" data-q-id="${q.questionId}">📋</button>
+            <button class="icon-btn danger" data-action="del-q" data-q-id="${q.questionId}">🗑</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+  return `
+    <table class="q-table">
+      <thead><tr>
+        <th style="width:28px;"></th>
+        <th style="width:28px;"><input class="cb" type="checkbox" id="selectAll"></th>
+        <th>#</th><th>Question / Answer</th><th>Category</th><th>Class</th><th>Points</th><th>Media</th><th>Status</th><th>Actions</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function renderQCard(q, list) {
+  const gq  = q.GamesQuestion || {};
+  const sel = appState.selectedIds.has(q.questionId);
+  let media = '';
+  if (gq.image?.[0]) media = `<img src="${escHtml(gq.image[0])}" loading="lazy" onerror="this.style.display='none'">`;
+  else if (gq.video?.[0]) media = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:36px;">🎬</div>`;
+  else if (gq.audio?.[0]) media = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:36px;">🎵</div>`;
+  return `
+    <div class="q-card ${sel?'selected':''}" data-q-id="${q.questionId}">
+      <div class="q-card-media">${media}</div>
+      <div class="q-card-body">
+        <div class="q-card-badges">${badgeForClass(q.class)}<span class="badge badge-blue">${q.points||0} pts</span><span class="badge badge-gray">${escHtml(getCatName(list,q.categoryId))}</span></div>
+        <div class="q-card-question">${escHtml(gq.question||'—')}</div>
+        <div class="q-card-answer"><small>Correct Answer</small><span>${escHtml(gq.correctAnswer||'—')}</span></div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="btn btn-ghost" style="flex:1;justify-content:center;font-size:12px;" data-action="edit-q" data-q-id="${q.questionId}">✏️ Edit</button>
+          <button class="icon-btn" data-action="dupe-q" data-q-id="${q.questionId}">📋</button>
+          <button class="icon-btn danger" data-action="del-q" data-q-id="${q.questionId}">🗑</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function updateBulkActions() {
+  document.getElementById('bulkActions').style.display = appState.selectedIds.size > 0 ? 'flex' : 'none';
+}
+
+/* =====================================================
+   DRAWER
+===================================================== */
+function openDrawer(questionId) {
+  appState.editingQuestionId = questionId || null;
+  const list  = appState.activeListData;
+  const isNew = !questionId;
+  document.getElementById('drawerTitle').textContent  = isNew ? 'Add Question' : 'Edit Question';
+  document.getElementById('unsavedDot').style.display = 'none';
+
+  // Populate category select
+  const catSel = document.getElementById('fCategoryId');
+  catSel.innerHTML = (list?.categories||[]).map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('');
+
+  if (isNew) {
+    document.getElementById('questionForm').reset();
+    document.getElementById('fHintQuestion').value = '{}';
+    setLayoutThumb(2); // default layout
+    if (appState.activeCategoryId !== 'all' && list?.categories.find(c => c.id === appState.activeCategoryId)) catSel.value = appState.activeCategoryId;
+    clearMediaFields(); addMediaField('imageFields',''); addMediaField('videoFields',''); addMediaField('audioFields','');
+    clearNotes([]);
+  } else {
+    const q = list.questions.find(q => q.questionId === questionId || q.GamesQuestion?.id === questionId);
+    if (!q) { closeDrawer(); return; }
+    populateDrawer(q, q.GamesQuestion || {});
+  }
+
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('questionDrawer').classList.add('open');
+  updateLivePreview();
+}
+
+function populateDrawer(q, gq) {
+  document.getElementById('fPoints').value           = q.points || 200;
+  document.getElementById('fTeamIndex').value        = q.teamIndex || 1;
+  document.getElementById('fCategoryId').value       = q.categoryId || '';
+  document.getElementById('fQuestion').value         = gq.question || '';
+  document.getElementById('fCorrectAnswer').value    = gq.correctAnswer || '';
+  document.getElementById('fQuestionTypeView').value = gq.questionTypeView || 'Regular_Question';
+  document.getElementById('fStatus').value           = gq.status || 'ACTIVE';
+  document.getElementById('fLabel').value            = gq.label || '';
+  document.getElementById('fFixQuestion').checked    = !!gq.fixQuestion;
+  document.getElementById('fDuplicateQuestion').checked = !!gq.duplicateQuestion;
+  document.getElementById('fCorrectAnswerMedia').value  = gq.correctAnswerMedia || '';
+  document.getElementById('fHintQuestion').value     = JSON.stringify(gq.hintQuestion || {}, null, 2);
+  document.getElementById('fUserId').value           = q.userId || '';
+  setLayoutThumb(gq.layoutTemplate || 2);
+  updateAnsMediaPreview(gq.correctAnswerMedia || '');
+  clearMediaFields();
+  (gq.image?.length ? gq.image : ['']).forEach(url => addMediaField('imageFields', url));
+  (gq.video?.length ? gq.video : ['']).forEach(url => addMediaField('videoFields', url));
+  (gq.audio?.length ? gq.audio : ['']).forEach(url => addMediaField('audioFields', url));
+  clearNotes(gq.note || []);
+}
+
+function clearMediaFields() { ['imageFields','videoFields','audioFields'].forEach(id => document.getElementById(id).innerHTML = ''); }
+function addMediaField(containerId, url) {
+  const type = containerId.includes('image') ? 'image' : containerId.includes('video') ? 'video' : 'audio';
+  const container = document.getElementById(containerId);
+  const row = document.createElement('div');
+  row.className = 'media-row';
+  row.innerHTML = `<div class="form-input-wrap"><input class="form-input media-url-input" data-type="${type}" type="text" placeholder="https://…" value="${escHtml(url||'')}"><span class="form-hint">${type} URL</span></div><button type="button" class="icon-btn danger media-remove-btn">✕</button>`;
+  row.querySelector('.media-remove-btn').onclick = () => row.remove();
+  container.appendChild(row);
+}
+function clearNotes(notes) { document.getElementById('notesFields').innerHTML = ''; (notes||[]).forEach(n => addNoteField(n)); }
+function addNoteField(val) {
+  const container = document.getElementById('notesFields');
+  const row = document.createElement('div');
+  row.className = 'note-item';
+  row.innerHTML = `<input class="form-input note-input" type="text" placeholder="Note…" value="${escHtml(val||'')}"><button type="button" class="icon-btn danger" onclick="this.parentElement.remove()">✕</button>`;
+  container.appendChild(row);
+}
+function updateAnsMediaPreview(url) {
+  const wrap = document.getElementById('ansMediaPreviewWrap');
+  const img  = document.getElementById('ansMediaPreview');
+  if (url) { wrap.style.display = 'block'; img.src = url; }
+  else      { wrap.style.display = 'none'; }
+}
+function closeDrawer() {
+  appState.editingQuestionId = null;
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('questionDrawer').classList.remove('open');
+}
+
+/* Layout template thumb selector */
+const LAYOUT_META = {
+  1: { name:'Layout 1 — Text Only',   schematic: buildSchematic1 },
+  2: { name:'Layout 2 — Media Top',   schematic: buildSchematic2 },
+  3: { name:'Layout 3 — Large Answer',schematic: buildSchematic3 },
+  4: { name:'Layout 4 — Split View',  schematic: buildSchematic4 }
+};
+
+function setLayoutThumb(val) {
+  const n = parseInt(val) || 2;
+  document.getElementById('fLayoutTemplate').value = n;
+  document.querySelectorAll('.layout-thumb').forEach(t => {
+    t.classList.toggle('active', parseInt(t.dataset.layout) === n);
+  });
+  const meta = LAYOUT_META[n] || LAYOUT_META[2];
+  document.getElementById('lpSchematicLabel').textContent = meta.name;
+  document.getElementById('lpSchematicViz').innerHTML = meta.schematic();
+  updateLivePreview();
+}
+
+function buildSchematic1() {
+  return `<div style="display:flex;flex-direction:column;gap:6px;padding:8px 0;">
+    <div style="height:12px;background:rgba(255,255,255,0.15);border-radius:4px;"></div>
+    <div style="height:10px;background:rgba(255,255,255,0.09);border-radius:4px;width:75%;"></div>
+    <div style="height:8px;background:rgba(255,255,255,0.06);border-radius:4px;width:55%;"></div>
+    <div style="height:10px;background:rgba(34,197,94,0.25);border-radius:4px;margin-top:4px;"></div>
+    <div style="font-size:10px;color:var(--text3);margin-top:4px;">No media — question text fills the card</div>
+  </div>`;
+}
+function buildSchematic2() {
+  return `<div style="display:flex;flex-direction:column;gap:4px;padding:4px 0;">
+    <div style="height:36px;background:rgba(37,99,235,0.2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#60a5fa;">🖼 Media</div>
+    <div style="height:10px;background:rgba(255,255,255,0.15);border-radius:4px;margin-top:4px;"></div>
+    <div style="height:8px;background:rgba(255,255,255,0.09);border-radius:4px;width:70%;"></div>
+    <div style="height:10px;background:rgba(34,197,94,0.25);border-radius:4px;margin-top:2px;"></div>
+    <div style="font-size:10px;color:var(--text3);margin-top:4px;">Media on top, question + answer below</div>
+  </div>`;
+}
+function buildSchematic3() {
+  return `<div style="display:flex;flex-direction:column;gap:4px;padding:4px 0;">
+    <div style="height:10px;background:rgba(255,255,255,0.15);border-radius:4px;"></div>
+    <div style="height:8px;background:rgba(255,255,255,0.09);border-radius:4px;width:80%;"></div>
+    <div style="height:8px;background:rgba(255,255,255,0.06);border-radius:4px;width:60%;"></div>
+    <div style="height:18px;background:rgba(34,197,94,0.3);border-radius:6px;margin-top:6px;border:1px solid rgba(34,197,94,0.4);"></div>
+    <div style="font-size:10px;color:var(--text3);margin-top:4px;">Question text prominent, large answer block</div>
+  </div>`;
+}
+function buildSchematic4() {
+  return `<div style="display:flex;gap:6px;padding:4px 0;align-items:stretch;">
+    <div style="flex:1;height:52px;background:rgba(37,99,235,0.2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#60a5fa;">🖼</div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:4px;justify-content:center;">
+      <div style="height:9px;background:rgba(255,255,255,0.15);border-radius:4px;"></div>
+      <div style="height:7px;background:rgba(255,255,255,0.09);border-radius:4px;width:80%;"></div>
+      <div style="height:9px;background:rgba(34,197,94,0.25);border-radius:4px;margin-top:2px;"></div>
+    </div>
+  </div>
+  <div style="font-size:10px;color:var(--text3);margin-top:6px;">Media left, question + answer right</div>`;
+}
+
+function collectDrawerData() {
+  const images = [...document.querySelectorAll('#imageFields .media-url-input')].map(i => i.value.trim());
+  const videos = [...document.querySelectorAll('#videoFields .media-url-input')].map(i => i.value.trim());
+  const audios = [...document.querySelectorAll('#audioFields .media-url-input')].map(i => i.value.trim());
+  const notes  = [...document.querySelectorAll('.note-input')].map(i => i.value.trim()).filter(Boolean);
+  let hintQuestion = {};
+  try { hintQuestion = JSON.parse(document.getElementById('fHintQuestion').value || '{}'); } catch(e){}
+
+  const points     = parseInt(document.getElementById('fPoints').value) || 200;
+  const layout     = parseInt(document.getElementById('fLayoutTemplate').value) || 2;
+  const categoryId = document.getElementById('fCategoryId').value;
+  const question   = document.getElementById('fQuestion').value.trim();
+  const correctAnswer = document.getElementById('fCorrectAnswer').value.trim();
+
+  if (!question)      { toast('Question text is required', 'error'); return null; }
+  if (!correctAnswer) { toast('Correct answer is required', 'error'); return null; }
+  if (!categoryId)    { toast('Please select a category', 'error'); return null; }
+
+  // Auto-derive class from points
+  const cls = points >= 1000 ? 'CLASS_1000'
+            : points >= 800  ? 'CLASS_800'
+            : points >= 600  ? 'CLASS_600'
+            : points >= 400  ? 'CLASS_400'
+            : 'CLASS_200';
+
+  return {
+    categoryId, class: cls,
+    buttonClick: 'TeamOne',   // default; not exposed in UI
+    points,
+    teamIndex: parseInt(document.getElementById('fTeamIndex').value) || 1,
+    userId: document.getElementById('fUserId').value.trim(),
+    GamesQuestion: {
+      categoryId, question, correctAnswer,
+      correctAnswerMedia: document.getElementById('fCorrectAnswerMedia').value.trim(),
+      questionTypeView: document.getElementById('fQuestionTypeView').value,
+      layoutTemplate: layout,
+      class: cls,
+      image: images.length ? images : [''],
+      video: videos.length ? videos : [''],
+      audio: audios.length ? audios : [''],
+      status: document.getElementById('fStatus').value,
+      fixQuestion: document.getElementById('fFixQuestion').checked,
+      duplicateQuestion: document.getElementById('fDuplicateQuestion').checked,
+      label: document.getElementById('fLabel').value.trim(),
+      note: notes, hintQuestion, deletedAt: null
+    }
+  };
+}
+
+async function saveQuestion() {
+  const data = collectDrawerData();
+  if (!data) return;
+  const list = appState.activeListData;
+  if (!list) return;
+
+  if (appState.editingQuestionId) {
+    const idx = list.questions.findIndex(q => q.questionId === appState.editingQuestionId || q.GamesQuestion?.id === appState.editingQuestionId);
+    if (idx === -1) { toast('Question not found', 'error'); return; }
+    const ex = list.questions[idx];
+    list.questions[idx] = { ...ex, categoryId:data.categoryId, class:data.class, buttonClick:data.buttonClick, points:data.points, teamIndex:data.teamIndex, userId:data.userId||ex.userId, GamesQuestion:{ ...ex.GamesQuestion, ...data.GamesQuestion, id:ex.questionId, updatedAt:nowISO() } };
+    toast('Question updated');
+  } else {
+    const qId = fakeObjectId();
+    list.questions.push({
+      id: Math.floor(Math.random()*90000)+1000, userId:data.userId||'', categoryId:data.categoryId, class:data.class, buttonClick:data.buttonClick, rightAnswerGivenByTeam:null, points:data.points, questionId:qId, teamIndex:data.teamIndex,
+      GamesQuestion:{ ...data.GamesQuestion, id:qId, createdAt:nowISO(), updatedAt:nowISO() }
+    });
+    toast('Question added');
+  }
+
+  await persistList();
+  closeDrawer();
+  renderCategoriesBar();
+  renderQuestions();
+}
+
+/* =====================================================
+   LIVE PREVIEW  (always visible in right panel)
+===================================================== */
+function updateLivePreview() {
+  const container = document.getElementById('livePreviewCard');
+  if (!container) return;
+
+  // Collect values directly without validation toasts
+  const question      = document.getElementById('fQuestion')?.value.trim() || '';
+  const correctAnswer = document.getElementById('fCorrectAnswer')?.value.trim() || '';
+  const points        = parseInt(document.getElementById('fPoints')?.value) || 200;
+  const layout        = parseInt(document.getElementById('fLayoutTemplate')?.value) || 2;
+  const qtv           = document.getElementById('fQuestionTypeView')?.value || 'Regular_Question';
+  const status        = document.getElementById('fStatus')?.value || 'ACTIVE';
+  const label         = document.getElementById('fLabel')?.value.trim() || '';
+  const ansMedia      = document.getElementById('fCorrectAnswerMedia')?.value.trim() || '';
+  const images        = [...document.querySelectorAll('#imageFields .media-url-input')].map(i => i.value.trim()).filter(Boolean);
+  const videos        = [...document.querySelectorAll('#videoFields .media-url-input')].map(i => i.value.trim()).filter(Boolean);
+  const audios        = [...document.querySelectorAll('#audioFields .media-url-input')].map(i => i.value.trim()).filter(Boolean);
+
+  if (!question && !correctAnswer) {
+    container.innerHTML = `<div class="lp-empty">Start filling in the form to see the question preview here.</div>`;
+    return;
+  }
+
+  const cls = points >= 1000 ? 'CLASS_1000' : points >= 800 ? 'CLASS_800' : points >= 600 ? 'CLASS_600' : points >= 400 ? 'CLASS_400' : 'CLASS_200';
+
+  // Build media section based on layout
+  let mediaHtml = '';
+  if (layout === 4) {
+    // Split — handled in card body below
+  } else if (layout === 2 && images[0]) {
+    mediaHtml = `<div class="lp-card-media"><img src="${escHtml(images[0])}" onerror="this.style.display='none'" loading="lazy"></div>`;
+  } else if (layout === 2 && videos[0]) {
+    mediaHtml = `<div class="lp-card-media" style="height:100px;display:flex;align-items:center;justify-content:center;font-size:32px;background:#020617;">🎬</div>`;
+  }
+
+  const audioHtml = audios[0]
+    ? `<audio class="lp-audio" controls><source src="${escHtml(audios[0])}"></audio>` : '';
+
+  const badgesHtml = `
+    <div class="lp-badges">
+      <span class="lp-badge">⭐ ${points} pts</span>
+      <span class="lp-badge">${escHtml(qtv.replace(/_/g,' '))}</span>
+      ${label ? `<span class="lp-badge">${escHtml(label)}</span>` : ''}
+      ${status !== 'ACTIVE' ? `<span class="lp-badge" style="color:var(--amber);">${escHtml(status)}</span>` : ''}
+    </div>`;
+
+  const questionHtml = question
+    ? `<div class="lp-question">${escHtml(question)}</div>` : '';
+
+  const answerHtml = correctAnswer
+    ? `<div class="lp-answer"><small>Correct Answer</small><span>${escHtml(correctAnswer)}</span></div>` : '';
+
+  const metaHtml = `<div class="lp-meta"><span>Layout ${layout}</span><span>${escHtml(cls)}</span></div>`;
+
+  if (layout === 4 && (images[0] || videos[0])) {
+    // Split layout: media left, content right
+    const splitMedia = images[0]
+      ? `<img src="${escHtml(images[0])}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">`
+      : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px;background:#020617;">🎬</div>`;
+    container.innerHTML = `
+      <div class="lp-card">
+        <div style="display:flex;min-height:140px;">
+          <div style="flex:1;overflow:hidden;border-radius:16px 0 0 0;">${splitMedia}</div>
+          <div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:8px;">
+            ${badgesHtml}
+            ${questionHtml}
+            ${answerHtml}
+          </div>
+        </div>
+        <div class="lp-card-body" style="padding-top:8px;">
+          ${audioHtml}${metaHtml}
+        </div>
+      </div>`;
+  } else {
+    container.innerHTML = `
+      <div class="lp-card">
+        ${mediaHtml}
+        <div class="lp-card-body">
+          ${badgesHtml}
+          ${questionHtml}
+          ${answerHtml}
+          ${audioHtml}
+          ${metaHtml}
+        </div>
+      </div>`;
+  }
+}
+
+/* =====================================================
+   PREVIEW MODE
+===================================================== */
+function renderPreview() {
+  const list = appState.activeListData;
+  if (!list) return;
+  document.getElementById('previewListName').textContent = list.title;
+  const grouped = {};
+  list.questions.forEach(q => { (grouped[q.categoryId||'unknown'] = grouped[q.categoryId||'unknown']||[]).push(q); });
+  const cats = list.categories?.length ? [...list.categories].sort((a,b)=>a.order-b.order) : Object.keys(grouped).map(id=>({id,name:id}));
+  document.getElementById('previewContent').innerHTML = cats.map(cat => {
+    const items = grouped[cat.id]||[];
+    if (!items.length) return '';
+    return `<div class="preview-category"><div class="preview-cat-title">${escHtml(cat.name)}</div><div class="preview-grid">${items.map(renderPreviewCard).join('')}</div></div>`;
+  }).join('');
+}
+
+function renderPreviewCard(q) {
+  const gq = q.GamesQuestion || {};
+  let media = '';
+  if (gq.image?.[0]) media = `<img src="${escHtml(gq.image[0])}" onerror="this.style.display='none'" loading="lazy">`;
+  else if (gq.video?.[0]) media = `<video controls><source src="${escHtml(gq.video[0])}" type="video/mp4"></video>`;
+  const audio = gq.audio?.[0] ? `<audio class="preview-audio" controls><source src="${escHtml(gq.audio[0])}"></audio>` : '';
+  return `
+    <div class="preview-card">
+      ${media}
+      <div class="preview-card-body">
+        <div class="preview-badges">
+          <span class="preview-badge">⭐ ${q.points||0} pts</span>
+          <span class="preview-badge">${escHtml(q.buttonClick||'')}</span>
+          <span class="preview-badge">${escHtml(gq.questionTypeView||'')}</span>
+        </div>
+        <div class="preview-question">${escHtml(gq.question||'')}</div>
+        <div class="preview-answer"><small>Correct Answer</small><span>${escHtml(gq.correctAnswer||'')}</span></div>
+        ${audio}
+        <div class="preview-meta"><span>Class: ${escHtml(q.class||'—')}</span><span>Layout: ${gq.layoutTemplate||'—'}</span></div>
+      </div>
+    </div>`;
+}
+
+/* =====================================================
+   DRAG AND DROP
+===================================================== */
+let dragCatId = null, dragQId = null;
+
+function setupCatDrag() {
+  const bar = document.getElementById('categoriesBar');
+  bar.querySelectorAll('.cat-tab[data-cat-id]').forEach(tab => {
+    const catId = tab.dataset.catId;
+    if (catId === 'all') return;
+    tab.addEventListener('dragstart', e => { dragCatId = catId; tab.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+    tab.addEventListener('dragend', () => { dragCatId = null; tab.classList.remove('dragging'); bar.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('drag-over')); });
+    tab.addEventListener('dragover', e => { if (!dragCatId || dragCatId === catId) return; e.preventDefault(); bar.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('drag-over')); tab.classList.add('drag-over'); });
+    tab.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!dragCatId || dragCatId === catId) return;
+      const list = appState.activeListData;
+      const a = list.categories.find(c => c.id === dragCatId), b = list.categories.find(c => c.id === catId);
+      if (!a||!b) return;
+      [a.order, b.order] = [b.order, a.order];
+      persistList();
+      renderCategoriesBar(); renderQuestions();
+    });
+  });
+}
+
+function setupTableDrag() {
+  const tbody = document.querySelector('.q-table tbody');
+  if (!tbody) return;
+  tbody.querySelectorAll('tr[data-q-id]').forEach(row => {
+    const qId = row.dataset.qId;
+    row.addEventListener('dragstart', e => { dragQId = qId; row.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+    row.addEventListener('dragend', () => { dragQId = null; row.classList.remove('dragging'); tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over')); });
+    row.addEventListener('dragover', e => { if (!dragQId || dragQId === qId) return; e.preventDefault(); tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over')); row.classList.add('drag-over'); });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!dragQId || dragQId === qId) return;
+      const list = appState.activeListData;
+      const fromIdx = list.questions.findIndex(q => q.questionId === dragQId || q.GamesQuestion?.id === dragQId);
+      const toIdx   = list.questions.findIndex(q => q.questionId === qId    || q.GamesQuestion?.id === qId);
+      if (fromIdx === -1 || toIdx === -1) return;
+      const [moved] = list.questions.splice(fromIdx, 1);
+      list.questions.splice(toIdx, 0, moved);
+      persistList();
+      renderQuestions();
+    });
+  });
+}
+
+/* =====================================================
+   NEW LIST MODAL
+===================================================== */
+let _newListModalMode = 'create'; // 'create' | 'rename'
+let _renamingListId   = null;
+
+function openNewListModal(renameListId) {
+  _newListModalMode = renameListId ? 'rename' : 'create';
+  _renamingListId   = renameListId || null;
+  const modal  = document.getElementById('newListModal');
+  const title  = document.getElementById('newListModalTitle');
+  const input  = document.getElementById('newListTitle');
+  const btn    = document.getElementById('btnConfirmNewList');
+  const section = document.getElementById('renameListSection');
+  if (renameListId) {
+    const l = appState.cachedLists.find(l => l.id === renameListId);
+    title.textContent  = 'Rename List';
+    input.value        = l?.title || '';
+    btn.textContent    = 'Save';
+    section.style.display = 'block';
+  } else {
+    title.textContent  = 'Create New List';
+    input.value        = '';
+    btn.textContent    = 'Create List';
+    section.style.display = 'none';
+  }
+  modal.classList.add('open');
+  setTimeout(() => input.focus(), 100);
+}
+
+function closeNewListModal() {
+  document.getElementById('newListModal').classList.remove('open');
+  _renamingListId = null;
+}
+
+async function confirmNewList() {
+  const title = document.getElementById('newListTitle').value.trim();
+  if (!title) { toast('Please enter a title', 'error'); return; }
+
+  if (_newListModalMode === 'rename' && _renamingListId) {
+    const updated = await DB.updateList(_renamingListId, { title, updatedAt: nowISO() });
+    if (updated) { toast('List renamed'); closeNewListModal(); loadListsScreen(); }
+    else toast('Rename failed', 'error');
+    return;
+  }
+
+  const newList = {
+    id: uid(), title,
+    categories: [], questions: [],
+    createdAt: nowISO(), updatedAt: nowISO()
+  };
+  await DB.createList(newList);
+  closeNewListModal();
+  toast(`List "${title}" created`);
+  // Open it directly
+  appState.cachedLists.push(newList);
+  openListEditor(newList.id);
+}
+
+/* =====================================================
+   IMPORT / EXPORT
+===================================================== */
+async function handleImport(file, targetListId) {
+  try {
+    const text   = await file.text();
+    const parsed = JSON.parse(text);
+    const items  = parsed.data || [];
+    if (!items.length) { toast('No questions found in JSON', 'error'); return; }
+
+    const catIds = [...new Set(items.map(i => i.categoryId).filter(Boolean))];
+
+    if (targetListId) {
+      const list = await DB.getList(targetListId);
+      catIds.forEach((cid,i) => { if (!list.categories.find(c => c.id === cid)) list.categories.push({ id:cid, name:'Category '+(list.categories.length+i+1), order:list.categories.length+i }); });
+      list.questions.push(...items);
+      list.updatedAt = nowISO();
+      await DB.updateList(targetListId, list);
+      toast(`Imported ${items.length} questions into current list`);
+      if (appState.activeListId === targetListId) {
+        appState.activeListData = list;
+        renderCategoriesBar(); renderQuestions();
+      }
+    } else {
+      const newList = {
+        id: uid(), title: 'Imported — ' + file.name.replace('.json',''),
+        categories: catIds.map((cid,i) => ({ id:cid, name:'Category '+(i+1), order:i })),
+        questions: items,
+        createdAt: nowISO(), updatedAt: nowISO()
+      };
+      await DB.createList(newList);
+      toast(`Created new list from ${file.name} (${items.length} questions)`);
+      loadListsScreen();
+    }
+  } catch(e) {
+    toast('Import failed: ' + e.message, 'error');
+  }
+}
+
+async function exportListById(listId) {
+  const data = await DB.exportList(listId);
+  if (!data) { toast('Export failed', 'error'); return; }
+  const list = await DB.getList(listId);
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `${(list?.title||'export').replace(/\s+/g,'_')}_gamedata.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('JSON exported');
+}
+
+/* =====================================================
+   EVENT HANDLERS
+===================================================== */
+async function handleAction(action, dataset) {
+  if (action === 'open-list')  { openListEditor(dataset.id); return; }
+  if (action === 'rename-list'){ openNewListModal(dataset.id); return; }
+  if (action === 'export-list'){ exportListById(dataset.id); return; }
+
+  if (action === 'delete-list') {
+    const l = appState.cachedLists.find(l => l.id === dataset.id);
+    const confirmed = await showConfirm('Delete List', `Delete "${l?.title||'this list'}"? All questions will be permanently removed.`);
+    if (!confirmed) return;
+    await DB.deleteList(dataset.id);
+    toast('List deleted');
+    loadListsScreen();
+    return;
+  }
+
+  // Editor actions
+  const list = appState.activeListData;
+  if (!list) return;
+
+  if (action === 'rename-cat') {
+    const cat = list.categories.find(c => c.id === dataset.id);
+    if (!cat) return;
+    const name = prompt('Rename category:', cat.name);
+    if (name?.trim()) { cat.name = name.trim(); await persistList(); renderCategoriesBar(); renderQuestions(); }
+    return;
+  }
+  if (action === 'delete-cat') {
+    const confirmed = await showConfirm('Delete Category', 'Delete this category? Questions will remain but lose their category association.');
+    if (!confirmed) return;
+    list.categories = list.categories.filter(c => c.id !== dataset.id);
+    if (appState.activeCategoryId === dataset.id) appState.activeCategoryId = 'all';
+    await persistList(); renderCategoriesBar(); renderQuestions();
+    toast('Category deleted');
+    return;
+  }
+  if (action === 'edit-q') { openDrawer(dataset.qId); return; }
+  if (action === 'dupe-q') {
+    const q = list.questions.find(q => q.questionId === dataset.qId || q.GamesQuestion?.id === dataset.qId);
+    if (!q) return;
+    const qId = fakeObjectId();
+    const dup = JSON.parse(JSON.stringify(q));
+    dup.questionId = qId; dup.id = Math.floor(Math.random()*90000)+1000;
+    dup.GamesQuestion.id = qId; dup.GamesQuestion.duplicateQuestion = true;
+    dup.GamesQuestion.createdAt = dup.GamesQuestion.updatedAt = nowISO();
+    list.questions.push(dup);
+    await persistList(); renderQuestions();
+    toast('Question duplicated');
+    return;
+  }
+  if (action === 'del-q') {
+    const confirmed = await showConfirm('Delete Question', 'Are you sure you want to delete this question?');
+    if (!confirmed) return;
+    list.questions = list.questions.filter(q => q.questionId !== dataset.qId && q.GamesQuestion?.id !== dataset.qId);
+    state && appState.selectedIds.delete(dataset.qId);
+    await persistList(); renderCategoriesBar(); renderQuestions();
+    toast('Question deleted');
+    return;
+  }
+}
+
+document.addEventListener('click', async e => {
+  const target = e.target.closest('[data-action]');
+  if (target) { await handleAction(target.dataset.action, target.dataset); return; }
+
+  // Cat tab
+  const catTab = e.target.closest('.cat-tab[data-cat-id]');
+  if (catTab && !e.target.closest('[data-action]')) {
+    appState.activeCategoryId = catTab.dataset.catId;
+    appState.selectedIds.clear();
+    renderCategoriesBar(); renderQuestions(); return;
+  }
+  // Add cat
+  if (e.target.closest('#btnAddCat')) {
+    const name = prompt('Category name:');
+    if (!name?.trim()) return;
+    const cat = { id: fakeObjectId(), name: name.trim(), order: appState.activeListData.categories.length };
+    appState.activeListData.categories.push(cat);
+    await persistList(); renderCategoriesBar(); renderQuestions();
+    toast(`Category "${name}" created`); return;
+  }
+  // Select all
+  if (e.target.id === 'selectAll') {
+    const qs = filteredQuestions();
+    if (e.target.checked) qs.forEach(q => appState.selectedIds.add(q.questionId));
+    else appState.selectedIds.clear();
+    renderQuestions(); return;
+  }
+  // Row checkbox
+  if (e.target.classList.contains('cb') && e.target.dataset.qId) {
+    const qId = e.target.dataset.qId;
+    if (e.target.checked) appState.selectedIds.add(qId); else appState.selectedIds.delete(qId);
+    updateBulkActions();
+    const row = e.target.closest('tr'); if (row) row.classList.toggle('selected', e.target.checked); return;
+  }
+  // Grid card
+  const card = e.target.closest('.q-card[data-q-id]');
+  if (card && !e.target.closest('[data-action]') && !e.target.closest('.icon-btn')) { openDrawer(card.dataset.qId); return; }
+  // Modal close
+  const overlay = e.target;
+  if (overlay.id === 'newListModal') closeNewListModal();
+});
+
+/* =====================================================
+   WIRE UP STATIC BUTTONS
+===================================================== */
+function wireButtons() {
+  // Lists screen
+  document.getElementById('btnCreateList').onclick = () => openNewListModal();
+  document.getElementById('btnConfirmNewList').onclick = confirmNewList;
+  document.getElementById('btnCancelNewList').onclick  = closeNewListModal;
+  document.getElementById('btnCloseNewListModal').onclick = closeNewListModal;
+  document.getElementById('newListTitle').addEventListener('keydown', e => { if (e.key === 'Enter') confirmNewList(); });
+
+  document.getElementById('listsSearch').addEventListener('input', function() {
+    appState.listsSearch = this.value;
+    renderListsGrid(appState.cachedLists);
+  });
+  document.getElementById('listsSort').addEventListener('change', function() {
+    appState.listsSort = this.value;
+    renderListsGrid(appState.cachedLists);
+  });
+  document.getElementById('importFileMain').addEventListener('change', async function() {
+    if (!this.files[0]) return;
+    await handleImport(this.files[0], null);
+    this.value = '';
+  });
+
+  // Breadcrumb back
+  document.getElementById('breadcrumbHome').onclick = () => loadListsScreen();
+
+  // Editor controls
+  document.getElementById('searchInput').addEventListener('input', function() { appState.search = this.value; renderQuestions(); });
+  document.getElementById('filterClass').addEventListener('change', function() { appState.filterClass = this.value; renderQuestions(); });
+  document.getElementById('filterStatus').addEventListener('change', function() { appState.filterStatus = this.value; renderQuestions(); });
+  document.getElementById('viewTable').onclick = () => { appState.viewMode = 'table'; document.getElementById('viewTable').classList.add('active'); document.getElementById('viewGrid').classList.remove('active'); renderQuestions(); };
+  document.getElementById('viewGrid').onclick  = () => { appState.viewMode = 'grid';  document.getElementById('viewGrid').classList.add('active'); document.getElementById('viewTable').classList.remove('active'); renderQuestions(); };
+  document.getElementById('btnAddQuestion').onclick = () => {
+    const list = appState.activeListData;
+    if (!list?.categories?.length) { if (confirm('No categories yet. Add a category first?')) { const name = prompt('Category name:'); if (name?.trim()) { const cat = { id:fakeObjectId(), name:name.trim(), order:0 }; list.categories.push(cat); persistList(); renderCategoriesBar(); } } return; }
+    openDrawer(null);
+  };
+  document.getElementById('btnPreview').onclick = () => { renderPreview(); document.getElementById('previewModal').classList.add('open'); };
+  document.getElementById('btnClosePreview').onclick = () => document.getElementById('previewModal').classList.remove('open');
+  document.getElementById('btnExport').onclick = () => exportListById(appState.activeListId);
+  document.getElementById('importFileEditor').addEventListener('change', async function() {
+    if (!this.files[0]) return;
+    const merge = confirm(`Merge into current list?\n\nOK = Merge here\nCancel = Create new list`);
+    await handleImport(this.files[0], merge ? appState.activeListId : null);
+    this.value = '';
+  });
+
+  // Bulk delete
+  document.getElementById('btnBulkDelete').onclick = async () => {
+    if (!appState.selectedIds.size) return;
+    const confirmed = await showConfirm('Bulk Delete', `Delete ${appState.selectedIds.size} selected questions?`);
+    if (!confirmed) return;
+    const list = appState.activeListData;
+    list.questions = list.questions.filter(q => !appState.selectedIds.has(q.questionId) && !appState.selectedIds.has(q.GamesQuestion?.id));
+    appState.selectedIds.clear();
+    await persistList(); renderCategoriesBar(); renderQuestions();
+    toast('Questions deleted');
+  };
+
+  // Drawer
+  document.getElementById('btnCloseDrawer').onclick  = closeDrawer;
+  document.getElementById('btnCancelDrawer').onclick = closeDrawer;
+  document.getElementById('drawerOverlay').onclick   = closeDrawer;
+  document.getElementById('btnSaveQuestion').onclick = saveQuestion;
+
+  // Layout template thumbnail clicks
+  document.getElementById('layoutThumbs').addEventListener('click', e => {
+    const thumb = e.target.closest('.layout-thumb[data-layout]');
+    if (thumb) setLayoutThumb(parseInt(thumb.dataset.layout));
+  });
+
+  // Any form input → mark unsaved + refresh live preview
+  document.getElementById('questionForm').addEventListener('input', () => {
+    document.getElementById('unsavedDot').style.display = 'inline-block';
+    updateLivePreview();
+  });
+  // Also catch select/checkbox changes
+  document.getElementById('questionForm').addEventListener('change', () => {
+    document.getElementById('unsavedDot').style.display = 'inline-block';
+    updateLivePreview();
+  });
+
+  document.getElementById('fCorrectAnswerMedia').addEventListener('input', function() { updateAnsMediaPreview(this.value.trim()); });
+  document.getElementById('btnAddImage').onclick = () => { addMediaField('imageFields', ''); };
+  document.getElementById('btnAddVideo').onclick = () => { addMediaField('videoFields', ''); };
+  document.getElementById('btnAddAudio').onclick = () => { addMediaField('audioFields', ''); };
+  document.getElementById('btnAddNote').onclick  = () => addNoteField('');
+
+  // Delegate input on dynamically-added media URL fields
+  document.getElementById('questionDrawer').addEventListener('input', e => {
+    if (e.target.classList.contains('media-url-input')) updateLivePreview();
+  });
+
+  // Confirm dialog escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeDrawer();
+      document.getElementById('previewModal').classList.remove('open');
+      closeNewListModal();
+    }
+  });
+}
+
+/* =====================================================
+   INIT
+===================================================== */
+async function init() {
+  wireButtons();
+  updateConnBadge(); // show 'checking' state
+  await DB.ping();   // try backend, update badge
+  loadListsScreen();
+}
+
+init();
+</script>
+</body>
+</html>
