@@ -7,6 +7,8 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="./services/supabase.js"></script>
 
 <style>
 *{
@@ -201,30 +203,20 @@ audio{
         <p>Automatically loads gamedata1.json and lets you upload another JSON file anytime.</p>
 
         <div class="upload-box">
-            <h2>Upload gamedata1.json</h2>
-            <p>The default gamedata1.json file loads automatically. Upload another JSON file to preview different game data.</p>
+            <h2>Load Game Questions</h2>
+            <p>Select a question list from Supabase, or upload a local JSON file to preview.</p>
             <div class="actions">
-                <button class="button" id="loadDefaultBtn">
-                    Load Default JSON
-                </button>
-                <a class="button" href="./gamedata1.json" target="_blank">
-                    Open Raw JSON
-                </a>
-
-                <label class="button" for="fileInput">
-                    Upload Another JSON
-                </label>
-
+                <select id="listSelector" style="background:#1e293b;color:#fff;border:1px solid rgba(255,255,255,0.2);padding:12px 16px;border-radius:14px;font-family:'Cairo',sans-serif;font-size:14px;cursor:pointer;min-width:220px;">
+                    <option value="">— Select a List —</option>
+                </select>
+                <button class="button" id="loadSupabaseBtn">🗄 Load List</button>
+                <label class="button" for="fileInput">📁 Upload JSON</label>
                 <input type="file" id="fileInput" accept=".json" hidden>
-
                 <a class="button" href="./admin.html" style="background:#7c3aed;">
                     📋 Questions Manager
                 </a>
             </div>
-
-            <div class="file-name" id="fileName">
-                No file loaded yet
-            </div>
+            <div class="file-name" id="fileName">Connecting to Supabase…</div>
         </div>
     </div>
 
@@ -238,172 +230,153 @@ audio{
 
 <script>
 
-const DEFAULT_JSON_FILE = './gamedata1.json';
+const fileInput       = document.getElementById('fileInput');
+const fileName        = document.getElementById('fileName');
+const listSelector    = document.getElementById('listSelector');
+const loadSupabaseBtn = document.getElementById('loadSupabaseBtn');
 
-const categoryNames = {
-    "65eb327901707f002b27e900": "General Knowledge",
-    "65ec703a01707f002b27eb49": "Cars",
-    "65fcaced763d3d87ca4cd082": "Movies & TV",
-    "66c3172309d34bd517a08892": "Fashion & Luxury",
-    "66c31731ee1bff3815db29f5": "Beauty & Makeup",
-    "6793e92b0a6aa0e40823d432": "Music"
-};
-
-const fileInput = document.getElementById('fileInput');
-const fileName = document.getElementById('fileName');
-const loadDefaultBtn = document.getElementById('loadDefaultBtn');
-
-loadDefaultBtn.addEventListener('click', async () => {
-
+/* ---- Bootstrap: connect to Supabase and populate list selector ---- */
+async function initDashboard() {
     try {
-
-        fileName.innerHTML = 'Loading gamedata1.json...';
-
-        const response = await fetch(DEFAULT_JSON_FILE);
-
-        if(!response.ok){
-            throw new Error('Could not load JSON file');
+        const ok = await window.SupabaseDB.ping();
+        if (!ok) {
+            fileName.innerHTML = '⚠️ Could not reach Supabase. Upload a local JSON file to preview.';
+            return;
         }
 
-        const json = await response.json();
+        const lists = await window.SupabaseDB.getLists();
 
-        fileName.innerHTML = 'Loaded default file: gamedata1.json';
+        if (!lists.length) {
+            fileName.innerHTML = 'No question lists found. Create one in the <a href="./admin.html" style="color:#60a5fa;">Questions Manager</a>.';
+            return;
+        }
 
-        render(json.data || []);
+        lists.forEach(list => {
+            const opt = document.createElement('option');
+            opt.value       = list.id;
+            opt.textContent = `${list.title} (${list.questions.length} questions)`;
+            listSelector.appendChild(opt);
+        });
 
-    } catch(error){
+        // Auto-load the most recent list
+        listSelector.value = lists[0].id;
+        await loadList(lists[0].id, lists[0].title);
 
-        console.error(error);
+    } catch (err) {
+        console.error(err);
+        fileName.innerHTML = '⚠️ Supabase error: ' + err.message;
+    }
+}
 
-        fileName.innerHTML = 'Failed to load gamedata1.json';
+/* ---- Load a specific list from Supabase ---- */
+async function loadList(listId, listTitle) {
+    if (!listId) return;
+    fileName.innerHTML = 'Loading…';
+    try {
+        const list = await window.SupabaseDB.getList(listId);
+        if (!list) throw new Error('List not found');
 
-        document.getElementById('app').innerHTML = `
-            <div class="empty">
-                Could not load <strong>gamedata1.json</strong>.<br><br>
+        const catMap = {};
+        (list.categories || []).forEach(c => { catMap[c.id] = c.name; });
 
-                Make sure:
-                <br><br>
+        fileName.innerHTML = `✅ Loaded: <strong>${list.title}</strong> — ${list.questions.length} questions`;
+        render(list.questions, catMap);
+    } catch (err) {
+        console.error(err);
+        fileName.innerHTML = '❌ Failed to load list: ' + err.message;
+    }
+}
 
-                • gamedata1.json exists in the same folder<br>
-                • You opened the site through GitHub Pages or a local server
-            </div>
-        `;
+/* ---- Button: load selected list ---- */
+loadSupabaseBtn.addEventListener('click', () => {
+    const id = listSelector.value;
+    if (id) loadList(id);
+});
+
+/* ---- File upload: local JSON preview (kept for convenience) ---- */
+fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+        const text = await file.text();
+        const json = JSON.parse(text);
+        fileName.innerHTML = `📁 Loaded local file: ${file.name}`;
+        render(json.data || [], {});
+    } catch (err) {
+        fileName.innerHTML = '❌ Invalid JSON file';
     }
 });
 
-fileInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
-
-    const text = await file.text();
-    const json = JSON.parse(text);
-
-    fileName.innerHTML = `Loaded file: ${file.name}`;
-
-    render(json.data || []);
-});
-
-function render(items){
-
+/* ---- Render questions grouped by category ---- */
+function render(items, catMap) {
     const grouped = {};
-
     items.forEach(item => {
-        const cat = item.categoryId || "Unknown";
-
-        if(!grouped[cat]){
-            grouped[cat] = [];
-        }
-
-        grouped[cat].push(item);
+        const cat = item.categoryId || 'Unknown';
+        (grouped[cat] = grouped[cat] || []).push(item);
     });
 
     const app = document.getElementById('app');
-
     app.innerHTML = '';
 
-    Object.keys(grouped).forEach(catId => {
+    const catIds = Object.keys(grouped);
+    if (!catIds.length) {
+        app.innerHTML = '<div class="empty">No questions found.</div>';
+        return;
+    }
 
+    catIds.forEach(catId => {
         const section = document.createElement('section');
         section.className = 'category';
-
-        const title = categoryNames[catId] || catId;
-
-        section.innerHTML += `
-            <div class="category-title">
-                ${title}
-            </div>
-
+        const title = catMap[catId] || catId;
+        section.innerHTML = `
+            <div class="category-title">${title}</div>
             <div class="grid">
                 ${grouped[catId].map(item => createCard(item)).join('')}
             </div>
         `;
-
         app.appendChild(section);
-
     });
 }
 
-function createCard(item){
-
+function createCard(item) {
     const q = item.GamesQuestion || {};
 
     let media = '';
-
-    if(q.image && q.image[0]){
+    if (q.image && q.image[0]) {
         media = `<img src="${q.image[0]}" alt="">`;
+    } else if (q.video && q.video[0]) {
+        media = `<video controls><source src="${q.video[0]}" type="video/mp4"></video>`;
     }
 
-    if(q.video && q.video[0]){
-        media = `
-            <video controls>
-                <source src="${q.video[0]}" type="video/mp4">
-            </video>
-        `;
-    }
-
-    const audio = q.audio && q.audio[0]
-        ? `
-            <audio controls>
-                <source src="${q.audio[0]}">
-            </audio>
-        `
+    const audio = (q.audio && q.audio[0])
+        ? `<audio controls><source src="${q.audio[0]}"></audio>`
         : '';
 
     return `
         <div class="card">
-
             ${media}
-
             <div class="content">
-
                 <div class="badges">
                     <div class="badge">⭐ ${item.points || 0} Points</div>
                     <div class="badge">${item.buttonClick || ''}</div>
                     <div class="badge">${q.questionTypeView || ''}</div>
                 </div>
-
-                <div class="question">
-                    ${q.question || ''}
-                </div>
-
+                <div class="question">${q.question || ''}</div>
                 <div class="answer">
                     <small>Correct Answer</small>
                     ${q.correctAnswer || ''}
                 </div>
-
                 ${audio}
-
                 <div class="meta">
                     <div>Class: ${q.class || '-'}</div>
                     <div>Layout: ${q.layoutTemplate || '-'}</div>
                 </div>
-
             </div>
         </div>
     `;
 }
 
-loadDefaultBtn.click();
+initDashboard();
 
 </script>
 
