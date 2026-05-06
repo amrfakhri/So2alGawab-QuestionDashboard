@@ -64,7 +64,7 @@ function _assembleQuestion(q, gs, mediaRows, meta) {
       correctAnswerMedia: hints.correctAnswerMedia || '',
       layoutTemplate:     settings.layout_template ?? 2,
       class:              settings.class           || 'CLASS_200',
-      status:             settings.status          || 'ACTIVE',
+      status:             (settings.status || 'active').toUpperCase(),
       fixQuestion:        !!hints.fixQuestion,
       duplicateQuestion:  !!hints.duplicateQuestion,
       label:              hints.label              || '',
@@ -311,7 +311,7 @@ const SupabaseDB = {
         button_click:    q.buttonClick     || 'TeamOne',
         layout_template: gq.layoutTemplate ?? 2,
         class:           q.class           || 'CLASS_200',
-        status:          gq.status         || 'ACTIVE',
+        status:          (gq.status || 'ACTIVE').toLowerCase(),
         sort_order:      idx
       };
     });
