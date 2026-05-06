@@ -1,0 +1,1380 @@
+{
+    "status": true,
+    "data": [
+        {
+            "id": 29,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65eb327901707f002b27e900",
+            "class": "CLASS_200",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 200,
+            "questionId": "65f4f80b3d4ee54e401d42b1",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "65f4f80b3d4ee54e401d42b1",
+                "categoryId": "65eb327901707f002b27e900",
+                "question": "ماهي جنسية الأميرة رجوة زوجة ولي عهد المملكة الأردنية الهاشمية ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "سعودية",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1710553134715-288361870.premiumread.jpg",
+                "layoutTemplate": 2,
+                "class": "CLASS_200",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1710553108450-374010670.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-16T01:38:19.208Z",
+                "updatedAt": "2025-08-11T06:38:25.552Z",
+                "deletedAt": null,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 33,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65ec703a01707f002b27eb49",
+            "class": "CLASS_600",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 600,
+            "questionId": "65f6b8f5e4541cf9ee32fd05",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "65f6b8f5e4541cf9ee32fd05",
+                "categoryId": "65ec703a01707f002b27eb49",
+                "question": "صوت أي سيارة ( يكفي الشركة الصانعة ) ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "FERRARI - فيراري",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1710668107181-809013963.webp",
+                "layoutTemplate": 2,
+                "class": "CLASS_600",
+                "image": [
+                    ""
+                ],
+                "video": [
+                    "https://d442zbpa1tgal.cloudfront.net/1710668027650-247008962.mp4"
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-17T09:33:41.658Z",
+                "updatedAt": "2025-08-11T06:38:25.816Z",
+                "deletedAt": null,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 31,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65ec703a01707f002b27eb49",
+            "class": "CLASS_200",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 200,
+            "questionId": "6735b3df62352588b33a2923",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "6735b3df62352588b33a2923",
+                "categoryId": "65ec703a01707f002b27eb49",
+                "question": "ما هي السيارة ( اسم الشركة ) ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "تويوتا",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1731572688695-560769128.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_200",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1731572687266-511731417.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-11-14T08:25:03.597Z",
+                "updatedAt": "2025-06-02T08:00:20.456Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 34,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65ec703a01707f002b27eb49",
+            "class": "CLASS_600",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 600,
+            "questionId": "65ec850101707f002b27eb6f",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "65ec850101707f002b27eb6f",
+                "categoryId": "65ec703a01707f002b27eb49",
+                "question": "ما هي أول سيارة كهربائية بالكامل صنعتها شركة تويوتا ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "‏bZ4X",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1709999355207-349159580.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_600",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1709999292945-675973435.webp"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-09T15:49:21.875Z",
+                "updatedAt": "2025-08-11T07:14:32.304Z",
+                "deletedAt": null,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 27,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65eb327901707f002b27e900",
+            "class": "CLASS_400",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 400,
+            "questionId": "65ef5e12d3007d0b43161d12",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "65ef5e12d3007d0b43161d12",
+                "categoryId": "65eb327901707f002b27e900",
+                "question": "من هو الرئيس العربي الذي ارتدى بدلة خطوطها مكونة من حروف اسمه، حيث  استغرق صنعها  ثلاثة أشهر، وبلغ سعرها 10 آلاف جنيه إسترليني ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "حسني مبارك",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1710185995465-224618189.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_400",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1710185992840-289534769.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-11T19:40:02.369Z",
+                "updatedAt": "2025-08-11T07:14:32.716Z",
+                "deletedAt": null,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 13,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65fcaced763d3d87ca4cd082",
+            "class": "CLASS_200",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 200,
+            "questionId": "65fe5efedfb4ef3f041ed0e4",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "65fe5efedfb4ef3f041ed0e4",
+                "categoryId": "65fcaced763d3d87ca4cd082",
+                "question": "ما اسم الفيلم أو المسلسل ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "GAME OF THRONES",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1711169373796-956576320.webp",
+                "layoutTemplate": 2,
+                "class": "CLASS_200",
+                "image": [
+                    ""
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    "https://d442zbpa1tgal.cloudfront.net/1711169369046-399821315.m4a"
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-23T04:47:58.768Z",
+                "updatedAt": "2025-08-11T07:14:35.564Z",
+                "deletedAt": null,
+                "duplicateQuestion": true,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 10,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "66c3172309d34bd517a08892",
+            "class": "CLASS_400",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 400,
+            "questionId": "66ecb1fd037305991335992c",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "66ecb1fd037305991335992c",
+                "categoryId": "66c3172309d34bd517a08892",
+                "question": "ما هو اسم الكولكشن من Van Cleef ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "Alhambra - الامبرا",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1726787929056-910301373.webp",
+                "layoutTemplate": 2,
+                "class": "CLASS_400",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1726787924864-754129905.webp"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-09-19T23:21:33.75Z",
+                "updatedAt": "2025-08-11T07:15:08.909Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 30,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65eb327901707f002b27e900",
+            "class": "CLASS_200",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 200,
+            "questionId": "65f499a53d4ee54e401d4027",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "65f499a53d4ee54e401d4027",
+                "categoryId": "65eb327901707f002b27e900",
+                "question": "أطلق مصرف قطر المركزي الإصدار الخاص بالعملات التذكارية لكأس العالم فيفا قطر ، فكم كانت فئة العملة الورقية التذكارية ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "22 ريال",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1710528951976-744816780.jpeg",
+                "layoutTemplate": 3,
+                "class": "CLASS_200",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1710528949056-222370194.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-15T18:55:33.594Z",
+                "updatedAt": "2025-08-11T07:14:33.385Z",
+                "deletedAt": null,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 24,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "6793e92b0a6aa0e40823d432",
+            "class": "CLASS_600",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 600,
+            "questionId": "67acb2512e546fc33a00c1ea",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "67acb2512e546fc33a00c1ea",
+                "categoryId": "6793e92b0a6aa0e40823d432",
+                "question": "(مقدمة اغنية) ، ما اسم الاغنية ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "من بعيد",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1739371088393-754506610.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_600",
+                "image": [
+                    ""
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    "https://d442zbpa1tgal.cloudfront.net/1739371061113-865038358.mp3"
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2025-02-12T14:38:09.842Z",
+                "updatedAt": "2025-07-14T21:57:04.767Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 28,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65eb327901707f002b27e900",
+            "class": "CLASS_400",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 400,
+            "questionId": "65ef5ac5d3007d0b43161d05",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "65ef5ac5d3007d0b43161d05",
+                "categoryId": "65eb327901707f002b27e900",
+                "question": "ما هي اللغتين الرسميتين في كندا ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "الإنجليزية والفرنسية",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1710185156045-144475504.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_400",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1710185152104-995425333.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-11T19:25:57.566Z",
+                "updatedAt": "2025-08-11T07:14:32.716Z",
+                "deletedAt": null,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 20,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "6793e92b0a6aa0e40823d432",
+            "class": "CLASS_400",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 400,
+            "questionId": "67aa7fdf38c8a4290f272f53",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "67aa7fdf38c8a4290f272f53",
+                "categoryId": "6793e92b0a6aa0e40823d432",
+                "question": "ما اسم الاغنيه ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "وين تروح",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1739227101956-967105004.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_400",
+                "image": [
+                    ""
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    "https://d442zbpa1tgal.cloudfront.net/1739227036671-746174484.mp3"
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2025-02-10T22:38:23.859Z",
+                "updatedAt": "2025-07-15T09:12:09.293Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 3,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "66c31731ee1bff3815db29f5",
+            "class": "CLASS_200",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 200,
+            "questionId": "66cc8188159cd8ef7b40f82b",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "66cc8188159cd8ef7b40f82b",
+                "categoryId": "66c31731ee1bff3815db29f5",
+                "question": "ما هي العلامة التجارية لهذا المنتج ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "KIKO",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1724678530996-871636746.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_200",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1724678508936-871449678.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-08-26T13:22:16.315Z",
+                "updatedAt": "2025-08-11T06:38:53.596Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 32,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65ec703a01707f002b27eb49",
+            "class": "CLASS_200",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 200,
+            "questionId": "65eca8b001707f002b27eb91",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "65eca8b001707f002b27eb91",
+                "categoryId": "65ec703a01707f002b27eb49",
+                "question": "في أي دولة تأسست شركة بنتلي للسيارات ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "بريطانيا",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1710008490061-655290537.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_200",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1710008486230-457831912.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-09T18:21:36.532Z",
+                "updatedAt": "2025-08-11T07:14:32.305Z",
+                "deletedAt": null,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 25,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65eb327901707f002b27e900",
+            "class": "CLASS_600",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 600,
+            "questionId": "65eb702101707f002b27e990",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "65eb702101707f002b27e990",
+                "categoryId": "65eb327901707f002b27e900",
+                "question": "ما اسم أكبر حقل غاز طبيعي بالعالم وفي اي دولة يقع ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "حقل غاز الشمال يقع في مياه قطر الاقليمية",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1709928436266-540657324.jpg",
+                "layoutTemplate": 3,
+                "class": "CLASS_600",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1709928365037-968885202.png"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-08T20:08:01.757Z",
+                "updatedAt": "2025-08-11T06:38:23.99Z",
+                "deletedAt": null,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 2,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "66c31731ee1bff3815db29f5",
+            "class": "CLASS_400",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 400,
+            "questionId": "66cb0249e32c99dfa032f7b0",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "66cb0249e32c99dfa032f7b0",
+                "categoryId": "66c31731ee1bff3815db29f5",
+                "question": "كم عدد درجات بلشر rare beauty ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "13",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1724580419147-388076473.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_400",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1724580407701-215260074.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-08-25T10:07:05.868Z",
+                "updatedAt": "2025-08-11T06:38:53.257Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 18,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65fcaced763d3d87ca4cd082",
+            "class": "CLASS_600",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 600,
+            "questionId": "65ff1af9dfb4ef3f041ed398",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "65ff1af9dfb4ef3f041ed398",
+                "categoryId": "65fcaced763d3d87ca4cd082",
+                "question": "ما اسم الفيلم أو المسلسل ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "Wednesday",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1711217444291-950085710.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_600",
+                "image": [
+                    ""
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    "https://d442zbpa1tgal.cloudfront.net/1711217409869-553629936.m4a"
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-23T18:10:01.047Z",
+                "updatedAt": "2025-08-11T07:14:35.602Z",
+                "deletedAt": null,
+                "duplicateQuestion": true,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 6,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "66c31731ee1bff3815db29f5",
+            "class": "CLASS_600",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 600,
+            "questionId": "66cc7d7d84c9332a24832a83",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "66cc7d7d84c9332a24832a83",
+                "categoryId": "66c31731ee1bff3815db29f5",
+                "question": "ما هي الوان هذا المنتج ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "بنفسجي - ازرق - برتقالي",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1724677365627-284234768.jpg",
+                "layoutTemplate": 2,
+                "class": "CLASS_600",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1724677380085-357086164.jpg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-08-26T13:05:01.257Z",
+                "updatedAt": "2025-08-11T07:15:00.844Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 9,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "66c3172309d34bd517a08892",
+            "class": "CLASS_400",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 400,
+            "questionId": "66f0a1d6a469835966826200",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "66f0a1d6a469835966826200",
+                "categoryId": "66c3172309d34bd517a08892",
+                "question": "ما هي العلامة التجارية لهذه المحفظة ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "DKNY",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1727046087386-402256085.jpg",
+                "layoutTemplate": 2,
+                "class": "CLASS_400",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1727046086939-191372162.jpg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-09-22T23:01:42.591Z",
+                "updatedAt": "2025-08-11T07:15:09.464Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 14,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65fcaced763d3d87ca4cd082",
+            "class": "CLASS_200",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 200,
+            "questionId": "65ff1be4dfb4ef3f041ed3a7",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "65ff1be4dfb4ef3f041ed3a7",
+                "categoryId": "65fcaced763d3d87ca4cd082",
+                "question": "ما اسم الفيلم أو المسلسل ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "Breaking Bad",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1711217735639-135486475.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_200",
+                "image": [
+                    ""
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    "https://d442zbpa1tgal.cloudfront.net/1711217643300-163789207.m4a"
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-23T18:13:56.313Z",
+                "updatedAt": "2025-08-11T07:14:35.602Z",
+                "deletedAt": null,
+                "duplicateQuestion": true,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 5,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "66c31731ee1bff3815db29f5",
+            "class": "CLASS_600",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 600,
+            "questionId": "66cc7c0da55a75bfbd2895b3",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "66cc7c0da55a75bfbd2895b3",
+                "categoryId": "66c31731ee1bff3815db29f5",
+                "question": "ما هو اسم البلشر الموجود في الصورة ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "نص ساعة",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1724677118968-706597884.jpg",
+                "layoutTemplate": 2,
+                "class": "CLASS_600",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1724677115182-63136030.jpg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-08-26T12:58:53.862Z",
+                "updatedAt": "2025-08-11T07:15:00.844Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 11,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "66c3172309d34bd517a08892",
+            "class": "CLASS_200",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 200,
+            "questionId": "66f08cbcc240a44a2e8e54f6",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "66f08cbcc240a44a2e8e54f6",
+                "categoryId": "66c3172309d34bd517a08892",
+                "question": "ما هي العلامة التجارية لهذه الحقيبة ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "Michel kors",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1727040674119-610445534.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_200",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1727040670562-735372176.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-09-22T21:31:40.151Z",
+                "updatedAt": "2025-08-11T06:39:03.156Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 21,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "6793e92b0a6aa0e40823d432",
+            "class": "CLASS_200",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 200,
+            "questionId": "67aa82ea086e73ebc78d8c2e",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "67aa82ea086e73ebc78d8c2e",
+                "categoryId": "6793e92b0a6aa0e40823d432",
+                "question": "من هو كاتب اغنيه تيجي نسيب للفنانه انغام ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "اكرم حسني",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1739227829063-741996566.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_200",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1739227872903-423255030.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2025-02-10T22:51:22.977Z",
+                "updatedAt": "2025-04-18T10:35:49.524Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 22,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "6793e92b0a6aa0e40823d432",
+            "class": "CLASS_200",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 200,
+            "questionId": "67aa81c6e268b80c52f8b1c6",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "67aa81c6e268b80c52f8b1c6",
+                "categoryId": "6793e92b0a6aa0e40823d432",
+                "question": "من خلال الصوره الموضحه ، ما اسم الاغنيه ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "اكتبلك تعهد",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1739227566738-512608730.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_200",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1739227548932-585946871.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2025-02-10T22:46:30.733Z",
+                "updatedAt": "2025-07-15T09:11:20.979Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 26,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65eb327901707f002b27e900",
+            "class": "CLASS_600",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 600,
+            "questionId": "65eb6f5f01707f002b27e98e",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "65eb6f5f01707f002b27e98e",
+                "categoryId": "65eb327901707f002b27e900",
+                "question": "ما اسم مركز قيادة الدولة الاستراتيجي وهو المقر الجديد لوزارة الدفاع المصرية ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "الأوكتاجون",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1709928274627-74546594.jpg",
+                "layoutTemplate": 2,
+                "class": "CLASS_600",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1709928271512-813399177.jpg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-08T20:04:47.148Z",
+                "updatedAt": "2025-08-11T06:38:23.99Z",
+                "deletedAt": null,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 23,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "6793e92b0a6aa0e40823d432",
+            "class": "CLASS_600",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 600,
+            "questionId": "67acb3b2ad010dd1b934ab3a",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "67acb3b2ad010dd1b934ab3a",
+                "categoryId": "6793e92b0a6aa0e40823d432",
+                "question": "ما اسم الاغنية ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "اسرع من الريح",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1739371439976-800701263.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_600",
+                "image": [
+                    ""
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    "https://d442zbpa1tgal.cloudfront.net/1739371431415-725399630.mp3"
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2025-02-12T14:44:02Z",
+                "updatedAt": "2025-07-14T21:56:18.331Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 1,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "66c31731ee1bff3815db29f5",
+            "class": "CLASS_400",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 400,
+            "questionId": "66cb864dcc9901c91453a3ea",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "66cb864dcc9901c91453a3ea",
+                "categoryId": "66c31731ee1bff3815db29f5",
+                "question": "من هي المشهورة مالكة العلامة التجارية Rare Beauty ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "Selena Gomez",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1724614192681-701456418.WEBP",
+                "layoutTemplate": 2,
+                "class": "CLASS_400",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1724614094587-830242264.WEBP"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-08-25T19:30:21.479Z",
+                "updatedAt": "2025-08-11T07:15:00.579Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 8,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "66c3172309d34bd517a08892",
+            "class": "CLASS_600",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 600,
+            "questionId": "66ed243086c234a0855ac281",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "66ed243086c234a0855ac281",
+                "categoryId": "66c3172309d34bd517a08892",
+                "question": "في أي دولة تأسست العلامة التجارية ‏ ‏BOSS ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "ألمانيا",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1726817298729-986003152.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_600",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1726817290486-701142398.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-09-20T07:28:48.252Z",
+                "updatedAt": "2025-08-11T06:39:02.596Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 17,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65fcaced763d3d87ca4cd082",
+            "class": "CLASS_600",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 600,
+            "questionId": "66083bc270eb754b12026c0f",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "66083bc270eb754b12026c0f",
+                "categoryId": "65fcaced763d3d87ca4cd082",
+                "question": "ما اسم الفيلم ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "Need for speed",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1711815595552-517261831.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_600",
+                "image": [
+                    ""
+                ],
+                "video": [
+                    "https://d442zbpa1tgal.cloudfront.net/1711815584048-194061899.mp4"
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-30T16:20:18.784Z",
+                "updatedAt": "2025-08-11T06:38:28.453Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 12,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "66c3172309d34bd517a08892",
+            "class": "CLASS_200",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 200,
+            "questionId": "66ecc4ab86e558eb77d91705",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "66ecc4ab86e558eb77d91705",
+                "categoryId": "66c3172309d34bd517a08892",
+                "question": "ما هي العلامة التجارية لهذا الحلق ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "Chopard",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1726792864376-991773499.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_200",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1726792860015-594242905.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-09-20T00:41:15.52Z",
+                "updatedAt": "2025-08-11T06:39:02.595Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 35,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65ec703a01707f002b27eb49",
+            "class": "CLASS_400",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 400,
+            "questionId": "65ec971e01707f002b27eb76",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "65ec971e01707f002b27eb76",
+                "categoryId": "65ec703a01707f002b27eb49",
+                "question": "ما هي الشركة التي أضافت حزام الأمان للسيارة ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "شركة فولفو للسيارات",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1710003988878-421423496.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_400",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1710003971818-950669190.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-09T17:06:38.563Z",
+                "updatedAt": "2025-08-11T07:14:32.304Z",
+                "deletedAt": null,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 7,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "66c3172309d34bd517a08892",
+            "class": "CLASS_600",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 600,
+            "questionId": "66eb5775be47e26b9b1e7054",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "66eb5775be47e26b9b1e7054",
+                "categoryId": "66c3172309d34bd517a08892",
+                "question": "ما هي العلامة التجارية لهذا العقد ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "‏BALMAIN",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1726699371400-679197070.webp",
+                "layoutTemplate": 2,
+                "class": "CLASS_600",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1726699342605-259571464.webp"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-09-18T22:43:01.886Z",
+                "updatedAt": "2025-08-11T06:39:02.218Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 19,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "6793e92b0a6aa0e40823d432",
+            "class": "CLASS_400",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 400,
+            "questionId": "67aa80e4c9383ecb9313ecbb",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "67aa80e4c9383ecb9313ecbb",
+                "categoryId": "6793e92b0a6aa0e40823d432",
+                "question": "كم البوم طرحت الفنانه انغام من عام 1990 الى عام 1995؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "( ٦ البومات ) اتفقنا - ببساطه كده - انت العالم - الا انا - شي ضاع - بقولك ايه",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1739227292483-622109057.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_400",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1739227357548-276654230.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2025-02-10T22:42:44.138Z",
+                "updatedAt": "2025-04-18T10:35:49.523Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 36,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65ec703a01707f002b27eb49",
+            "class": "CLASS_400",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 400,
+            "questionId": "65eca19901707f002b27eb89",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "65eca19901707f002b27eb89",
+                "categoryId": "65ec703a01707f002b27eb49",
+                "question": "ما هي الشركة التي استحوذت على شركة فولفو للسيارات ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "Geely - جيلي",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1710006672704-869140008.webp",
+                "layoutTemplate": 2,
+                "class": "CLASS_400",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1710006629785-347577486.jpeg"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-09T17:51:21.931Z",
+                "updatedAt": "2025-08-11T07:14:32.304Z",
+                "deletedAt": null,
+                "label": "",
+                "note": [],
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 4,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "66c31731ee1bff3815db29f5",
+            "class": "CLASS_200",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 200,
+            "questionId": "66cb8b86d5c66351a07cd856",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "66cb8b86d5c66351a07cd856",
+                "categoryId": "66c31731ee1bff3815db29f5",
+                "question": "ما هو هذا الشعار ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "Sephora",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1724615545757-86072879.JPG",
+                "layoutTemplate": 2,
+                "class": "CLASS_200",
+                "image": [
+                    "https://d442zbpa1tgal.cloudfront.net/1724615543208-573485680.JPG"
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    ""
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-08-25T19:52:38.157Z",
+                "updatedAt": "2025-08-11T07:15:00.579Z",
+                "deletedAt": null,
+                "duplicateQuestion": false,
+                "label": "",
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 15,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65fcaced763d3d87ca4cd082",
+            "class": "CLASS_400",
+            "buttonClick": "TeamOne",
+            "rightAnswerGivenByTeam": null,
+            "points": 400,
+            "questionId": "65ff1586dfb4ef3f041ed35a",
+            "teamIndex": 1,
+            "GamesQuestion": {
+                "id": "65ff1586dfb4ef3f041ed35a",
+                "categoryId": "65fcaced763d3d87ca4cd082",
+                "question": "ما اسم الفيلم أو المسلسل ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "Us",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1711215983190-648159366.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_400",
+                "image": [
+                    ""
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    "https://d442zbpa1tgal.cloudfront.net/1711216014111-475544512.m4a"
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-23T17:46:46.523Z",
+                "updatedAt": "2025-08-11T07:14:35.601Z",
+                "deletedAt": null,
+                "duplicateQuestion": true,
+                "hintQuestion": {}
+            }
+        },
+        {
+            "id": 16,
+            "userId": "67e31ec1193a6e92d9cc2bdc",
+            "categoryId": "65fcaced763d3d87ca4cd082",
+            "class": "CLASS_400",
+            "buttonClick": "TeamTwo",
+            "rightAnswerGivenByTeam": null,
+            "points": 400,
+            "questionId": "65ff1957dfb4ef3f041ed389",
+            "teamIndex": 2,
+            "GamesQuestion": {
+                "id": "65ff1957dfb4ef3f041ed389",
+                "categoryId": "65fcaced763d3d87ca4cd082",
+                "question": "ما اسم الفيلم أو المسلسل ؟",
+                "questionTypeView": "Regular_Question",
+                "correctAnswer": "Johnny English",
+                "correctAnswerMedia": "https://d442zbpa1tgal.cloudfront.net/1711216917864-280845235.jpeg",
+                "layoutTemplate": 2,
+                "class": "CLASS_400",
+                "image": [
+                    ""
+                ],
+                "video": [
+                    ""
+                ],
+                "audio": [
+                    "https://d442zbpa1tgal.cloudfront.net/1711216990555-925535209.m4a"
+                ],
+                "status": "ACTIVE",
+                "fixQuestion": true,
+                "createdAt": "2024-03-23T18:03:03.453Z",
+                "updatedAt": "2025-08-11T07:14:35.601Z",
+                "deletedAt": null,
+                "duplicateQuestion": true,
+                "label": "",
+                "hintQuestion": {}
+            }
+        }
+    ],
+    "message": "Game Questions list"
+}
