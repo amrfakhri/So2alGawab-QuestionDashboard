@@ -6,6 +6,8 @@ const cors = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
+const DEFAULT_REDIRECT = 'https://game.amrfakhri.com/'
+
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -80,17 +82,16 @@ Deno.serve(async (req: Request) => {
         return json({ users })
       }
 
+      // Invite flow: creates user + sends activation email. No password needed.
       case 'createUser': {
-        const { email, password, full_name, role } = body
-        if (!email || !password) return err('email and password are required', 400)
+        const { email, full_name, role, redirectTo } = body
+        if (!email) return err('email is required', 400)
 
-        const { data, error: createErr } = await admin.auth.admin.createUser({
-          email,
-          password,
-          email_confirm: true,
-          user_metadata: { full_name: full_name ?? '' },
+        const { data, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
+          data: { full_name: full_name ?? '' },
+          redirectTo: redirectTo ?? DEFAULT_REDIRECT,
         })
-        if (createErr) throw createErr
+        if (inviteErr) throw inviteErr
 
         await admin.from('user_roles').upsert({
           user_id:   data.user.id,
@@ -100,6 +101,18 @@ Deno.serve(async (req: Request) => {
         })
 
         return json({ user: data.user })
+      }
+
+      // Resend invite email to an unconfirmed user
+      case 'resendInvite': {
+        const { email, redirectTo } = body
+        if (!email) return err('email required', 400)
+
+        const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
+          redirectTo: redirectTo ?? DEFAULT_REDIRECT,
+        })
+        if (inviteErr) throw inviteErr
+        return json({ success: true })
       }
 
       case 'updateUser': {

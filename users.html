@@ -27,6 +27,7 @@
   --red:      #ef4444;
   --purple:   #a855f7;
   --gold:     #fbbf24;
+  --indigo:   #6366f1;
   --radius:   12px;
   --font:     'Inter', sans-serif;
 }
@@ -118,13 +119,14 @@ a { color: inherit; text-decoration: none; }
 .badge-viewer       { background: rgba(255,255,255,.07); color: var(--text2); border-color: var(--border2);       }
 .badge-pending      { background: rgba(245,158,11,.12);  color: var(--amber); border-color: rgba(245,158,11,.3);  }
 .badge-active       { background: rgba(34,197,94,.12);   color: #86efac;      border-color: rgba(34,197,94,.3);   }
+.badge-invited      { background: rgba(99,102,241,.12);  color: #a5b4fc;      border-color: rgba(99,102,241,.3);  }
 .badge-disabled     { background: rgba(239,68,68,.1);    color: #fca5a5;      border-color: rgba(239,68,68,.3);   }
 
 /* ── Row action menu ─────────────────────────────────────── */
 .action-cell { position: relative; }
 .action-btn { background: transparent; color: var(--text2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 16px; line-height: 1; transition: .12s; }
 .action-btn:hover { background: var(--surface2); color: var(--text); }
-.dropdown { position: absolute; right: 0; top: calc(100% + 4px); background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 4px; min-width: 180px; z-index: 50; box-shadow: 0 8px 32px rgba(0,0,0,.5); display: none; }
+.dropdown { position: absolute; right: 0; top: calc(100% + 4px); background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 4px; min-width: 190px; z-index: 50; box-shadow: 0 8px 32px rgba(0,0,0,.5); display: none; }
 .dropdown.open { display: block; }
 .dropdown-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; font-size: 13px; color: var(--text2); cursor: pointer; transition: .1s; width: 100%; background: none; text-align: left; }
 .dropdown-item:hover { background: var(--surface2); color: var(--text); }
@@ -171,11 +173,17 @@ a { color: inherit; text-decoration: none; }
 }
 .form-input:focus, .form-select:focus { border-color: var(--blue); background: rgba(37,99,235,.08); }
 .form-input::placeholder { color: var(--text3); }
+.form-input:disabled { opacity: .5; cursor: not-allowed; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
-.pw-wrap { position: relative; }
-.pw-wrap .form-input { padding-right: 40px; }
-.pw-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text3); cursor: pointer; padding: 2px; font-size: 14px; }
+
+/* ── Info banner in modal ────────────────────────────────── */
+.form-info {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.3);
+  border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #a5b4fc;
+  margin-bottom: 16px; line-height: 1.5;
+}
 
 /* ── Alert in modal ──────────────────────────────────────── */
 .form-alert { border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; display: none; }
@@ -183,10 +191,15 @@ a { color: inherit; text-decoration: none; }
 .form-alert.success { background: rgba(34,197,94,.1);  border: 1px solid rgba(34,197,94,.3);  color: #86efac; }
 
 /* ── Confirm modal ───────────────────────────────────────── */
-.confirm-modal { max-width: 380px; }
+.confirm-modal { max-width: 400px; }
 .confirm-icon { font-size: 40px; text-align: center; margin-bottom: 12px; }
 .confirm-title { font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 8px; }
 .confirm-body { font-size: 13px; color: var(--text2); text-align: center; line-height: 1.6; }
+.confirm-warning {
+  margin-top: 14px; padding: 10px 14px;
+  background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2);
+  border-radius: 8px; font-size: 12px; color: #fca5a5; text-align: center;
+}
 
 /* ── Reset link box ──────────────────────────────────────── */
 .link-box { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-top: 12px; }
@@ -226,16 +239,16 @@ a { color: inherit; text-decoration: none; }
   <div class="page-header">
     <div>
       <h1>User Management</h1>
-      <p>Create and manage dashboard user accounts and their permissions.</p>
+      <p>Invite team members. They'll receive an email to activate their account and set a password.</p>
     </div>
-    <button class="btn btn-primary" onclick="openCreateModal()">＋ Create User</button>
+    <button class="btn btn-primary" onclick="openCreateModal()">✉️ Invite User</button>
   </div>
 
   <!-- Stats -->
   <div class="stats-row">
     <div class="stat-card"><div class="val" id="statTotal">—</div><div class="lbl">Total Users</div></div>
     <div class="stat-card"><div class="val" id="statActive" style="color:var(--green)">—</div><div class="lbl">Active</div></div>
-    <div class="stat-card"><div class="val" id="statPending" style="color:var(--amber)">—</div><div class="lbl">Pending</div></div>
+    <div class="stat-card"><div class="val" id="statInvited" style="color:#a5b4fc">—</div><div class="lbl">Invited</div></div>
     <div class="stat-card"><div class="val" id="statDisabled" style="color:var(--text3)">—</div><div class="lbl">Disabled</div></div>
   </div>
 
@@ -256,6 +269,7 @@ a { color: inherit; text-decoration: none; }
     <select class="filter-select" id="statusFilter" onchange="applyFilters()">
       <option value="">All Status</option>
       <option value="active">Active</option>
+      <option value="invited">Invited</option>
       <option value="disabled">Disabled</option>
     </select>
   </div>
@@ -268,7 +282,7 @@ a { color: inherit; text-decoration: none; }
           <th>User</th>
           <th>Role</th>
           <th>Status</th>
-          <th>Created</th>
+          <th>Invited</th>
           <th>Last Login</th>
           <th style="text-align:right;">Actions</th>
         </tr>
@@ -281,19 +295,22 @@ a { color: inherit; text-decoration: none; }
 </div>
 
 <!-- ════════════════════════════════════════════════════════════ -->
-<!--  CREATE / EDIT USER MODAL                                    -->
+<!--  INVITE / EDIT USER MODAL                                    -->
 <!-- ════════════════════════════════════════════════════════════ -->
 <div class="modal-bg" id="userModalBg" onclick="if(event.target===this)closeUserModal()">
   <div class="modal">
     <div class="modal-head">
       <div>
-        <h2 id="modalTitle">Create User</h2>
-        <p id="modalSubtitle">New users can sign in immediately with the password you set.</p>
+        <h2 id="modalTitle">Invite User</h2>
+        <p id="modalSubtitle">An activation email will be sent to the user.</p>
       </div>
       <button class="modal-close" onclick="closeUserModal()">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-alert" id="modalAlert"></div>
+      <div class="form-info" id="inviteBanner">
+        ✉️ The user will receive an email with a secure link to activate their account and set their own password.
+      </div>
       <form id="userForm" onsubmit="submitUserForm(event)">
         <input type="hidden" id="editUserId">
         <div class="form-row">
@@ -310,14 +327,6 @@ a { color: inherit; text-decoration: none; }
           <label class="form-label">Email Address <span style="color:var(--red)">*</span></label>
           <input class="form-input" id="fEmail" type="email" placeholder="user@example.com" required autocomplete="off">
         </div>
-        <div class="form-group" id="passwordGroup">
-          <label class="form-label">Temporary Password <span style="color:var(--red)">*</span></label>
-          <div class="pw-wrap">
-            <input class="form-input" id="fPassword" type="password" placeholder="Min 8 characters" minlength="8" autocomplete="new-password">
-            <button type="button" class="pw-toggle" onclick="togglePw()">👁</button>
-          </div>
-          <div class="form-hint">The user can change this after signing in.</div>
-        </div>
         <div class="form-group">
           <label class="form-label">Role <span style="color:var(--red)">*</span></label>
           <select class="form-select" id="fRole" required>
@@ -333,7 +342,7 @@ a { color: inherit; text-decoration: none; }
       <button class="btn btn-ghost" onclick="closeUserModal()">Cancel</button>
       <button class="btn btn-primary" id="submitBtn" onclick="submitUserForm(event)">
         <span id="submitSpinner" class="spinner" style="display:none;width:14px;height:14px;border-width:2px;"></span>
-        <span id="submitLabel">Create User</span>
+        <span id="submitLabel">Send Invite</span>
       </button>
     </div>
   </div>
@@ -371,7 +380,7 @@ a { color: inherit; text-decoration: none; }
 </div>
 
 <!-- ════════════════════════════════════════════════════════════ -->
-<!--  CONFIRM (DELETE / DISABLE) MODAL                           -->
+<!--  CONFIRM (DELETE / DISABLE / RESEND) MODAL                  -->
 <!-- ════════════════════════════════════════════════════════════ -->
 <div class="modal-bg" id="confirmModalBg" onclick="if(event.target===this)closeConfirmModal()">
   <div class="modal confirm-modal">
@@ -379,6 +388,7 @@ a { color: inherit; text-decoration: none; }
       <div class="confirm-icon" id="confirmIcon">⚠️</div>
       <div class="confirm-title" id="confirmTitle">Are you sure?</div>
       <p class="confirm-body" id="confirmBody"></p>
+      <div class="confirm-warning" id="confirmWarning" style="display:none;"></div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeConfirmModal()">Cancel</button>
@@ -427,10 +437,17 @@ async function loadUsers() {
   }
 }
 
+function getUserStatus(u) {
+  if (u.disabled)   return 'disabled';
+  if (!u.confirmed) return 'invited';   // sent invite, not yet activated
+  if (u.role === 'pending') return 'pending';
+  return 'active';
+}
+
 function updateStats(users) {
   document.getElementById('statTotal').textContent    = users.length;
-  document.getElementById('statActive').textContent   = users.filter(u => !u.disabled && u.role !== 'pending').length;
-  document.getElementById('statPending').textContent  = users.filter(u => u.role === 'pending').length;
+  document.getElementById('statActive').textContent   = users.filter(u => u.confirmed && !u.disabled && u.role !== 'pending').length;
+  document.getElementById('statInvited').textContent  = users.filter(u => !u.confirmed && !u.disabled).length;
   document.getElementById('statDisabled').textContent = users.filter(u => u.disabled).length;
 }
 
@@ -442,8 +459,7 @@ function applyFilters() {
   let filtered = allUsers;
   if (q)      filtered = filtered.filter(u => u.email.toLowerCase().includes(q) || (u.full_name||'').toLowerCase().includes(q));
   if (role)   filtered = filtered.filter(u => u.role === role);
-  if (status === 'active')   filtered = filtered.filter(u => !u.disabled);
-  if (status === 'disabled') filtered = filtered.filter(u => u.disabled);
+  if (status) filtered = filtered.filter(u => getUserStatus(u) === status);
 
   renderTable(filtered);
 }
@@ -465,8 +481,10 @@ function renderTable(users) {
     const name    = u.full_name?.trim() || '—';
     const initial = (u.full_name?.trim() || u.email)[0].toUpperCase();
     const isMe    = u.id === currentUser?.id;
-    const status  = u.disabled ? 'disabled' : (u.role === 'pending' ? 'pending' : 'active');
+    const status  = getUserStatus(u);
     const avatarColor = roleAvatarColor(u.role);
+
+    const actionsMenu = buildActionsMenu(u, isMe, status);
 
     return `
     <tr>
@@ -485,23 +503,40 @@ function renderTable(users) {
       <td style="color:var(--text2);font-size:12px;">${u.last_sign_in_at ? fmtRelative(u.last_sign_in_at) : '<span style="color:var(--text3)">Never</span>'}</td>
       <td class="action-cell" style="text-align:right;">
         <button class="action-btn" onclick="toggleDropdown('${u.id}', event)">⋯</button>
-        <div class="dropdown" id="dd-${u.id}">
-          <button class="dropdown-item" onclick="openEditModal(${JSON.stringify(u).replace(/"/g,'&quot;')});closeDropdown()">
-            ✏️ Edit User
-          </button>
-          <button class="dropdown-item" onclick="openResetModal('${u.id}', '${escHtml(u.email)}');closeDropdown()">
-            🔑 Reset Password
-          </button>
-          <div class="dropdown-sep"></div>
-          ${u.disabled
-            ? `<button class="dropdown-item" onclick="confirmAction('enable','${u.id}','${escHtml(u.email)}');closeDropdown()">✅ Enable Account</button>`
-            : isMe ? '' : `<button class="dropdown-item danger" onclick="confirmAction('disable','${u.id}','${escHtml(u.email)}');closeDropdown()">🚫 Disable Account</button>`
-          }
-          ${isMe ? '' : `<button class="dropdown-item danger" onclick="confirmAction('delete','${u.id}','${escHtml(u.email)}');closeDropdown()">🗑 Delete User</button>`}
-        </div>
+        <div class="dropdown" id="dd-${u.id}">${actionsMenu}</div>
       </td>
     </tr>`;
   }).join('');
+}
+
+function buildActionsMenu(u, isMe, status) {
+  const uid   = u.id;
+  const email = escHtml(u.email);
+  const uJson = JSON.stringify(u).replace(/"/g,'&quot;');
+  let html = '';
+
+  html += `<button class="dropdown-item" onclick="openEditModal(${uJson});closeDropdown()">✏️ Edit User</button>`;
+
+  if (status === 'invited') {
+    // Not yet activated — offer resend, not reset
+    html += `<button class="dropdown-item" onclick="confirmAction('resend','${uid}','${email}');closeDropdown()">✉️ Resend Invite</button>`;
+  } else {
+    // Confirmed account — offer password reset
+    html += `<button class="dropdown-item" onclick="openResetModal('${uid}','${email}');closeDropdown()">🔑 Reset Password</button>`;
+  }
+
+  html += '<div class="dropdown-sep"></div>';
+
+  if (!isMe) {
+    if (status === 'disabled') {
+      html += `<button class="dropdown-item" onclick="confirmAction('enable','${uid}','${email}');closeDropdown()">✅ Enable Account</button>`;
+    } else {
+      html += `<button class="dropdown-item danger" onclick="confirmAction('disable','${uid}','${email}');closeDropdown()">🚫 Disable Account</button>`;
+    }
+    html += `<button class="dropdown-item danger" onclick="confirmAction('delete','${uid}','${email}');closeDropdown()">🗑 Delete User</button>`;
+  }
+
+  return html;
 }
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -516,6 +551,7 @@ function roleBadge(role) {
 
 function statusBadge(s) {
   if (s === 'disabled') return '<span class="badge badge-disabled">Disabled</span>';
+  if (s === 'invited')  return '<span class="badge badge-invited">Invited</span>';
   if (s === 'pending')  return '<span class="badge badge-pending">Pending</span>';
   return '<span class="badge badge-active">Active</span>';
 }
@@ -550,7 +586,6 @@ function setTableState(type, msg = '') {
     tbody.innerHTML = `<tr><td colspan="6"><div class="table-state">
       <div class="icon">⚠️</div><h3>Failed to load users</h3>
       <p style="color:var(--red)">${escHtml(msg)}</p>
-      <p style="margin-top:12px;font-size:12px;">Make sure the Edge Function is deployed. See instructions below.</p>
     </div></td></tr>`;
   }
 }
@@ -575,18 +610,16 @@ document.addEventListener('click', closeDropdown);
 
 // ── Create User Modal ─────────────────────────────────────────
 function openCreateModal() {
-  document.getElementById('modalTitle').textContent    = 'Create User';
-  document.getElementById('modalSubtitle').textContent = 'New users can sign in immediately with the password you set.';
-  document.getElementById('submitLabel').textContent   = 'Create User';
+  document.getElementById('modalTitle').textContent    = 'Invite User';
+  document.getElementById('modalSubtitle').textContent = 'An activation email will be sent to the user.';
+  document.getElementById('submitLabel').textContent   = 'Send Invite';
   document.getElementById('editUserId').value  = '';
   document.getElementById('fFirstName').value  = '';
   document.getElementById('fLastName').value   = '';
   document.getElementById('fEmail').value      = '';
-  document.getElementById('fPassword').value   = '';
   document.getElementById('fRole').value       = 'viewer';
   document.getElementById('fEmail').disabled   = false;
-  document.getElementById('passwordGroup').style.display = '';
-  document.getElementById('fPassword').required = true;
+  document.getElementById('inviteBanner').style.display = 'flex';
   hideModalAlert();
   document.getElementById('userModalBg').classList.add('open');
   setTimeout(() => document.getElementById('fFirstName').focus(), 100);
@@ -603,8 +636,7 @@ function openEditModal(u) {
   document.getElementById('fEmail').value      = u.email;
   document.getElementById('fEmail').disabled   = true;
   document.getElementById('fRole').value       = u.role;
-  document.getElementById('passwordGroup').style.display = 'none';
-  document.getElementById('fPassword').required = false;
+  document.getElementById('inviteBanner').style.display = 'none';
   hideModalAlert();
   document.getElementById('userModalBg').classList.add('open');
 }
@@ -615,17 +647,14 @@ function closeUserModal() {
 
 async function submitUserForm(e) {
   e.preventDefault();
-  const isEdit  = !!document.getElementById('editUserId').value;
+  const isEdit    = !!document.getElementById('editUserId').value;
   const firstName = document.getElementById('fFirstName').value.trim();
   const lastName  = document.getElementById('fLastName').value.trim();
   const full_name = [firstName, lastName].filter(Boolean).join(' ');
   const email     = document.getElementById('fEmail').value.trim();
-  const password  = document.getElementById('fPassword').value;
   const role      = document.getElementById('fRole').value;
 
   if (!email) { showModalAlert('Email is required.'); return; }
-  if (!isEdit && !password) { showModalAlert('Password is required.'); return; }
-  if (!isEdit && password.length < 8) { showModalAlert('Password must be at least 8 characters.'); return; }
 
   setSubmitLoading(true);
   hideModalAlert();
@@ -636,8 +665,11 @@ async function submitUserForm(e) {
       });
       toast('User updated successfully', 'success');
     } else {
-      await Auth.callAdminFunction('createUser', { email, password, full_name, role });
-      toast('User created successfully', 'success');
+      await Auth.callAdminFunction('createUser', {
+        email, full_name, role,
+        redirectTo: window.location.origin + '/index.html',
+      });
+      toast('Invitation sent to ' + email, 'success');
     }
     closeUserModal();
     await loadUsers();
@@ -649,14 +681,14 @@ async function submitUserForm(e) {
 }
 
 function setSubmitLoading(on) {
-  document.getElementById('submitBtn').disabled        = on;
-  document.getElementById('submitSpinner').style.display = on ? 'inline-block' : 'none';
+  document.getElementById('submitBtn').disabled           = on;
+  document.getElementById('submitSpinner').style.display  = on ? 'inline-block' : 'none';
 }
 
 function showModalAlert(msg) {
   const el = document.getElementById('modalAlert');
-  el.textContent = msg;
-  el.className   = 'form-alert error';
+  el.textContent   = msg;
+  el.className     = 'form-alert error';
   el.style.display = 'block';
 }
 
@@ -666,7 +698,7 @@ function hideModalAlert() {
 
 // ── Reset Password Modal ──────────────────────────────────────
 async function openResetModal(userId, email) {
-  document.getElementById('resetSubtitle').textContent = email;
+  document.getElementById('resetSubtitle').textContent   = email;
   document.getElementById('resetLinkWrap').style.display = 'none';
   document.getElementById('resetLoading').style.display  = 'block';
   document.getElementById('resetLinkInput').value = '';
@@ -674,10 +706,10 @@ async function openResetModal(userId, email) {
 
   try {
     const { link } = await Auth.callAdminFunction('resetPassword', { email });
-    document.getElementById('resetLinkInput').value = link || 'Error generating link';
+    document.getElementById('resetLinkInput').value        = link || 'Error generating link';
     document.getElementById('resetLinkWrap').style.display = 'block';
   } catch (err) {
-    document.getElementById('resetLinkInput').value = 'Error: ' + err.message;
+    document.getElementById('resetLinkInput').value        = 'Error: ' + err.message;
     document.getElementById('resetLinkWrap').style.display = 'block';
   } finally {
     document.getElementById('resetLoading').style.display = 'none';
@@ -693,26 +725,33 @@ function copyResetLink() {
   navigator.clipboard.writeText(val).then(() => toast('Link copied!', 'success'));
 }
 
-// ── Confirm Modal (disable / delete) ─────────────────────────
+// ── Confirm Modal (disable / enable / delete / resend) ────────
 let pendingAction = null;
 
 function confirmAction(type, userId, email) {
-  pendingAction = { type, userId };
+  pendingAction = { type, userId, email };
+
   const cfg = {
     disable: {
       icon: '🚫', title: 'Disable Account',
       body: `<strong>${escHtml(email)}</strong> will not be able to sign in until re-enabled.`,
-      label: 'Disable', danger: true
+      warning: null, label: 'Disable', danger: true
     },
     enable: {
       icon: '✅', title: 'Enable Account',
       body: `<strong>${escHtml(email)}</strong> will regain access to the dashboard.`,
-      label: 'Enable', danger: false
+      warning: null, label: 'Enable', danger: false
     },
     delete: {
-      icon: '🗑', title: 'Delete User',
-      body: `This will permanently delete <strong>${escHtml(email)}</strong> and all their data. This cannot be undone.`,
+      icon: '🗑️', title: 'Delete User',
+      body: `This will permanently delete <strong>${escHtml(email)}</strong> and all their data.`,
+      warning: 'This action is irreversible and cannot be undone.',
       label: 'Delete', danger: true
+    },
+    resend: {
+      icon: '✉️', title: 'Resend Invitation',
+      body: `Send a new activation email to <strong>${escHtml(email)}</strong>.`,
+      warning: null, label: 'Resend', danger: false
     },
   }[type];
 
@@ -721,25 +760,38 @@ function confirmAction(type, userId, email) {
   document.getElementById('confirmBody').innerHTML     = cfg.body;
   document.getElementById('confirmLabel').textContent  = cfg.label;
   document.getElementById('confirmOkBtn').className    = cfg.danger ? 'btn btn-danger' : 'btn btn-primary';
+
+  const warningEl = document.getElementById('confirmWarning');
+  if (cfg.warning) {
+    warningEl.textContent    = cfg.warning;
+    warningEl.style.display  = 'block';
+  } else {
+    warningEl.style.display  = 'none';
+  }
+
   document.getElementById('confirmModalBg').classList.add('open');
 }
 
 document.getElementById('confirmOkBtn').onclick = async () => {
   if (!pendingAction) return;
-  const { type, userId } = pendingAction;
+  const { type, userId, email } = pendingAction;
   const btn = document.getElementById('confirmOkBtn');
   btn.disabled = true;
   document.getElementById('confirmSpinner').style.display = 'inline-block';
 
   try {
-    await Auth.callAdminFunction(
-      type === 'disable' ? 'disableUser' : type === 'enable' ? 'enableUser' : 'deleteUser',
-      { userId }
-    );
-    toast(
-      type === 'delete' ? 'User deleted' : type === 'disable' ? 'Account disabled' : 'Account enabled',
-      'success'
-    );
+    if (type === 'resend') {
+      await Auth.callAdminFunction('resendInvite', {
+        email,
+        redirectTo: window.location.origin + '/index.html',
+      });
+      toast('Invitation resent to ' + email, 'success');
+    } else {
+      const actionMap = { disable: 'disableUser', enable: 'enableUser', delete: 'deleteUser' };
+      await Auth.callAdminFunction(actionMap[type], { userId });
+      const msgMap = { delete: 'User deleted', disable: 'Account disabled', enable: 'Account enabled' };
+      toast(msgMap[type], 'success');
+    }
     closeConfirmModal();
     await loadUsers();
   } catch (err) {
@@ -756,12 +808,6 @@ function closeConfirmModal() {
   pendingAction = null;
 }
 
-// ── Password toggle ───────────────────────────────────────────
-function togglePw() {
-  const inp = document.getElementById('fPassword');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-}
-
 // ── Toast ─────────────────────────────────────────────────────
 let toastTimer;
 function toast(msg, type = 'success') {
@@ -769,7 +815,7 @@ function toast(msg, type = 'success') {
   el.textContent = (type === 'success' ? '✅ ' : '❌ ') + msg;
   el.className   = 'show ' + type;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.className = ''; }, 3200);
+  toastTimer = setTimeout(() => { el.className = ''; }, 3500);
 }
 
 // ── Keyboard ──────────────────────────────────────────────────
