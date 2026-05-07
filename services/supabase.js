@@ -368,3 +368,4 @@ const SupabaseDB = {
 };
 
 window.SupabaseDB = SupabaseDB;
+window._sb = _sb;

@@ -553,6 +553,7 @@ input[type="file"] { display: none; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="./services/supabase.js"></script>
+<script src="./services/auth.js"></script>
 </head>
 <body>
 
@@ -568,7 +569,8 @@ input[type="file"] { display: none; }
         <span class="conn-dot"></span>
         <span id="connLabel">Checking…</span>
       </div>
-      <a class="btn btn-ghost" href="./index.html">← Dashboard</a>
+      <a class="btn btn-ghost" href="./dashboard.html" style="font-size:13px;">← Dashboard</a>
+      <div id="userChip"></div>
     </div>
   </div>
 
@@ -2041,6 +2043,11 @@ function wireButtons() {
    INIT
 ===================================================== */
 async function init() {
+  const session = await Auth.requireAuth(['super_admin', 'admin', 'editor']);
+  if (!session) return; // redirecting
+
+  Auth.renderUserChip(document.getElementById('userChip'));
+
   wireButtons();
   updateConnBadge(); // show 'checking' state
   await DB.ping();   // try backend, update badge
