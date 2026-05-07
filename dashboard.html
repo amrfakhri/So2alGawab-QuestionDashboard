@@ -212,7 +212,12 @@ audio{
 </head>
 <body>
 
-<div class="topbar" id="userBar"></div>
+<div class="topbar">
+  <a id="btnUsers" href="./users.html" style="display:none;font-size:13px;color:#94a3b8;
+    padding:6px 12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;
+    text-decoration:none;margin-right:auto;">👥 Users</a>
+  <div id="userBar" style="display:flex;align-items:center;gap:8px;"></div>
+</div>
 
 <div class="container">
 
@@ -259,6 +264,9 @@ async function initDashboard() {
     if (!session) return; // redirecting to login
 
     Auth.renderUserChip(document.getElementById('userBar'));
+    if (await Auth.isSuperAdmin()) {
+        document.getElementById('btnUsers').style.display = 'inline-block';
+    }
 
     try {
         const ok = await window.SupabaseDB.ping();

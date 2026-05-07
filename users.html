@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Users — So2alGawab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="./services/supabase.js"></script>
+<script src="./services/auth.js"></script>
+
+<style>
+:root {
+  --bg:       #0f172a;
+  --panel:    #080f1e;
+  --surface:  #1e293b;
+  --surface2: #263348;
+  --border:   rgba(255,255,255,0.08);
+  --border2:  rgba(255,255,255,0.14);
+  --text:     #f1f5f9;
+  --text2:    #94a3b8;
+  --text3:    #64748b;
+  --blue:     #2563eb;
+  --green:    #22c55e;
+  --amber:    #f59e0b;
+  --red:      #ef4444;
+  --purple:   #a855f7;
+  --gold:     #fbbf24;
+  --radius:   12px;
+  --font:     'Inter', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+button { font-family: var(--font); cursor: pointer; border: none; outline: none; }
+input, select, textarea { font-family: var(--font); outline: none; }
+a { color: inherit; text-decoration: none; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 99px; }
+
+/* ── Topbar ─────────────────────────────────────────────── */
+.topbar {
+  height: 56px; background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 28px; gap: 12px;
+  position: sticky; top: 0; z-index: 100;
+}
+.topbar-logo { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.topbar-logo .accent { color: var(--blue); }
+.topbar-sep { color: var(--text3); font-size: 18px; }
+.topbar-title { font-size: 15px; font-weight: 600; color: var(--text2); }
+.topbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 500; transition: .15s; border: 1px solid transparent; white-space: nowrap; }
+.btn-primary { background: var(--blue); color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-ghost { background: transparent; color: var(--text2); border-color: var(--border2); }
+.btn-ghost:hover { background: var(--surface); color: var(--text); }
+.btn-danger { background: rgba(239,68,68,.12); color: #f87171; border-color: rgba(239,68,68,.3); }
+.btn-danger:hover { background: rgba(239,68,68,.2); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── Page body ───────────────────────────────────────────── */
+.page { max-width: 1200px; margin: 0 auto; padding: 32px 28px; }
+
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+.page-header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.page-header p { color: var(--text2); font-size: 13px; }
+
+.stats-row { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 20px; flex: 1; min-width: 130px;
+}
+.stat-card .val { font-size: 26px; font-weight: 700; line-height: 1; }
+.stat-card .lbl { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+/* ── Filters ─────────────────────────────────────────────── */
+.filters { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.search-wrap { position: relative; flex: 1; max-width: 320px; }
+.search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); width: 14px; height: 14px; pointer-events: none; }
+.search-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px 8px 32px; color: var(--text); font-size: 13px; transition: .15s; }
+.search-input:focus { border-color: var(--blue); }
+.filter-select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 13px; }
+
+/* ── Table ───────────────────────────────────────────────── */
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.users-table { width: 100%; border-collapse: collapse; }
+.users-table th {
+  text-align: left; font-size: 11px; font-weight: 600;
+  color: var(--text3); text-transform: uppercase; letter-spacing: .06em;
+  padding: 12px 16px; background: rgba(255,255,255,.03);
+  border-bottom: 1px solid var(--border);
+}
+.users-table td { padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.users-table tbody tr:last-child td { border-bottom: none; }
+.users-table tbody tr:hover td { background: rgba(255,255,255,.02); }
+
+.user-cell { display: flex; align-items: center; gap: 10px; }
+.avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
+  background: var(--blue);
+}
+.user-name { font-size: 13px; font-weight: 500; }
+.user-email { font-size: 12px; color: var(--text3); margin-top: 1px; }
+
+/* ── Badges ──────────────────────────────────────────────── */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; border: 1px solid transparent; }
+.badge-super-admin { background: rgba(251,191,36,.15); color: var(--gold);   border-color: rgba(251,191,36,.35); }
+.badge-admin        { background: rgba(168,85,247,.15);  color: #c084fc;      border-color: rgba(168,85,247,.35); }
+.badge-editor       { background: rgba(37,99,235,.15);   color: #93c5fd;      border-color: rgba(37,99,235,.35);  }
+.badge-viewer       { background: rgba(255,255,255,.07); color: var(--text2); border-color: var(--border2);       }
+.badge-pending      { background: rgba(245,158,11,.12);  color: var(--amber); border-color: rgba(245,158,11,.3);  }
+.badge-active       { background: rgba(34,197,94,.12);   color: #86efac;      border-color: rgba(34,197,94,.3);   }
+.badge-disabled     { background: rgba(239,68,68,.1);    color: #fca5a5;      border-color: rgba(239,68,68,.3);   }
+
+/* ── Row action menu ─────────────────────────────────────── */
+.action-cell { position: relative; }
+.action-btn { background: transparent; color: var(--text2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 16px; line-height: 1; transition: .12s; }
+.action-btn:hover { background: var(--surface2); color: var(--text); }
+.dropdown { position: absolute; right: 0; top: calc(100% + 4px); background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 4px; min-width: 180px; z-index: 50; box-shadow: 0 8px 32px rgba(0,0,0,.5); display: none; }
+.dropdown.open { display: block; }
+.dropdown-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; font-size: 13px; color: var(--text2); cursor: pointer; transition: .1s; width: 100%; background: none; text-align: left; }
+.dropdown-item:hover { background: var(--surface2); color: var(--text); }
+.dropdown-item.danger { color: #f87171; }
+.dropdown-item.danger:hover { background: rgba(239,68,68,.12); }
+.dropdown-sep { height: 1px; background: var(--border); margin: 3px 0; }
+
+/* ── Empty / loading states ──────────────────────────────── */
+.table-state { text-align: center; padding: 56px 24px; color: var(--text3); }
+.table-state .icon { font-size: 36px; margin-bottom: 12px; }
+.table-state h3 { font-size: 15px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+.spinner { display: inline-block; width: 22px; height: 22px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Modal backdrop ──────────────────────────────────────── */
+.modal-bg {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center; padding: 24px;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 16px; width: 100%; max-width: 480px;
+  max-height: 90vh; display: flex; flex-direction: column;
+  overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,.6);
+}
+.modal-head {
+  padding: 20px 24px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.modal-head h2 { font-size: 16px; font-weight: 700; }
+.modal-head p { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.modal-close { background: rgba(255,255,255,.06); border: none; color: var(--text2); width: 30px; height: 30px; border-radius: 6px; cursor: pointer; font-size: 16px; }
+.modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+.modal-foot { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; flex-shrink: 0; }
+
+/* ── Form elements ───────────────────────────────────────── */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 6px; }
+.form-input, .form-select {
+  width: 100%; background: rgba(255,255,255,.05); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 13px; transition: .15s;
+}
+.form-input:focus, .form-select:focus { border-color: var(--blue); background: rgba(37,99,235,.08); }
+.form-input::placeholder { color: var(--text3); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
+.pw-wrap { position: relative; }
+.pw-wrap .form-input { padding-right: 40px; }
+.pw-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text3); cursor: pointer; padding: 2px; font-size: 14px; }
+
+/* ── Alert in modal ──────────────────────────────────────── */
+.form-alert { border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; display: none; }
+.form-alert.error   { background: rgba(239,68,68,.1);  border: 1px solid rgba(239,68,68,.3);  color: #fca5a5; }
+.form-alert.success { background: rgba(34,197,94,.1);  border: 1px solid rgba(34,197,94,.3);  color: #86efac; }
+
+/* ── Confirm modal ───────────────────────────────────────── */
+.confirm-modal { max-width: 380px; }
+.confirm-icon { font-size: 40px; text-align: center; margin-bottom: 12px; }
+.confirm-title { font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+.confirm-body { font-size: 13px; color: var(--text2); text-align: center; line-height: 1.6; }
+
+/* ── Reset link box ──────────────────────────────────────── */
+.link-box { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-top: 12px; }
+.link-box input { flex: 1; background: none; border: none; color: var(--text2); font-size: 12px; min-width: 0; }
+
+/* ── Toast ───────────────────────────────────────────────── */
+#toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 999;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 12px 18px; font-size: 13px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  transform: translateY(80px); opacity: 0;
+  transition: .25s ease; pointer-events: none;
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.success { border-color: rgba(34,197,94,.4); }
+#toast.error   { border-color: rgba(239,68,68,.4);  }
+</style>
+</head>
+<body>
+
+<!-- ── Topbar ──────────────────────────────────────────────────── -->
+<div class="topbar">
+  <div class="topbar-logo">🎮 <span class="accent">So2alGawab</span></div>
+  <span class="topbar-sep">/</span>
+  <span class="topbar-title">Users</span>
+  <div class="topbar-right">
+    <a class="btn btn-ghost btn-sm" href="./database.html">← Database</a>
+    <div id="userChip"></div>
+  </div>
+</div>
+
+<!-- ── Page ────────────────────────────────────────────────────── -->
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h1>User Management</h1>
+      <p>Create and manage dashboard user accounts and their permissions.</p>
+    </div>
+    <button class="btn btn-primary" onclick="openCreateModal()">＋ Create User</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card"><div class="val" id="statTotal">—</div><div class="lbl">Total Users</div></div>
+    <div class="stat-card"><div class="val" id="statActive" style="color:var(--green)">—</div><div class="lbl">Active</div></div>
+    <div class="stat-card"><div class="val" id="statPending" style="color:var(--amber)">—</div><div class="lbl">Pending</div></div>
+    <div class="stat-card"><div class="val" id="statDisabled" style="color:var(--text3)">—</div><div class="lbl">Disabled</div></div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search by name or email…" oninput="applyFilters()">
+    </div>
+    <select class="filter-select" id="roleFilter" onchange="applyFilters()">
+      <option value="">All Roles</option>
+      <option value="super_admin">Super Admin</option>
+      <option value="admin">Admin</option>
+      <option value="editor">Editor</option>
+      <option value="viewer">Viewer</option>
+      <option value="pending">Pending</option>
+    </select>
+    <select class="filter-select" id="statusFilter" onchange="applyFilters()">
+      <option value="">All Status</option>
+      <option value="active">Active</option>
+      <option value="disabled">Disabled</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Last Login</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="usersBody">
+        <tr><td colspan="6"><div class="table-state"><div class="spinner"></div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!--  CREATE / EDIT USER MODAL                                    -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="modal-bg" id="userModalBg" onclick="if(event.target===this)closeUserModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h2 id="modalTitle">Create User</h2>
+        <p id="modalSubtitle">New users can sign in immediately with the password you set.</p>
+      </div>
+      <button class="modal-close" onclick="closeUserModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-alert" id="modalAlert"></div>
+      <form id="userForm" onsubmit="submitUserForm(event)">
+        <input type="hidden" id="editUserId">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">First Name</label>
+            <input class="form-input" id="fFirstName" type="text" placeholder="Amr" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last Name</label>
+            <input class="form-input" id="fLastName" type="text" placeholder="Fakhri" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address <span style="color:var(--red)">*</span></label>
+          <input class="form-input" id="fEmail" type="email" placeholder="user@example.com" required autocomplete="off">
+        </div>
+        <div class="form-group" id="passwordGroup">
+          <label class="form-label">Temporary Password <span style="color:var(--red)">*</span></label>
+          <div class="pw-wrap">
+            <input class="form-input" id="fPassword" type="password" placeholder="Min 8 characters" minlength="8" autocomplete="new-password">
+            <button type="button" class="pw-toggle" onclick="togglePw()">👁</button>
+          </div>
+          <div class="form-hint">The user can change this after signing in.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Role <span style="color:var(--red)">*</span></label>
+          <select class="form-select" id="fRole" required>
+            <option value="viewer">Viewer — read-only access</option>
+            <option value="editor">Editor — create & edit content</option>
+            <option value="admin">Admin — full content management</option>
+            <option value="super_admin">Super Admin — full access + users</option>
+          </select>
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeUserModal()">Cancel</button>
+      <button class="btn btn-primary" id="submitBtn" onclick="submitUserForm(event)">
+        <span id="submitSpinner" class="spinner" style="display:none;width:14px;height:14px;border-width:2px;"></span>
+        <span id="submitLabel">Create User</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!--  RESET PASSWORD MODAL                                        -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="modal-bg" id="resetModalBg" onclick="if(event.target===this)closeResetModal()">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-head">
+      <div>
+        <h2>Reset Password</h2>
+        <p id="resetSubtitle">Generate a one-time password reset link.</p>
+      </div>
+      <button class="modal-close" onclick="closeResetModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;">
+        Copy the link below and send it to the user. It expires after 24 hours and can only be used once.
+      </p>
+      <div id="resetLinkWrap" style="display:none;">
+        <div class="form-label" style="margin-bottom:6px;">Reset Link</div>
+        <div class="link-box">
+          <input type="text" id="resetLinkInput" readonly>
+          <button class="btn btn-ghost btn-sm" onclick="copyResetLink()">Copy</button>
+        </div>
+      </div>
+      <div id="resetLoading" style="text-align:center;padding:24px;"><div class="spinner"></div></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeResetModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!--  CONFIRM (DELETE / DISABLE) MODAL                           -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="modal-bg" id="confirmModalBg" onclick="if(event.target===this)closeConfirmModal()">
+  <div class="modal confirm-modal">
+    <div class="modal-body" style="padding:32px 28px;">
+      <div class="confirm-icon" id="confirmIcon">⚠️</div>
+      <div class="confirm-title" id="confirmTitle">Are you sure?</div>
+      <p class="confirm-body" id="confirmBody"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeConfirmModal()">Cancel</button>
+      <button class="btn btn-danger" id="confirmOkBtn">
+        <span id="confirmSpinner" class="spinner" style="display:none;width:14px;height:14px;border-width:2px;"></span>
+        <span id="confirmLabel">Confirm</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!--  SCRIPT                                                      -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ── State ─────────────────────────────────────────────────────
+let allUsers    = [];
+let currentUser = null;
+let openDropId  = null;
+
+// ── Init ──────────────────────────────────────────────────────
+async function init() {
+  const session = await Auth.requireAuth(['super_admin']);
+  if (!session) return;
+
+  currentUser = session.user;
+  Auth.renderUserChip(document.getElementById('userChip'));
+  await loadUsers();
+}
+
+// ── Data ──────────────────────────────────────────────────────
+async function loadUsers() {
+  setTableState('loading');
+  try {
+    const { users } = await Auth.callAdminFunction('listUsers');
+    allUsers = users;
+    updateStats(users);
+    applyFilters();
+  } catch (e) {
+    setTableState('error', e.message);
+  }
+}
+
+function updateStats(users) {
+  document.getElementById('statTotal').textContent    = users.length;
+  document.getElementById('statActive').textContent   = users.filter(u => !u.disabled && u.role !== 'pending').length;
+  document.getElementById('statPending').textContent  = users.filter(u => u.role === 'pending').length;
+  document.getElementById('statDisabled').textContent = users.filter(u => u.disabled).length;
+}
+
+function applyFilters() {
+  const q      = document.getElementById('searchInput').value.toLowerCase().trim();
+  const role   = document.getElementById('roleFilter').value;
+  const status = document.getElementById('statusFilter').value;
+
+  let filtered = allUsers;
+  if (q)      filtered = filtered.filter(u => u.email.toLowerCase().includes(q) || (u.full_name||'').toLowerCase().includes(q));
+  if (role)   filtered = filtered.filter(u => u.role === role);
+  if (status === 'active')   filtered = filtered.filter(u => !u.disabled);
+  if (status === 'disabled') filtered = filtered.filter(u => u.disabled);
+
+  renderTable(filtered);
+}
+
+// ── Table render ──────────────────────────────────────────────
+function renderTable(users) {
+  const tbody = document.getElementById('usersBody');
+
+  if (!users.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="table-state">
+      <div class="icon">👥</div>
+      <h3>No users found</h3>
+      <p>Try adjusting your search or filters.</p>
+    </div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = users.map(u => {
+    const name    = u.full_name?.trim() || '—';
+    const initial = (u.full_name?.trim() || u.email)[0].toUpperCase();
+    const isMe    = u.id === currentUser?.id;
+    const status  = u.disabled ? 'disabled' : (u.role === 'pending' ? 'pending' : 'active');
+    const avatarColor = roleAvatarColor(u.role);
+
+    return `
+    <tr>
+      <td>
+        <div class="user-cell">
+          <div class="avatar" style="background:${avatarColor}">${initial}</div>
+          <div>
+            <div class="user-name">${escHtml(name)}${isMe ? ' <span style="font-size:10px;color:var(--text3);font-weight:400;">(you)</span>' : ''}</div>
+            <div class="user-email">${escHtml(u.email)}</div>
+          </div>
+        </div>
+      </td>
+      <td>${roleBadge(u.role)}</td>
+      <td>${statusBadge(status)}</td>
+      <td style="color:var(--text2);font-size:12px;">${fmtDate(u.created_at)}</td>
+      <td style="color:var(--text2);font-size:12px;">${u.last_sign_in_at ? fmtRelative(u.last_sign_in_at) : '<span style="color:var(--text3)">Never</span>'}</td>
+      <td class="action-cell" style="text-align:right;">
+        <button class="action-btn" onclick="toggleDropdown('${u.id}', event)">⋯</button>
+        <div class="dropdown" id="dd-${u.id}">
+          <button class="dropdown-item" onclick="openEditModal(${JSON.stringify(u).replace(/"/g,'&quot;')});closeDropdown()">
+            ✏️ Edit User
+          </button>
+          <button class="dropdown-item" onclick="openResetModal('${u.id}', '${escHtml(u.email)}');closeDropdown()">
+            🔑 Reset Password
+          </button>
+          <div class="dropdown-sep"></div>
+          ${u.disabled
+            ? `<button class="dropdown-item" onclick="confirmAction('enable','${u.id}','${escHtml(u.email)}');closeDropdown()">✅ Enable Account</button>`
+            : isMe ? '' : `<button class="dropdown-item danger" onclick="confirmAction('disable','${u.id}','${escHtml(u.email)}');closeDropdown()">🚫 Disable Account</button>`
+          }
+          ${isMe ? '' : `<button class="dropdown-item danger" onclick="confirmAction('delete','${u.id}','${escHtml(u.email)}');closeDropdown()">🗑 Delete User</button>`}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function roleAvatarColor(role) {
+  return { super_admin: '#b45309', admin: '#7c3aed', editor: '#1d4ed8', viewer: '#374151', pending: '#92400e' }[role] || '#374151';
+}
+
+function roleBadge(role) {
+  const cls = { super_admin: 'badge-super-admin', admin: 'badge-admin', editor: 'badge-editor', viewer: 'badge-viewer', pending: 'badge-pending' }[role] || 'badge-viewer';
+  return `<span class="badge ${cls}">${role.replace('_',' ')}</span>`;
+}
+
+function statusBadge(s) {
+  if (s === 'disabled') return '<span class="badge badge-disabled">Disabled</span>';
+  if (s === 'pending')  return '<span class="badge badge-pending">Pending</span>';
+  return '<span class="badge badge-active">Active</span>';
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function fmtRelative(iso) {
+  if (!iso) return '—';
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)   return 'Just now';
+  if (m < 60)  return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24)  return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 30)  return `${d}d ago`;
+  return fmtDate(iso);
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function setTableState(type, msg = '') {
+  const tbody = document.getElementById('usersBody');
+  if (type === 'loading') {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="table-state"><div class="spinner"></div></div></td></tr>`;
+  } else if (type === 'error') {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="table-state">
+      <div class="icon">⚠️</div><h3>Failed to load users</h3>
+      <p style="color:var(--red)">${escHtml(msg)}</p>
+      <p style="margin-top:12px;font-size:12px;">Make sure the Edge Function is deployed. See instructions below.</p>
+    </div></td></tr>`;
+  }
+}
+
+// ── Dropdown ──────────────────────────────────────────────────
+function toggleDropdown(id, e) {
+  e.stopPropagation();
+  if (openDropId && openDropId !== id) closeDropdown();
+  const dd = document.getElementById('dd-' + id);
+  dd.classList.toggle('open');
+  openDropId = dd.classList.contains('open') ? id : null;
+}
+
+function closeDropdown() {
+  if (openDropId) {
+    document.getElementById('dd-' + openDropId)?.classList.remove('open');
+    openDropId = null;
+  }
+}
+
+document.addEventListener('click', closeDropdown);
+
+// ── Create User Modal ─────────────────────────────────────────
+function openCreateModal() {
+  document.getElementById('modalTitle').textContent    = 'Create User';
+  document.getElementById('modalSubtitle').textContent = 'New users can sign in immediately with the password you set.';
+  document.getElementById('submitLabel').textContent   = 'Create User';
+  document.getElementById('editUserId').value  = '';
+  document.getElementById('fFirstName').value  = '';
+  document.getElementById('fLastName').value   = '';
+  document.getElementById('fEmail').value      = '';
+  document.getElementById('fPassword').value   = '';
+  document.getElementById('fRole').value       = 'viewer';
+  document.getElementById('fEmail').disabled   = false;
+  document.getElementById('passwordGroup').style.display = '';
+  document.getElementById('fPassword').required = true;
+  hideModalAlert();
+  document.getElementById('userModalBg').classList.add('open');
+  setTimeout(() => document.getElementById('fFirstName').focus(), 100);
+}
+
+function openEditModal(u) {
+  document.getElementById('modalTitle').textContent    = 'Edit User';
+  document.getElementById('modalSubtitle').textContent = u.email;
+  document.getElementById('submitLabel').textContent   = 'Save Changes';
+  document.getElementById('editUserId').value  = u.id;
+  const parts = (u.full_name || '').split(' ');
+  document.getElementById('fFirstName').value  = parts[0] || '';
+  document.getElementById('fLastName').value   = parts.slice(1).join(' ') || '';
+  document.getElementById('fEmail').value      = u.email;
+  document.getElementById('fEmail').disabled   = true;
+  document.getElementById('fRole').value       = u.role;
+  document.getElementById('passwordGroup').style.display = 'none';
+  document.getElementById('fPassword').required = false;
+  hideModalAlert();
+  document.getElementById('userModalBg').classList.add('open');
+}
+
+function closeUserModal() {
+  document.getElementById('userModalBg').classList.remove('open');
+}
+
+async function submitUserForm(e) {
+  e.preventDefault();
+  const isEdit  = !!document.getElementById('editUserId').value;
+  const firstName = document.getElementById('fFirstName').value.trim();
+  const lastName  = document.getElementById('fLastName').value.trim();
+  const full_name = [firstName, lastName].filter(Boolean).join(' ');
+  const email     = document.getElementById('fEmail').value.trim();
+  const password  = document.getElementById('fPassword').value;
+  const role      = document.getElementById('fRole').value;
+
+  if (!email) { showModalAlert('Email is required.'); return; }
+  if (!isEdit && !password) { showModalAlert('Password is required.'); return; }
+  if (!isEdit && password.length < 8) { showModalAlert('Password must be at least 8 characters.'); return; }
+
+  setSubmitLoading(true);
+  hideModalAlert();
+  try {
+    if (isEdit) {
+      await Auth.callAdminFunction('updateUser', {
+        userId: document.getElementById('editUserId').value, full_name, role
+      });
+      toast('User updated successfully', 'success');
+    } else {
+      await Auth.callAdminFunction('createUser', { email, password, full_name, role });
+      toast('User created successfully', 'success');
+    }
+    closeUserModal();
+    await loadUsers();
+  } catch (err) {
+    showModalAlert(err.message);
+  } finally {
+    setSubmitLoading(false);
+  }
+}
+
+function setSubmitLoading(on) {
+  document.getElementById('submitBtn').disabled        = on;
+  document.getElementById('submitSpinner').style.display = on ? 'inline-block' : 'none';
+}
+
+function showModalAlert(msg) {
+  const el = document.getElementById('modalAlert');
+  el.textContent = msg;
+  el.className   = 'form-alert error';
+  el.style.display = 'block';
+}
+
+function hideModalAlert() {
+  document.getElementById('modalAlert').style.display = 'none';
+}
+
+// ── Reset Password Modal ──────────────────────────────────────
+async function openResetModal(userId, email) {
+  document.getElementById('resetSubtitle').textContent = email;
+  document.getElementById('resetLinkWrap').style.display = 'none';
+  document.getElementById('resetLoading').style.display  = 'block';
+  document.getElementById('resetLinkInput').value = '';
+  document.getElementById('resetModalBg').classList.add('open');
+
+  try {
+    const { link } = await Auth.callAdminFunction('resetPassword', { email });
+    document.getElementById('resetLinkInput').value = link || 'Error generating link';
+    document.getElementById('resetLinkWrap').style.display = 'block';
+  } catch (err) {
+    document.getElementById('resetLinkInput').value = 'Error: ' + err.message;
+    document.getElementById('resetLinkWrap').style.display = 'block';
+  } finally {
+    document.getElementById('resetLoading').style.display = 'none';
+  }
+}
+
+function closeResetModal() {
+  document.getElementById('resetModalBg').classList.remove('open');
+}
+
+function copyResetLink() {
+  const val = document.getElementById('resetLinkInput').value;
+  navigator.clipboard.writeText(val).then(() => toast('Link copied!', 'success'));
+}
+
+// ── Confirm Modal (disable / delete) ─────────────────────────
+let pendingAction = null;
+
+function confirmAction(type, userId, email) {
+  pendingAction = { type, userId };
+  const cfg = {
+    disable: {
+      icon: '🚫', title: 'Disable Account',
+      body: `<strong>${escHtml(email)}</strong> will not be able to sign in until re-enabled.`,
+      label: 'Disable', danger: true
+    },
+    enable: {
+      icon: '✅', title: 'Enable Account',
+      body: `<strong>${escHtml(email)}</strong> will regain access to the dashboard.`,
+      label: 'Enable', danger: false
+    },
+    delete: {
+      icon: '🗑', title: 'Delete User',
+      body: `This will permanently delete <strong>${escHtml(email)}</strong> and all their data. This cannot be undone.`,
+      label: 'Delete', danger: true
+    },
+  }[type];
+
+  document.getElementById('confirmIcon').textContent   = cfg.icon;
+  document.getElementById('confirmTitle').textContent  = cfg.title;
+  document.getElementById('confirmBody').innerHTML     = cfg.body;
+  document.getElementById('confirmLabel').textContent  = cfg.label;
+  document.getElementById('confirmOkBtn').className    = cfg.danger ? 'btn btn-danger' : 'btn btn-primary';
+  document.getElementById('confirmModalBg').classList.add('open');
+}
+
+document.getElementById('confirmOkBtn').onclick = async () => {
+  if (!pendingAction) return;
+  const { type, userId } = pendingAction;
+  const btn = document.getElementById('confirmOkBtn');
+  btn.disabled = true;
+  document.getElementById('confirmSpinner').style.display = 'inline-block';
+
+  try {
+    await Auth.callAdminFunction(
+      type === 'disable' ? 'disableUser' : type === 'enable' ? 'enableUser' : 'deleteUser',
+      { userId }
+    );
+    toast(
+      type === 'delete' ? 'User deleted' : type === 'disable' ? 'Account disabled' : 'Account enabled',
+      'success'
+    );
+    closeConfirmModal();
+    await loadUsers();
+  } catch (err) {
+    toast(err.message, 'error');
+    closeConfirmModal();
+  } finally {
+    btn.disabled = false;
+    document.getElementById('confirmSpinner').style.display = 'none';
+  }
+};
+
+function closeConfirmModal() {
+  document.getElementById('confirmModalBg').classList.remove('open');
+  pendingAction = null;
+}
+
+// ── Password toggle ───────────────────────────────────────────
+function togglePw() {
+  const inp = document.getElementById('fPassword');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// ── Toast ─────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = (type === 'success' ? '✅ ' : '❌ ') + msg;
+  el.className   = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 3200);
+}
+
+// ── Keyboard ──────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeUserModal(); closeResetModal(); closeConfirmModal(); closeDropdown();
+  }
+});
+
+init();
+</script>
+</body>
+</html>

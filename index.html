@@ -56,34 +56,6 @@ body{
   color:#64748b;
 }
 
-.tabs{
-  display:flex;
-  gap:0;
-  background:#0f172a;
-  border-radius:10px;
-  padding:3px;
-  margin-bottom:28px;
-}
-
-.tab{
-  flex:1;
-  padding:8px;
-  border:none;
-  border-radius:8px;
-  background:transparent;
-  color:#64748b;
-  font-family:'Inter',sans-serif;
-  font-size:13px;
-  font-weight:500;
-  cursor:pointer;
-  transition:.15s;
-}
-
-.tab.active{
-  background:#1e293b;
-  color:#f1f5f9;
-  box-shadow:0 1px 4px rgba(0,0,0,0.3);
-}
 
 .form-group{
   margin-bottom:16px;
@@ -188,11 +160,6 @@ input::placeholder{ color:#475569; }
     <p>Sign in to access the dashboard</p>
   </div>
 
-  <div class="tabs">
-    <button class="tab active" id="tabSignIn" onclick="switchTab('signin')">Sign In</button>
-    <button class="tab" id="tabSignUp" onclick="switchTab('signup')">Create Account</button>
-  </div>
-
   <div id="alertBox" class="alert"></div>
 
   <form id="authForm" onsubmit="handleSubmit(event)">
@@ -211,10 +178,6 @@ input::placeholder{ color:#475569; }
     </button>
   </form>
 
-  <div class="signup-note" id="signupNote" style="display:none;">
-    After creating your account, a super admin must approve it before you can access the dashboard.
-    The first registered user automatically becomes super_admin.
-  </div>
 </div>
 
 <!-- Pending approval screen (hidden by default) -->
@@ -243,20 +206,6 @@ input::placeholder{ color:#475569; }
 </div>
 
 <script>
-let currentTab = 'signin';
-
-function switchTab(tab) {
-  currentTab = tab;
-  const isSignUp = tab === 'signup';
-
-  document.getElementById('tabSignIn').classList.toggle('active', !isSignUp);
-  document.getElementById('tabSignUp').classList.toggle('active', isSignUp);
-  document.getElementById('submitLabel').textContent = isSignUp ? 'Create Account' : 'Sign In';
-  document.getElementById('signupNote').style.display = isSignUp ? 'block' : 'none';
-  document.getElementById('password').autocomplete = isSignUp ? 'new-password' : 'current-password';
-  hideAlert();
-}
-
 function showAlert(msg, type = 'error') {
   const box = document.getElementById('alertBox');
   box.textContent = msg;
@@ -282,20 +231,9 @@ async function handleSubmit(e) {
 
   setLoading(true);
   try {
-    if (currentTab === 'signin') {
-      const { data, error } = await window._sb.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      redirectAfterLogin();
-    } else {
-      const { data, error } = await window._sb.auth.signUp({ email, password });
-      if (error) throw error;
-      if (data.session) {
-        redirectAfterLogin();
-      } else {
-        showAlert('Account created! Check your email to confirm, then sign in.', 'success');
-        switchTab('signin');
-      }
-    }
+    const { data, error } = await window._sb.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    redirectAfterLogin();
   } catch (err) {
     showAlert(err.message || 'Authentication failed. Please try again.');
   } finally {

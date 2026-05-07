@@ -155,6 +155,26 @@ const Auth = {
     if (error) throw error;
   },
 
+  /* ---- Call the admin-users Edge Function ---- */
+  async callAdminFunction(action, params = {}) {
+    const session = await this.getSession();
+    if (!session) throw new Error('Not authenticated');
+    const res = await fetch(`${window.SUPABASE_URL}/functions/v1/admin-users`, {
+      method: 'POST',
+      headers: {
+        'Authorization':  `Bearer ${session.access_token}`,
+        'Content-Type':   'application/json',
+        'apikey':         window.SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ action, ...params }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+  },
+
   /* ---- Render a user info chip: email + role badge + sign-out ---- */
   renderUserChip(containerEl) {
     if (!containerEl) return;

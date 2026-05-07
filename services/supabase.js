@@ -367,5 +367,7 @@ const SupabaseDB = {
   }
 };
 
-window.SupabaseDB = SupabaseDB;
-window._sb = _sb;
+window.SupabaseDB     = SupabaseDB;
+window._sb            = _sb;
+window.SUPABASE_URL   = SUPABASE_URL;
+window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;

@@ -11,13 +11,15 @@
 CREATE TABLE IF NOT EXISTS public.user_roles (
   user_id    UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email      TEXT,
+  full_name  TEXT NOT NULL DEFAULT '',
   role       TEXT NOT NULL DEFAULT 'pending'
                CHECK (role IN ('super_admin', 'admin', 'editor', 'viewer', 'pending')),
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Add email column if table already existed without it
+-- Add columns if table already existed without them
 ALTER TABLE public.user_roles ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.user_roles ADD COLUMN IF NOT EXISTS full_name TEXT NOT NULL DEFAULT '';
 
 -- Widen role constraint to include 'pending' if it already existed
 ALTER TABLE public.user_roles DROP CONSTRAINT IF EXISTS user_roles_role_check;
@@ -61,10 +63,11 @@ DECLARE
   existing_count INT;
 BEGIN
   SELECT COUNT(*) INTO existing_count FROM public.user_roles;
-  INSERT INTO public.user_roles (user_id, email, role)
+  INSERT INTO public.user_roles (user_id, email, full_name, role)
   VALUES (
     NEW.id,
     NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
     CASE WHEN existing_count = 0 THEN 'super_admin' ELSE 'pending' END
   )
   ON CONFLICT (user_id) DO NOTHING;
