@@ -5,11 +5,14 @@
 
 -- ============================================================
 -- 1. USER ROLES TABLE
+--    Includes email so the admin panel can show names without
+--    needing access to the private auth.users table.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public.user_roles (
   user_id    UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-  role       TEXT NOT NULL DEFAULT 'viewer'
-               CHECK (role IN ('super_admin', 'admin', 'editor', 'viewer')),
+  email      TEXT,
+  role       TEXT NOT NULL DEFAULT 'pending'
+               CHECK (role IN ('super_admin', 'admin', 'editor', 'viewer', 'pending')),
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -36,9 +39,8 @@ $$;
 
 -- ============================================================
 -- 3. AUTO-ASSIGN ROLE ON NEW USER SIGNUP
---    First user ever → admin.  All others → viewer.
---    Admins can later promote users via the Supabase dashboard
---    or a service-role key call.
+--    First user ever → super_admin.  All others → pending.
+--    super_admin approves users from the database panel.
 -- ============================================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
@@ -50,10 +52,11 @@ DECLARE
   existing_count INT;
 BEGIN
   SELECT COUNT(*) INTO existing_count FROM public.user_roles;
-  INSERT INTO public.user_roles (user_id, role)
+  INSERT INTO public.user_roles (user_id, email, role)
   VALUES (
     NEW.id,
-    CASE WHEN existing_count = 0 THEN 'super_admin' ELSE 'viewer' END
+    NEW.email,
+    CASE WHEN existing_count = 0 THEN 'super_admin' ELSE 'pending' END
   )
   ON CONFLICT (user_id) DO NOTHING;
   RETURN NEW;
@@ -66,7 +69,20 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================================
--- 4. UPDATE RLS ON DATA TABLES
+-- 4. SUPER ADMIN POLICIES ON user_roles
+--    super_admin can read and update all user roles.
+-- ============================================================
+CREATE POLICY "super_admin_read_all_roles" ON public.user_roles
+  FOR SELECT TO authenticated
+  USING (public.get_user_role() = 'super_admin');
+
+CREATE POLICY "super_admin_update_roles" ON public.user_roles
+  FOR UPDATE TO authenticated
+  USING (public.get_user_role() = 'super_admin')
+  WITH CHECK (public.get_user_role() = 'super_admin');
+
+-- ============================================================
+-- 5. UPDATE RLS ON DATA TABLES
 --    Drop old anon write policies → require authentication.
 -- ============================================================
 
@@ -76,7 +92,7 @@ DROP POLICY IF EXISTS "anon_update_lists"  ON public.lists;
 DROP POLICY IF EXISTS "anon_delete_lists"  ON public.lists;
 DROP POLICY IF EXISTS "allow_all"          ON public.lists;
 
-CREATE POLICY "auth_read_lists"   ON public.lists
+CREATE POLICY "auth_read_lists" ON public.lists
   FOR SELECT TO authenticated USING (true);
 
 CREATE POLICY "editor_insert_lists" ON public.lists
@@ -198,11 +214,13 @@ CREATE POLICY "editor_delete_question_metadata" ON public.question_metadata
 
 -- ============================================================
 -- DONE.
+-- Roles (descending privilege): super_admin > admin > editor > viewer > pending
+--
 -- After running:
---   1. The first user to sign up becomes super_admin automatically.
---   2. Subsequent users get the 'viewer' role (read-only).
---   3. Promote users via Supabase Dashboard or:
+--   1. First user to sign up → super_admin automatically.
+--   2. All subsequent sign-ups → pending (no access until approved).
+--   3. super_admin approves users from the Database panel → Users tab.
+--   4. Or promote directly via SQL:
 --        UPDATE public.user_roles SET role = 'editor'
 --        WHERE user_id = '<uuid>';
---   Roles in descending privilege: super_admin > admin > editor > viewer
 -- ============================================================

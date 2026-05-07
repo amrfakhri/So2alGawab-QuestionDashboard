@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="./services/supabase.js"></script>
+<script src="./services/auth.js"></script>
 
 <style>
 *{ box-sizing:border-box; margin:0; padding:0; }
@@ -211,8 +212,33 @@ input::placeholder{ color:#475569; }
   </form>
 
   <div class="signup-note" id="signupNote" style="display:none;">
-    After creating your account, an admin must assign you a role before you can edit content.
+    After creating your account, a super admin must approve it before you can access the dashboard.
     The first registered user automatically becomes super_admin.
+  </div>
+</div>
+
+<!-- Pending approval screen (hidden by default) -->
+<div id="pendingScreen" style="
+  display:none;position:fixed;inset:0;background:#0f172a;
+  align-items:center;justify-content:center;padding:24px;
+">
+  <div style="
+    max-width:400px;width:100%;background:#1e293b;
+    border:1px solid rgba(245,158,11,0.3);border-radius:20px;
+    padding:40px;text-align:center;
+  ">
+    <div style="font-size:48px;margin-bottom:16px;">⏳</div>
+    <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;color:#f1f5f9;">Awaiting Approval</h2>
+    <p style="font-size:14px;color:#94a3b8;line-height:1.6;margin-bottom:24px;">
+      Your account has been created and is waiting for a super admin to approve it.
+      You'll be able to sign in once your access is confirmed.
+    </p>
+    <button onclick="Auth.signOut()" style="
+      background:rgba(239,68,68,0.12);color:#f87171;
+      border:1px solid rgba(239,68,68,0.3);border-radius:10px;
+      padding:10px 20px;font-size:13px;font-weight:500;cursor:pointer;
+      font-family:'Inter',sans-serif;
+    ">Sign Out</button>
   </div>
 </div>
 
@@ -287,13 +313,24 @@ function redirectAfterLogin() {
   }
 }
 
-/* Check if already authenticated — skip login screen */
-async function checkExistingSession() {
-  const { data: { session } } = await window._sb.auth.getSession();
-  if (session) redirectAfterLogin();
+/* Show pending screen if redirected here with ?pending=1 */
+const params = new URLSearchParams(window.location.search);
+if (params.get('pending') === '1') {
+  document.getElementById('pendingScreen').style.display = 'flex';
+} else {
+  /* Check if already authenticated — skip login screen */
+  (async () => {
+    const session = await Auth.getSession();
+    if (session) {
+      const role = await Auth.getRole();
+      if (role === 'pending') {
+        document.getElementById('pendingScreen').style.display = 'flex';
+      } else {
+        redirectAfterLogin();
+      }
+    }
+  })();
 }
-
-checkExistingSession();
 </script>
 </body>
 </html>

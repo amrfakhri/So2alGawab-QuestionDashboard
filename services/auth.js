@@ -5,18 +5,29 @@
    Depends on: services/supabase.js loaded before this
 ===================================================== */
 
+function _client() {
+  if (!window._sb) {
+    console.error('[Auth] Supabase client not available. Check CDN loading.');
+    return null;
+  }
+  return window._sb;
+}
+
 const Auth = {
   _session: null,
   _role:    null,
 
   /* ---- Init: load session and listen for changes ---- */
   async init() {
-    const { data: { session } } = await window._sb.auth.getSession();
+    const sb = _client();
+    if (!sb) return null;
+
+    const { data: { session } } = await sb.auth.getSession();
     this._session = session;
 
-    window._sb.auth.onAuthStateChange((_event, session) => {
+    sb.auth.onAuthStateChange((_event, session) => {
       this._session = session;
-      this._role = null; // invalidate cached role on any auth change
+      this._role = null;
     });
 
     return session;
@@ -32,12 +43,17 @@ const Auth = {
       return null;
     }
 
-    if (allowedRoles) {
-      const role = await this.getRole();
-      if (!allowedRoles.includes(role)) {
-        window.location.replace('./dashboard.html');
-        return null;
-      }
+    const role = await this.getRole();
+
+    // Pending users: signed in but not yet approved
+    if (role === 'pending') {
+      window.location.replace('./index.html?pending=1');
+      return null;
+    }
+
+    if (allowedRoles && !allowedRoles.includes(role)) {
+      window.location.replace('./dashboard.html');
+      return null;
     }
 
     return session;
@@ -46,7 +62,9 @@ const Auth = {
   /* ---- Get current session ---- */
   async getSession() {
     if (this._session) return this._session;
-    const { data: { session } } = await window._sb.auth.getSession();
+    const sb = _client();
+    if (!sb) return null;
+    const { data: { session } } = await sb.auth.getSession();
     this._session = session;
     return session;
   },
@@ -67,15 +85,17 @@ const Auth = {
   },
 
   async _fetchRole(userId) {
+    const sb = _client();
+    if (!sb) return 'pending';
     try {
-      const { data } = await window._sb
+      const { data } = await sb
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .single();
-      return data?.role || 'viewer';
+      return data?.role || 'pending';
     } catch {
-      return 'viewer';
+      return 'pending';
     }
   },
 
@@ -95,26 +115,44 @@ const Auth = {
 
   /* ---- Sign in with email/password ---- */
   async signIn(email, password) {
-    const { data, error } = await window._sb.auth.signInWithPassword({ email, password });
+    const sb = _client();
+    if (!sb) throw new Error('Supabase not loaded');
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if (error) throw error;
     this._session = data.session;
     this._role = null;
     return data;
   },
 
-  /* ---- Sign up new user ---- */
-  async signUp(email, password) {
-    const { data, error } = await window._sb.auth.signUp({ email, password });
-    if (error) throw error;
-    return data;
-  },
-
   /* ---- Sign out ---- */
   async signOut() {
-    await window._sb.auth.signOut();
+    const sb = _client();
+    if (sb) await sb.auth.signOut();
     this._session = null;
     this._role = null;
     window.location.replace('./index.html');
+  },
+
+  /* ---- Super-admin: list all users ---- */
+  async getAllUsers() {
+    const sb = _client();
+    if (!sb) return [];
+    const { data } = await sb
+      .from('user_roles')
+      .select('user_id, email, role, created_at')
+      .order('created_at', { ascending: false });
+    return data || [];
+  },
+
+  /* ---- Super-admin: update a user's role ---- */
+  async setUserRole(userId, role) {
+    const sb = _client();
+    if (!sb) throw new Error('Supabase not loaded');
+    const { error } = await sb
+      .from('user_roles')
+      .update({ role })
+      .eq('user_id', userId);
+    if (error) throw error;
   },
 
   /* ---- Render a user info chip: email + role badge + sign-out ---- */
@@ -123,6 +161,14 @@ const Auth = {
     this.getUser().then(user => {
       if (!user) return;
       this.getRole().then(role => {
+        const roleColor = {
+          super_admin: { bg: 'rgba(251,191,36,0.15)',  color: '#fbbf24', border: 'rgba(251,191,36,0.4)'  },
+          admin:       { bg: 'rgba(168,85,247,0.2)',   color: '#c084fc', border: 'rgba(168,85,247,0.4)'  },
+          editor:      { bg: 'rgba(37,99,235,0.2)',    color: '#93c5fd', border: 'rgba(37,99,235,0.4)'   },
+          viewer:      { bg: 'rgba(255,255,255,0.08)', color: '#94a3b8', border: 'rgba(255,255,255,0.12)' },
+          pending:     { bg: 'rgba(245,158,11,0.15)',  color: '#fbbf24', border: 'rgba(245,158,11,0.4)'  },
+        }[role] || { bg: 'rgba(255,255,255,0.08)', color: '#94a3b8', border: 'rgba(255,255,255,0.12)' };
+
         containerEl.innerHTML = `
           <span style="
             display:flex;align-items:center;gap:10px;
@@ -138,10 +184,10 @@ const Auth = {
             ">${user.email[0].toUpperCase()}</span>
             <span style="font-size:12px;color:#cbd5e1;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${user.email}</span>
             <span style="
-              background:${role==='super_admin'?'rgba(251,191,36,0.15)':role==='admin'?'rgba(168,85,247,0.2)':role==='editor'?'rgba(37,99,235,0.2)':'rgba(255,255,255,0.08)'};
-              color:${role==='super_admin'?'#fbbf24':role==='admin'?'#c084fc':role==='editor'?'#93c5fd':'#94a3b8'};
-              border:1px solid ${role==='super_admin'?'rgba(251,191,36,0.4)':role==='admin'?'rgba(168,85,247,0.4)':role==='editor'?'rgba(37,99,235,0.4)':'rgba(255,255,255,0.12)'};
-              padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;
+              background:${roleColor.bg};color:${roleColor.color};
+              border:1px solid ${roleColor.border};
+              padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;
+              text-transform:uppercase;letter-spacing:.04em;
             ">${role.replace('_', ' ')}</span>
           </span>
           <button onclick="Auth.signOut()" style="
