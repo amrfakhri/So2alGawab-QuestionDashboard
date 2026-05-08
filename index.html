@@ -41,6 +41,35 @@
 
 </div>
 
+<!-- Set password screen — shown when user clicks invite/recovery link -->
+<div id="setPasswordScreen" class="auth-card" style="display:none;">
+  <div class="logo">
+    <span class="logo-icon">🔐</span>
+    <h1 id="setPasswordTitle">Set Your Password</h1>
+    <p id="setPasswordSubtitle">Choose a password to activate your account.</p>
+  </div>
+
+  <div id="setPwAlertBox" class="alert"></div>
+
+  <div id="setPasswordBadge" class="set-password-badge">✉️ Invite accepted</div>
+
+  <form id="setPasswordForm" onsubmit="handleSetPassword(event)">
+    <div class="form-group">
+      <label for="newPassword">New Password</label>
+      <input id="newPassword" type="password" placeholder="Min. 8 characters" required minlength="8" autocomplete="new-password">
+      <p class="password-rules">At least 8 characters.</p>
+    </div>
+    <div class="form-group">
+      <label for="confirmPassword">Confirm Password</label>
+      <input id="confirmPassword" type="password" placeholder="Repeat your password" required minlength="8" autocomplete="new-password">
+    </div>
+    <button type="submit" class="btn-primary" id="setPwBtn">
+      <span class="spinner" id="setPwSpinner"></span>
+      <span id="setPwLabel">Activate Account</span>
+    </button>
+  </form>
+</div>
+
 <!-- Pending approval screen (hidden by default) -->
 <div id="pendingScreen" class="pending-overlay">
   <div class="pending-card">
@@ -55,29 +84,26 @@
 </div>
 
 <script>
+// ── Alert helpers ─────────────────────────────────────────────
 function showAlert(msg, type = 'error') {
   const box = document.getElementById('alertBox');
   box.textContent = msg;
   box.className = 'alert ' + type;
   box.style.display = 'block';
 }
-
-function hideAlert() {
-  document.getElementById('alertBox').style.display = 'none';
-}
+function hideAlert() { document.getElementById('alertBox').style.display = 'none'; }
 
 function setLoading(loading) {
   document.getElementById('submitBtn').disabled = loading;
   document.getElementById('spinner').style.display = loading ? 'block' : 'none';
 }
 
+// ── Sign-in ───────────────────────────────────────────────────
 async function handleSubmit(e) {
   e.preventDefault();
   hideAlert();
-
   const email    = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
-
   setLoading(true);
   try {
     const { data, error } = await window._sb.auth.signInWithPassword({ email, password });
@@ -100,9 +126,66 @@ function redirectAfterLogin() {
   }
 }
 
-/* Show pending screen if redirected here with ?pending=1 */
+// ── Set-password screen (invite / recovery callback) ──────────
+function showSetPasswordScreen(type) {
+  document.getElementById('authForm').closest('.auth-card').style.display = 'none';
+  const screen = document.getElementById('setPasswordScreen');
+  screen.style.display = 'block';
+
+  if (type === 'recovery') {
+    document.getElementById('setPasswordTitle').textContent    = 'Reset Your Password';
+    document.getElementById('setPasswordSubtitle').textContent = 'Choose a new password for your account.';
+    document.getElementById('setPasswordBadge').textContent    = '🔑 Password reset';
+    document.getElementById('setPwLabel').textContent          = 'Set New Password';
+  }
+}
+
+function showSetPwAlert(msg, type = 'error') {
+  const box = document.getElementById('setPwAlertBox');
+  box.textContent = msg;
+  box.className = 'alert ' + type;
+  box.style.display = 'block';
+}
+
+function setSetPwLoading(loading) {
+  document.getElementById('setPwBtn').disabled = loading;
+  document.getElementById('setPwSpinner').style.display = loading ? 'block' : 'none';
+}
+
+async function handleSetPassword(e) {
+  e.preventDefault();
+  const pw1 = document.getElementById('newPassword').value;
+  const pw2 = document.getElementById('confirmPassword').value;
+
+  if (pw1 !== pw2) { showSetPwAlert("Passwords don't match."); return; }
+  if (pw1.length < 8) { showSetPwAlert('Password must be at least 8 characters.'); return; }
+
+  setSetPwLoading(true);
+  try {
+    const { error } = await window._sb.auth.updateUser({ password: pw1 });
+    if (error) throw error;
+    showSetPwAlert('Password set! Redirecting…', 'success');
+    setTimeout(redirectAfterLogin, 1200);
+  } catch (err) {
+    showSetPwAlert(err.message || 'Failed to set password. Please try again.');
+  } finally {
+    setSetPwLoading(false);
+  }
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────
 const params = new URLSearchParams(window.location.search);
-if (params.get('pending') === '1') {
+
+// Detect invite / password-recovery token in the URL hash
+// Supabase appends #access_token=...&type=invite (or type=recovery)
+const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+const urlType    = hashParams.get('type');
+
+if (urlType === 'invite' || urlType === 'recovery') {
+  // Supabase has already exchanged the hash token into a session
+  // by the time this script runs; just show the set-password form.
+  showSetPasswordScreen(urlType);
+} else if (params.get('pending') === '1') {
   document.getElementById('pendingScreen').style.display = 'flex';
 } else {
   /* Check if already authenticated — skip login screen */
