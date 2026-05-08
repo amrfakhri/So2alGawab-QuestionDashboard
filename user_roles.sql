@@ -21,6 +21,11 @@ CREATE TABLE IF NOT EXISTS public.user_roles (
 ALTER TABLE public.user_roles ADD COLUMN IF NOT EXISTS email TEXT;
 ALTER TABLE public.user_roles ADD COLUMN IF NOT EXISTS full_name TEXT NOT NULL DEFAULT '';
 
+-- Intended role stored while the user is pending approval.
+-- Cleared to NULL once the super_admin approves.
+ALTER TABLE public.user_roles ADD COLUMN IF NOT EXISTS pending_role TEXT
+  CHECK (pending_role IN ('super_admin', 'admin', 'editor', 'viewer'));
+
 -- Widen role constraint to include 'pending' if it already existed
 ALTER TABLE public.user_roles DROP CONSTRAINT IF EXISTS user_roles_role_check;
 ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_role_check

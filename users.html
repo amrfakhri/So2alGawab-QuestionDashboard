@@ -312,7 +312,7 @@ function renderTable(users) {
           </div>
         </div>
       </td>
-      <td>${roleBadge(u.role)}</td>
+      <td>${roleBadge(u.role, u.pending_role)}</td>
       <td>${statusBadge(status)}</td>
       <td class="date-cell">${fmtDate(u.created_at)}</td>
       <td class="date-cell">${u.last_sign_in_at ? fmtRelative(u.last_sign_in_at) : '<span class="text-muted">Never</span>'}</td>
@@ -327,16 +327,22 @@ function renderTable(users) {
 }
 
 function buildActionsMenu(u, isMe, status) {
-  const uid   = u.id;
-  const email = escHtml(u.email);
-  const uJson = JSON.stringify(u).replace(/"/g,'&quot;');
+  const uid      = u.id;
+  const email    = escHtml(u.email);
+  const pr       = escHtml(u.pending_role || '');
+  const uJson    = JSON.stringify(u).replace(/"/g,'&quot;');
   let html = '';
 
   html += `<button class="dropdown-item" onclick="openEditModal(${uJson});closeDropdown()">${icon('pencil', 'icon-sm')} Edit User</button>`;
 
+  // Pending-confirmed users need approval before they can access anything
+  if (status === 'pending') {
+    html += `<button class="dropdown-item success" onclick="confirmAction('approve','${uid}','${email}','${pr}');closeDropdown()">${icon('shield-check', 'icon-sm')} Approve Access</button>`;
+  }
+
   if (status === 'invited') {
     html += `<button class="dropdown-item" onclick="confirmAction('resend','${uid}','${email}');closeDropdown()">${icon('mail', 'icon-sm')} Resend Invite</button>`;
-  } else {
+  } else if (status !== 'pending') {
     html += `<button class="dropdown-item" onclick="openResetModal('${uid}','${email}');closeDropdown()">${icon('key-round', 'icon-sm')} Reset Password</button>`;
   }
 
@@ -359,9 +365,13 @@ function roleAvatarColor(role) {
   return { super_admin: '#b45309', admin: '#7c3aed', editor: '#1d4ed8', viewer: '#374151', pending: '#92400e' }[role] || '#374151';
 }
 
-function roleBadge(role) {
+function roleBadge(role, pendingRole) {
   const cls = { super_admin: 'badge-super-admin', admin: 'badge-admin', editor: 'badge-editor', viewer: 'badge-viewer', pending: 'badge-pending' }[role] || 'badge-viewer';
-  return `<span class="badge ${cls}">${role.replace('_',' ')}</span>`;
+  const label = role.replace('_', ' ');
+  if (role === 'pending' && pendingRole) {
+    return `<span class="badge badge-pending" title="Will be approved as ${pendingRole.replace('_',' ')}">${label} → ${pendingRole.replace('_', ' ')}</span>`;
+  }
+  return `<span class="badge ${cls}">${label}</span>`;
 }
 
 function statusBadge(s) {
@@ -542,10 +552,17 @@ function copyResetLink() {
 // ── Confirm Modal (disable / enable / delete / resend) ────────
 let pendingAction = null;
 
-function confirmAction(type, userId, email) {
-  pendingAction = { type, userId, email };
+function confirmAction(type, userId, email, pendingRole = '') {
+  pendingAction = { type, userId, email, pendingRole };
 
+  const roleLabel = pendingRole.replace('_', ' ');
   const cfg = {
+    approve: {
+      icon: 'shield-check', iconCls: 'icon-2xl text-green',
+      title: 'Approve User',
+      body: `Grant <strong>${escHtml(email)}</strong> access as <strong>${escHtml(roleLabel)}</strong>. They will receive a confirmation email.`,
+      warning: null, label: 'Approve', danger: false
+    },
     disable: {
       icon: 'ban',         iconCls: 'icon-2xl text-muted',
       title: 'Disable Account',
@@ -599,7 +616,10 @@ document.getElementById('confirmOkBtn').onclick = async () => {
   document.getElementById('confirmSpinner').style.display = 'inline-block';
 
   try {
-    if (type === 'resend') {
+    if (type === 'approve') {
+      const { role } = await Auth.callAdminFunction('approveUser', { userId });
+      toast(`${email} approved as ${(role || pendingAction.pendingRole).replace('_', ' ')}`, 'success');
+    } else if (type === 'resend') {
       await Auth.callAdminFunction('resendInvite', { email });
       toast('Invitation resent to ' + email, 'success');
     } else {

@@ -191,12 +191,37 @@ async function handleSetPassword(e) {
   try {
     const { error } = await window._sb.auth.updateUser({ password: pw1 });
     if (error) throw error;
-    showSetPwAlert('Password set! Redirecting…', 'success');
-    setTimeout(redirectAfterLogin, 1200);
+
+    // Fire-and-forget: notify super admins that a new user activated.
+    // This triggers an approval email to all super_admins.
+    notifyAdminsOfActivation();
+
+    showSetPwAlert('Password set! Your account is awaiting admin approval. You\'ll be notified once approved.', 'success');
+    setTimeout(() => window._sb.auth.signOut().then(() => window.location.replace('./index.html')), 3000);
   } catch (err) {
     showSetPwAlert(err.message || 'Failed to set password. Please try again.');
   } finally {
     setSetPwLoading(false);
+  }
+}
+
+// Notify super admins that this user has activated their account.
+// Called after a successful password set — does not block the UI.
+async function notifyAdminsOfActivation() {
+  try {
+    const { data: { session } } = await window._sb.auth.getSession();
+    if (!session) return;
+    await fetch(`${window.SUPABASE_URL}/functions/v1/admin-users`, {
+      method:  'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type':  'application/json',
+        'apikey':        window.SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ action: 'userActivated' }),
+    });
+  } catch {
+    // Non-critical — don't surface to user
   }
 }
 
