@@ -100,6 +100,28 @@ select:focus-visible, textarea:focus-visible {
 .text-green    { color: var(--green); }
 .text-indigo   { color: #a5b4fc; }
 
+/* ── Lucide Icon System ──────────────────────────────────────────── */
+/* Lucide replaces <i data-lucide="..."> with <svg class="lucide ..."> */
+.lucide {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: -0.125em; /* align optically with text baseline */
+  stroke: currentColor;
+  fill: none;
+  /* default 16 px — override with .icon-* modifier classes */
+  width: 16px;
+  height: 16px;
+}
+
+/* Size scale */
+.icon-xs  { width: 12px; height: 12px; }
+.icon-sm  { width: 14px; height: 14px; }
+.icon-md  { width: 18px; height: 18px; }
+.icon-lg  { width: 20px; height: 20px; }
+.icon-xl  { width: 24px; height: 24px; }
+.icon-2xl { width: 36px; height: 36px; }
+.icon-3xl { width: 48px; height: 48px; }
+
 /* ── Animations ─────────────────────────────────────────────────── */
 @keyframes spin    { to { transform: rotate(360deg); } }
 @keyframes pulse   { 0%,100%{opacity:1;} 50%{opacity:.4;} }

@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="./assets/css/editor.css">
 <link rel="stylesheet" href="./assets/css/responsive.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="./services/supabase.js"></script>
 <script src="./services/auth.js"></script>
 </head>
@@ -24,14 +25,14 @@
 <div class="screen active" id="listsScreen">
 
   <div class="ls-topbar">
-    <div class="ls-logo">🎮 <span class="accent">So2alGawab</span></div>
+    <div class="ls-logo"><i data-lucide="gamepad-2" class="icon-lg"></i> <span class="accent">So2alGawab</span></div>
     <div class="ls-topbar-right">
       <div class="conn-badge checking" id="connBadge">
         <span class="conn-dot"></span>
         <span id="connLabel">Checking…</span>
       </div>
-      <a class="btn btn-ghost" href="./dashboard.html">← Dashboard</a>
-      <a class="btn btn-ghost" id="btnUsers" href="./users.html" style="display:none;">👥 Users</a>
+      <a class="btn btn-ghost" href="./dashboard.html"><i data-lucide="arrow-left" class="icon-sm"></i> Dashboard</a>
+      <a class="btn btn-ghost" id="btnUsers" href="./users.html" style="display:none;"><i data-lucide="users" class="icon-sm"></i> Users</a>
       <div id="userChip"></div>
     </div>
   </div>
@@ -54,9 +55,9 @@
         <option value="questions">Most Questions</option>
       </select>
       <div class="ls-actions-right">
-        <label class="btn btn-ghost" for="importFileMain">⬆ Import JSON</label>
+        <label class="btn btn-ghost" for="importFileMain"><i data-lucide="upload" class="icon-sm"></i> Import JSON</label>
         <input type="file" id="importFileMain" accept=".json">
-        <button class="btn btn-primary" id="btnCreateList">＋ New List</button>
+        <button class="btn btn-primary" id="btnCreateList"><i data-lucide="plus" class="icon-sm"></i> New List</button>
       </div>
     </div>
 
@@ -99,11 +100,11 @@
       <option value="INACTIVE">INACTIVE</option>
     </select>
     <div class="topbar-actions">
-      <button class="btn btn-ghost" id="btnPreview" title="Preview all questions">👁 Preview</button>
-      <label class="btn btn-ghost" for="importFileEditor" title="Import JSON">⬆ Import</label>
+      <button class="btn btn-ghost" id="btnPreview" title="Preview all questions"><i data-lucide="eye" class="icon-sm"></i> Preview</button>
+      <label class="btn btn-ghost" for="importFileEditor" title="Import JSON"><i data-lucide="upload" class="icon-sm"></i> Import</label>
       <input type="file" id="importFileEditor" accept=".json">
-      <button class="btn btn-success" id="btnExport">⬇ Export</button>
-      <button class="btn btn-primary" id="btnAddQuestion">＋ Add</button>
+      <button class="btn btn-success" id="btnExport"><i data-lucide="download" class="icon-sm"></i> Export</button>
+      <button class="btn btn-primary" id="btnAddQuestion"><i data-lucide="plus" class="icon-sm"></i> Add</button>
     </div>
   </div>
 
@@ -114,11 +115,11 @@
       <div class="questions-toolbar">
         <span class="q-count" id="qCount">0 questions</span>
         <div class="bulk-actions" id="bulkActions" style="display:none;">
-          <button class="btn btn-danger" id="btnBulkDelete">🗑 Delete Selected</button>
+          <button class="btn btn-danger" id="btnBulkDelete"><i data-lucide="trash-2" class="icon-sm"></i> Delete Selected</button>
         </div>
         <div class="view-toggle">
-          <button class="view-btn active" id="viewTable" title="Table view">☰</button>
-          <button class="view-btn" id="viewGrid" title="Grid view">⊞</button>
+          <button class="view-btn active" id="viewTable" title="Table view"><i data-lucide="list" class="icon-sm"></i></button>
+          <button class="view-btn" id="viewGrid" title="Grid view"><i data-lucide="layout-grid" class="icon-sm"></i></button>
         </div>
       </div>
       <div id="questionsContainer"></div>
@@ -132,7 +133,7 @@
   <div class="drawer-head">
     <div class="drawer-title" id="drawerTitle">Add Question</div>
     <span class="unsaved-dot" id="unsavedDot" style="display:none;"></span>
-    <button class="icon-btn" id="btnCloseDrawer">✕</button>
+    <button class="icon-btn" id="btnCloseDrawer"><i data-lucide="x" class="icon-sm"></i></button>
   </div>
 
   <div class="drawer-body">
@@ -250,24 +251,24 @@
           <div class="form-group">
             <label class="form-label">Images</label>
             <div class="media-field" id="imageFields"></div>
-            <button type="button" class="btn-add-note" id="btnAddImage">＋ Add image URL</button>
+            <button type="button" class="btn-add-note" id="btnAddImage"><i data-lucide="plus" class="icon-xs"></i> Add image URL</button>
           </div>
           <div class="form-group">
             <label class="form-label">Videos</label>
             <div class="media-field" id="videoFields"></div>
-            <button type="button" class="btn-add-note" id="btnAddVideo">＋ Add video URL</button>
+            <button type="button" class="btn-add-note" id="btnAddVideo"><i data-lucide="plus" class="icon-xs"></i> Add video URL</button>
           </div>
           <div class="form-group">
             <label class="form-label">Audio</label>
             <div class="media-field" id="audioFields"></div>
-            <button type="button" class="btn-add-note" id="btnAddAudio">＋ Add audio URL</button>
+            <button type="button" class="btn-add-note" id="btnAddAudio"><i data-lucide="plus" class="icon-xs"></i> Add audio URL</button>
           </div>
           <div class="form-group">
             <label class="form-label">Correct Answer Media (URL)</label>
             <div class="media-row">
               <div class="media-preview-wrap" id="ansMediaPreviewWrap" style="display:none;">
                 <img class="media-preview-img" id="ansMediaPreview" src="" alt="">
-                <button type="button" class="media-remove" id="btnRemoveAnsMedia" aria-label="Remove">✕</button>
+                <button type="button" class="media-remove" id="btnRemoveAnsMedia" aria-label="Remove"><i data-lucide="x" class="icon-sm"></i></button>
               </div>
               <div class="form-input-wrap">
                 <input class="form-input" id="fCorrectAnswerMedia" type="text" placeholder="https://…">
@@ -279,7 +280,7 @@
         <!-- ADVANCED (collapsible) -->
         <details class="form-collapsible">
           <summary class="form-collapsible-summary">
-            ⚙ Advanced
+            <i data-lucide="settings" class="icon-sm"></i> Advanced
             <span class="form-collapsible-chevron">›</span>
           </summary>
           <div class="form-collapsible-body">
@@ -300,7 +301,7 @@
             <div class="form-group">
               <label class="form-label">Notes</label>
               <div class="notes-list" id="notesFields"></div>
-              <button type="button" class="btn-add-note" id="btnAddNote">＋ Add note</button>
+              <button type="button" class="btn-add-note" id="btnAddNote"><i data-lucide="plus" class="icon-xs"></i> Add note</button>
             </div>
             <div class="form-group">
               <label class="form-label">Hint Question (JSON)</label>
@@ -353,10 +354,10 @@
 <!-- PREVIEW MODAL -->
 <div class="preview-modal" id="previewModal">
   <div class="preview-topbar">
-    <span class="preview-icon">🎮</span>
+    <span class="preview-icon"><i data-lucide="gamepad-2" class="icon-xl"></i></span>
     <span class="preview-heading">Game Questions Preview</span>
     <span id="previewListName" class="preview-name"></span>
-    <button class="btn btn-ghost" id="btnClosePreview" style="margin-left:auto;">✕ Close Preview</button>
+    <button class="btn btn-ghost" id="btnClosePreview" style="margin-left:auto;"><i data-lucide="x" class="icon-sm"></i> Close Preview</button>
   </div>
   <div class="preview-content" id="previewContent"></div>
 </div>
@@ -365,9 +366,9 @@
 <div class="modal-overlay" id="newListModal">
   <div class="modal">
     <div class="modal-head">
-      <span style="font-size:20px;">📋</span>
+      <i data-lucide="list-plus" class="icon-xl"></i>
       <h3 id="newListModalTitle">Create New List</h3>
-      <button class="icon-btn" id="btnCloseNewListModal">✕</button>
+      <button class="icon-btn" id="btnCloseNewListModal"><i data-lucide="x" class="icon-sm"></i></button>
     </div>
     <div class="modal-body">
       <div class="modal-section">
@@ -402,6 +403,10 @@
 <script>
 'use strict';
 
+function icon(name, cls = '') {
+  return `<i data-lucide="${name}"${cls ? ` class="${cls}"` : ''}></i>`;
+}
+
 const CLASS_POINTS = { CLASS_200:200, CLASS_400:400, CLASS_600:600, CLASS_800:800, CLASS_1000:1000 };
 
 /* =====================================================
@@ -430,7 +435,8 @@ function updateConnBadge() {
 function toast(msg, type = 'success') {
   const el = document.createElement('div');
   el.className = `toast ${type}`;
-  el.innerHTML = `<span>${type === 'success' ? '✅' : '❌'}</span> ${msg}`;
+  el.innerHTML = `${icon(type === 'success' ? 'check-circle' : 'x-circle', 'icon-sm')} ${msg}`;
+  lucide.createIcons();
   document.getElementById('toastContainer').appendChild(el);
   setTimeout(() => el.remove(), 3500);
 }
@@ -523,11 +529,12 @@ function renderListsGrid(lists) {
   if (!filtered.length) {
     grid.innerHTML = `
       <div class="ls-empty">
-        <div class="ls-empty-icon">${q ? '🔍' : '📋'}</div>
+        <div class="ls-empty-icon">${q ? icon('search', 'icon-3xl') : icon('list-checks', 'icon-3xl')}</div>
         <h3>${q ? 'No lists match your search' : 'No question lists yet'}</h3>
         <p>${q ? 'Try a different search term.' : 'Create your first list to start organizing game questions.'}</p>
-        ${!q ? '<button class="btn btn-primary" onclick="openNewListModal()">＋ Create First List</button>' : ''}
+        ${!q ? `<button class="btn btn-primary" onclick="openNewListModal()">${icon('plus', 'icon-sm')} Create First List</button>` : ''}
       </div>`;
+    lucide.createIcons();
     return;
   }
 
@@ -537,18 +544,18 @@ function renderListsGrid(lists) {
     return `
       <div class="list-card" data-list-id="${list.id}">
         <div class="list-card-header">
-          <div class="list-card-icon">🎮</div>
+          <div class="list-card-icon">${icon('gamepad-2', 'icon-xl')}</div>
           <div class="list-card-info">
             <div class="list-card-title" title="${escHtml(list.title)}">${escHtml(list.title)}</div>
             <div class="list-card-date">Updated ${fmtDate(list.updatedAt || list.createdAt)}</div>
           </div>
           <div class="lc-menu">
-            <button class="lc-menu-btn" aria-label="More actions" tabindex="0">⋯</button>
+            <button class="lc-menu-btn" aria-label="More actions" tabindex="0">${icon('more-horizontal')}</button>
             <div class="lc-dropdown">
-              <button class="lc-dropdown-btn" data-action="rename-list" data-id="${list.id}">✏ Rename</button>
-              <button class="lc-dropdown-btn" data-action="export-list" data-id="${list.id}">⬇ Export JSON</button>
+              <button class="lc-dropdown-btn" data-action="rename-list" data-id="${list.id}">${icon('pencil', 'icon-sm')} Rename</button>
+              <button class="lc-dropdown-btn" data-action="export-list" data-id="${list.id}">${icon('download', 'icon-sm')} Export JSON</button>
               <hr class="lc-dropdown-sep">
-              <button class="lc-dropdown-btn danger" data-action="delete-list" data-id="${list.id}">🗑 Delete</button>
+              <button class="lc-dropdown-btn danger" data-action="delete-list" data-id="${list.id}">${icon('trash-2', 'icon-sm')} Delete</button>
             </div>
           </div>
         </div>
@@ -568,6 +575,7 @@ function renderListsGrid(lists) {
       </div>
     `;
   }).join('');
+  lucide.createIcons();
 }
 
 /* =====================================================
@@ -616,15 +624,16 @@ function renderCategoriesBar() {
           ${escHtml(cat.name)}
           <span class="cat-count">${count}</span>
           <span class="cat-actions">
-            <span class="icon-btn" data-action="rename-cat" data-id="${cat.id}" title="Rename">✏</span>
-            <span class="icon-btn danger" data-action="delete-cat" data-id="${cat.id}" title="Delete">✕</span>
+            <span class="icon-btn" data-action="rename-cat" data-id="${cat.id}" title="Rename">${icon('pencil', 'icon-sm')}</span>
+            <span class="icon-btn danger" data-action="delete-cat" data-id="${cat.id}" title="Delete">${icon('x', 'icon-sm')}</span>
           </span>
         </button>
       `;
     }).join('')}
-    <button class="btn-add-cat" id="btnAddCat">＋ Category</button>
+    <button class="btn-add-cat" id="btnAddCat">${icon('plus', 'icon-sm')} Category</button>
   `;
   setupCatDrag();
+  lucide.createIcons();
 }
 
 /* =====================================================
@@ -653,7 +662,8 @@ function renderQuestions() {
   document.getElementById('qCount').textContent = `${qs.length} question${qs.length !== 1 ? 's' : ''}`;
 
   if (!qs.length) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>${appState.search ? 'No questions match your search.' : 'No questions yet.'}</p></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">${icon('inbox', 'icon-xl')}</div><p>${appState.search ? 'No questions match your search.' : 'No questions yet.'}</p></div>`;
+    lucide.createIcons();
     return;
   }
 
@@ -665,6 +675,7 @@ function renderQuestions() {
     setupTableDrag();
   }
   updateBulkActions();
+  lucide.createIcons();
 }
 
 function getCatName(list, catId) {
@@ -683,12 +694,12 @@ function renderQTable(qs, list) {
     const sel = appState.selectedIds.has(q.questionId);
     let mediaCell = '<span class="text-muted">—</span>';
     if (gq.image?.[0]) mediaCell = `<img class="media-thumb" src="${escHtml(gq.image[0])}" loading="lazy" onerror="this.style.display='none'">`;
-    else if (gq.video?.[0]) mediaCell = `<div class="media-icon">🎬</div>`;
-    else if (gq.audio?.[0]) mediaCell = `<div class="media-icon">🎵</div>`;
+    else if (gq.video?.[0]) mediaCell = `<div class="media-icon">${icon('video', 'icon-md')}</div>`;
+    else if (gq.audio?.[0]) mediaCell = `<div class="media-icon">${icon('music', 'icon-md')}</div>`;
     const statusBadge = gq.status === 'ACTIVE' ? `<span class="badge badge-green">ACTIVE</span>` : `<span class="badge badge-red">${gq.status||'—'}</span>`;
     return `
       <tr data-q-id="${q.questionId}" draggable="true" class="${sel?'selected':''}">
-        <td><span class="drag-handle">⠿</span></td>
+        <td><span class="drag-handle">${icon('grip-vertical', 'icon-sm')}</span></td>
         <td><input class="cb" type="checkbox" data-q-id="${q.questionId}" ${sel?'checked':''}></td>
         <td><span class="q-row-num">#${q.id}</span></td>
         <td>
@@ -702,9 +713,9 @@ function renderQTable(qs, list) {
         <td>${statusBadge}</td>
         <td>
           <div class="row-actions">
-            <button class="icon-btn" data-action="edit-q" data-q-id="${q.questionId}" title="Edit">✏</button>
-            <button class="icon-btn" data-action="dupe-q" data-q-id="${q.questionId}" title="Duplicate">⊕</button>
-            <button class="icon-btn danger" data-action="del-q" data-q-id="${q.questionId}" title="Delete">✕</button>
+            <button class="icon-btn" data-action="edit-q" data-q-id="${q.questionId}" title="Edit">${icon('pencil', 'icon-sm')}</button>
+            <button class="icon-btn" data-action="dupe-q" data-q-id="${q.questionId}" title="Duplicate">${icon('copy', 'icon-sm')}</button>
+            <button class="icon-btn danger" data-action="del-q" data-q-id="${q.questionId}" title="Delete">${icon('x', 'icon-sm')}</button>
           </div>
         </td>
       </tr>`;
@@ -725,8 +736,8 @@ function renderQCard(q, list) {
   const sel = appState.selectedIds.has(q.questionId);
   let media = '';
   if (gq.image?.[0]) media = `<img src="${escHtml(gq.image[0])}" loading="lazy" onerror="this.style.display='none'">`;
-  else if (gq.video?.[0]) media = `<div class="media-center-icon">🎬</div>`;
-  else if (gq.audio?.[0]) media = `<div class="media-center-icon">🎵</div>`;
+  else if (gq.video?.[0]) media = `<div class="media-center-icon">${icon('video', 'icon-xl')}</div>`;
+  else if (gq.audio?.[0]) media = `<div class="media-center-icon">${icon('music', 'icon-xl')}</div>`;
   return `
     <div class="q-card ${sel?'selected':''}" data-q-id="${q.questionId}">
       <div class="q-card-media">${media}</div>
@@ -735,9 +746,9 @@ function renderQCard(q, list) {
         <div class="q-card-question">${escHtml(gq.question||'—')}</div>
         <div class="q-card-answer"><small>Correct Answer</small><span>${escHtml(gq.correctAnswer||'—')}</span></div>
         <div class="q-card-actions">
-          <button class="btn btn-ghost btn-block btn-sm" data-action="edit-q" data-q-id="${q.questionId}">✏ Edit</button>
-          <button class="icon-btn" data-action="dupe-q" data-q-id="${q.questionId}" title="Duplicate">⊕</button>
-          <button class="icon-btn danger" data-action="del-q" data-q-id="${q.questionId}" title="Delete">✕</button>
+          <button class="btn btn-ghost btn-block btn-sm" data-action="edit-q" data-q-id="${q.questionId}">${icon('pencil', 'icon-sm')} Edit</button>
+          <button class="icon-btn" data-action="dupe-q" data-q-id="${q.questionId}" title="Duplicate">${icon('copy', 'icon-sm')}</button>
+          <button class="icon-btn danger" data-action="del-q" data-q-id="${q.questionId}" title="Delete">${icon('x', 'icon-sm')}</button>
         </div>
       </div>
     </div>`;
@@ -807,17 +818,19 @@ function addMediaField(containerId, url) {
   const container = document.getElementById(containerId);
   const row = document.createElement('div');
   row.className = 'media-row';
-  row.innerHTML = `<div class="form-input-wrap"><input class="form-input media-url-input" data-type="${type}" type="text" placeholder="https://…" value="${escHtml(url||'')}"><span class="form-hint">${type} URL</span></div><button type="button" class="icon-btn danger media-remove-btn">✕</button>`;
+  row.innerHTML = `<div class="form-input-wrap"><input class="form-input media-url-input" data-type="${type}" type="text" placeholder="https://…" value="${escHtml(url||'')}"><span class="form-hint">${type} URL</span></div><button type="button" class="icon-btn danger media-remove-btn">${icon('x', 'icon-sm')}</button>`;
   row.querySelector('.media-remove-btn').onclick = () => row.remove();
   container.appendChild(row);
+  lucide.createIcons();
 }
 function clearNotes(notes) { document.getElementById('notesFields').innerHTML = ''; (notes||[]).forEach(n => addNoteField(n)); }
 function addNoteField(val) {
   const container = document.getElementById('notesFields');
   const row = document.createElement('div');
   row.className = 'note-item';
-  row.innerHTML = `<input class="form-input note-input" type="text" placeholder="Note…" value="${escHtml(val||'')}"><button type="button" class="icon-btn danger" onclick="this.parentElement.remove()">✕</button>`;
+  row.innerHTML = `<input class="form-input note-input" type="text" placeholder="Note…" value="${escHtml(val||'')}"><button type="button" class="icon-btn danger" onclick="this.parentElement.remove()">${icon('x', 'icon-sm')}</button>`;
   container.appendChild(row);
+  lucide.createIcons();
 }
 function updateAnsMediaPreview(url) {
   const wrap = document.getElementById('ansMediaPreviewWrap');
@@ -848,6 +861,7 @@ function setLayoutThumb(val) {
   const meta = LAYOUT_META[n] || LAYOUT_META[2];
   document.getElementById('lpSchematicLabel').textContent = meta.name;
   document.getElementById('lpSchematicViz').innerHTML = meta.schematic();
+  lucide.createIcons();
   updateLivePreview();
 }
 
@@ -862,7 +876,7 @@ function buildSchematic1() {
 }
 function buildSchematic2() {
   return `<div style="display:flex;flex-direction:column;gap:4px;padding:4px 0;">
-    <div style="height:36px;background:rgba(37,99,235,0.2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#60a5fa;">🖼 Media</div>
+    <div style="height:36px;background:rgba(37,99,235,0.2);border-radius:6px;display:flex;align-items:center;justify-content:center;gap:4px;font-size:11px;color:#60a5fa;">${icon('image', 'icon-md')} Media</div>
     <div style="height:10px;background:rgba(255,255,255,0.15);border-radius:4px;margin-top:4px;"></div>
     <div style="height:8px;background:rgba(255,255,255,0.09);border-radius:4px;width:70%;"></div>
     <div style="height:10px;background:rgba(34,197,94,0.25);border-radius:4px;margin-top:2px;"></div>
@@ -880,7 +894,7 @@ function buildSchematic3() {
 }
 function buildSchematic4() {
   return `<div style="display:flex;gap:6px;padding:4px 0;align-items:stretch;">
-    <div style="flex:1;height:52px;background:rgba(37,99,235,0.2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#60a5fa;">🖼</div>
+    <div style="flex:1;height:52px;background:rgba(37,99,235,0.2);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#60a5fa;">${icon('image', 'icon-md')}</div>
     <div style="flex:1;display:flex;flex-direction:column;gap:4px;justify-content:center;">
       <div style="height:9px;background:rgba(255,255,255,0.15);border-radius:4px;"></div>
       <div style="height:7px;background:rgba(255,255,255,0.09);border-radius:4px;width:80%;"></div>
@@ -996,7 +1010,7 @@ function updateLivePreview() {
   } else if (layout === 2 && images[0]) {
     mediaHtml = `<div class="lp-card-media"><img src="${escHtml(images[0])}" onerror="this.style.display='none'" loading="lazy"></div>`;
   } else if (layout === 2 && videos[0]) {
-    mediaHtml = `<div class="lp-card-media" style="height:100px;display:flex;align-items:center;justify-content:center;font-size:32px;background:#020617;">🎬</div>`;
+    mediaHtml = `<div class="lp-card-media" style="height:100px;display:flex;align-items:center;justify-content:center;background:#020617;">${icon('video', 'icon-xl')}</div>`;
   }
 
   const audioHtml = audios[0]
@@ -1004,7 +1018,7 @@ function updateLivePreview() {
 
   const badgesHtml = `
     <div class="lp-badges">
-      <span class="lp-badge">⭐ ${points} pts</span>
+      <span class="lp-badge">${icon('star', 'icon-xs')} ${points} pts</span>
       <span class="lp-badge">${escHtml(qtv.replace(/_/g,' '))}</span>
       ${label ? `<span class="lp-badge">${escHtml(label)}</span>` : ''}
       ${status !== 'ACTIVE' ? `<span class="lp-badge" style="color:var(--amber);">${escHtml(status)}</span>` : ''}
@@ -1021,7 +1035,7 @@ function updateLivePreview() {
   if (layout === 4 && (images[0] || videos[0])) {
     const splitMedia = images[0]
       ? `<img src="${escHtml(images[0])}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">`
-      : `<div class="media-center-icon" style="background:#020617;">🎬</div>`;
+      : `<div class="media-center-icon" style="background:#020617;">${icon('video', 'icon-xl')}</div>`;
     container.innerHTML = `
       <div class="lp-card">
         <div class="lp-split-container">
@@ -1043,6 +1057,7 @@ function updateLivePreview() {
         </div>
       </div>`;
   }
+  lucide.createIcons();
 }
 
 /* =====================================================
@@ -1060,6 +1075,7 @@ function renderPreview() {
     if (!items.length) return '';
     return `<div class="preview-category"><div class="preview-cat-title">${escHtml(cat.name)}</div><div class="preview-grid">${items.map(renderPreviewCard).join('')}</div></div>`;
   }).join('');
+  lucide.createIcons();
 }
 
 function renderPreviewCard(q) {
@@ -1073,7 +1089,7 @@ function renderPreviewCard(q) {
       ${media}
       <div class="preview-card-body">
         <div class="preview-badges">
-          <span class="preview-badge">⭐ ${q.points||0} pts</span>
+          <span class="preview-badge">${icon('star', 'icon-xs')} ${q.points||0} pts</span>
           <span class="preview-badge">${escHtml(q.buttonClick||'')}</span>
           <span class="preview-badge">${escHtml(gq.questionTypeView||'')}</span>
         </div>
@@ -1484,7 +1500,7 @@ async function init() {
   loadListsScreen();
 }
 
-init();
+init().then(() => lucide.createIcons());
 </script>
 </body>
 </html>

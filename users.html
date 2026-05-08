@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="./assets/css/forms.css">
 <link rel="stylesheet" href="./assets/css/responsive.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="./services/supabase.js"></script>
 <script src="./services/auth.js"></script>
 </head>
@@ -19,11 +20,16 @@
 
 <!-- ── Topbar ──────────────────────────────────────────────────── -->
 <div class="topbar">
-  <div class="topbar-logo">🎮 <span class="accent">So2alGawab</span></div>
+  <div class="topbar-logo">
+    <i data-lucide="gamepad-2" class="icon-lg"></i>
+    <span class="accent">So2alGawab</span>
+  </div>
   <span class="topbar-sep">/</span>
   <span class="topbar-title">Users</span>
   <div class="topbar-right">
-    <a class="btn btn-ghost btn-sm" href="./database.html">← Database</a>
+    <a class="btn btn-ghost btn-sm" href="./database.html">
+      <i data-lucide="arrow-left" class="icon-sm"></i> Database
+    </a>
     <div id="userChip"></div>
   </div>
 </div>
@@ -36,7 +42,9 @@
       <h1>User Management</h1>
       <p>Invite team members. They'll receive an email to activate their account and set a password.</p>
     </div>
-    <button class="btn btn-primary" onclick="openCreateModal()">✉️ Invite User</button>
+    <button class="btn btn-primary" onclick="openCreateModal()">
+      <i data-lucide="mail" class="icon-sm"></i> Invite User
+    </button>
   </div>
 
   <!-- Stats -->
@@ -99,12 +107,15 @@
         <h2 id="modalTitle">Invite User</h2>
         <p id="modalSubtitle">An activation email will be sent to the user.</p>
       </div>
-      <button class="modal-close" onclick="closeUserModal()">✕</button>
+      <button class="modal-close" onclick="closeUserModal()">
+        <i data-lucide="x" class="icon-sm"></i>
+      </button>
     </div>
     <div class="modal-body">
       <div class="form-alert" id="modalAlert"></div>
       <div class="form-info" id="inviteBanner">
-        ✉️ The user will receive an email with a secure link to activate their account and set their own password.
+        <i data-lucide="mail" class="icon-sm"></i>
+        The user will receive an email with a secure link to activate their account and set their own password.
       </div>
       <form id="userForm" onsubmit="submitUserForm(event)">
         <input type="hidden" id="editUserId">
@@ -126,7 +137,7 @@
           <label class="form-label">Role <span class="text-required">*</span></label>
           <select class="form-select" id="fRole" required>
             <option value="viewer">Viewer — read-only access</option>
-            <option value="editor">Editor — create & edit content</option>
+            <option value="editor">Editor — create &amp; edit content</option>
             <option value="admin">Admin — full content management</option>
             <option value="super_admin">Super Admin — full access + users</option>
           </select>
@@ -153,7 +164,9 @@
         <h2>Reset Password</h2>
         <p id="resetSubtitle">Generate a one-time password reset link.</p>
       </div>
-      <button class="modal-close" onclick="closeResetModal()">✕</button>
+      <button class="modal-close" onclick="closeResetModal()">
+        <i data-lucide="x" class="icon-sm"></i>
+      </button>
     </div>
     <div class="modal-body">
       <p class="modal-desc">
@@ -180,7 +193,9 @@
 <div class="modal-bg" id="confirmModalBg" onclick="if(event.target===this)closeConfirmModal()">
   <div class="modal confirm-modal">
     <div class="modal-body modal-body-padded">
-      <div class="confirm-icon" id="confirmIcon">⚠️</div>
+      <div class="confirm-icon" id="confirmIcon">
+        <i data-lucide="triangle-alert" class="icon-2xl text-muted"></i>
+      </div>
       <div class="confirm-title" id="confirmTitle">Are you sure?</div>
       <p class="confirm-body" id="confirmBody"></p>
       <div class="confirm-warning" id="confirmWarning" style="display:none;"></div>
@@ -203,6 +218,11 @@
 <!-- ════════════════════════════════════════════════════════════ -->
 <script>
 'use strict';
+
+// ── Icon helper for template literals ────────────────────────
+function icon(name, cls = '') {
+  return `<i data-lucide="${name}"${cls ? ` class="${cls}"` : ''}></i>`;
+}
 
 // ── State ─────────────────────────────────────────────────────
 let allUsers    = [];
@@ -234,7 +254,7 @@ async function loadUsers() {
 
 function getUserStatus(u) {
   if (u.disabled)   return 'disabled';
-  if (!u.confirmed) return 'invited';   // sent invite, not yet activated
+  if (!u.confirmed) return 'invited';
   if (u.role === 'pending') return 'pending';
   return 'active';
 }
@@ -265,10 +285,11 @@ function renderTable(users) {
 
   if (!users.length) {
     tbody.innerHTML = `<tr><td colspan="6"><div class="table-state">
-      <div class="icon">👥</div>
+      <div class="icon">${icon('users', 'icon-xl')}</div>
       <h3>No users found</h3>
       <p>Try adjusting your search or filters.</p>
     </div></td></tr>`;
+    lucide.createIcons();
     return;
   }
 
@@ -278,7 +299,6 @@ function renderTable(users) {
     const isMe    = u.id === currentUser?.id;
     const status  = getUserStatus(u);
     const avatarColor = roleAvatarColor(u.role);
-
     const actionsMenu = buildActionsMenu(u, isMe, status);
 
     return `
@@ -297,11 +317,13 @@ function renderTable(users) {
       <td class="date-cell">${fmtDate(u.created_at)}</td>
       <td class="date-cell">${u.last_sign_in_at ? fmtRelative(u.last_sign_in_at) : '<span class="text-muted">Never</span>'}</td>
       <td class="action-cell">
-        <button class="action-btn" onclick="toggleDropdown('${u.id}', event)">⋯</button>
+        <button class="action-btn" onclick="toggleDropdown('${u.id}', event)">${icon('more-horizontal', 'icon-sm')}</button>
         <div class="dropdown" id="dd-${u.id}">${actionsMenu}</div>
       </td>
     </tr>`;
   }).join('');
+
+  lucide.createIcons();
 }
 
 function buildActionsMenu(u, isMe, status) {
@@ -310,25 +332,23 @@ function buildActionsMenu(u, isMe, status) {
   const uJson = JSON.stringify(u).replace(/"/g,'&quot;');
   let html = '';
 
-  html += `<button class="dropdown-item" onclick="openEditModal(${uJson});closeDropdown()">✏️ Edit User</button>`;
+  html += `<button class="dropdown-item" onclick="openEditModal(${uJson});closeDropdown()">${icon('pencil', 'icon-sm')} Edit User</button>`;
 
   if (status === 'invited') {
-    // Not yet activated — offer resend, not reset
-    html += `<button class="dropdown-item" onclick="confirmAction('resend','${uid}','${email}');closeDropdown()">✉️ Resend Invite</button>`;
+    html += `<button class="dropdown-item" onclick="confirmAction('resend','${uid}','${email}');closeDropdown()">${icon('mail', 'icon-sm')} Resend Invite</button>`;
   } else {
-    // Confirmed account — offer password reset
-    html += `<button class="dropdown-item" onclick="openResetModal('${uid}','${email}');closeDropdown()">🔑 Reset Password</button>`;
+    html += `<button class="dropdown-item" onclick="openResetModal('${uid}','${email}');closeDropdown()">${icon('key-round', 'icon-sm')} Reset Password</button>`;
   }
 
   html += '<div class="dropdown-sep"></div>';
 
   if (!isMe) {
     if (status === 'disabled') {
-      html += `<button class="dropdown-item" onclick="confirmAction('enable','${uid}','${email}');closeDropdown()">✅ Enable Account</button>`;
+      html += `<button class="dropdown-item" onclick="confirmAction('enable','${uid}','${email}');closeDropdown()">${icon('check-circle', 'icon-sm')} Enable Account</button>`;
     } else {
-      html += `<button class="dropdown-item danger" onclick="confirmAction('disable','${uid}','${email}');closeDropdown()">🚫 Disable Account</button>`;
+      html += `<button class="dropdown-item danger" onclick="confirmAction('disable','${uid}','${email}');closeDropdown()">${icon('ban', 'icon-sm')} Disable Account</button>`;
     }
-    html += `<button class="dropdown-item danger" onclick="confirmAction('delete','${uid}','${email}');closeDropdown()">🗑 Delete User</button>`;
+    html += `<button class="dropdown-item danger" onclick="confirmAction('delete','${uid}','${email}');closeDropdown()">${icon('trash-2', 'icon-sm')} Delete User</button>`;
   }
 
   return html;
@@ -379,9 +399,11 @@ function setTableState(type, msg = '') {
     tbody.innerHTML = `<tr><td colspan="6"><div class="table-state"><div class="spinner"></div></div></td></tr>`;
   } else if (type === 'error') {
     tbody.innerHTML = `<tr><td colspan="6"><div class="table-state">
-      <div class="icon">⚠️</div><h3>Failed to load users</h3>
+      <div class="icon">${icon('triangle-alert', 'icon-xl')}</div>
+      <h3>Failed to load users</h3>
       <p class="text-error">${escHtml(msg)}</p>
     </div></td></tr>`;
+    lucide.createIcons();
   }
 }
 
@@ -528,29 +550,33 @@ function confirmAction(type, userId, email) {
 
   const cfg = {
     disable: {
-      icon: '🚫', title: 'Disable Account',
+      icon: 'ban',         iconCls: 'icon-2xl text-muted',
+      title: 'Disable Account',
       body: `<strong>${escHtml(email)}</strong> will not be able to sign in until re-enabled.`,
       warning: null, label: 'Disable', danger: true
     },
     enable: {
-      icon: '✅', title: 'Enable Account',
+      icon: 'check-circle', iconCls: 'icon-2xl text-green',
+      title: 'Enable Account',
       body: `<strong>${escHtml(email)}</strong> will regain access to the dashboard.`,
       warning: null, label: 'Enable', danger: false
     },
     delete: {
-      icon: '🗑️', title: 'Delete User',
+      icon: 'trash-2',     iconCls: 'icon-2xl text-error',
+      title: 'Delete User',
       body: `This will permanently delete <strong>${escHtml(email)}</strong> and all their data.`,
       warning: 'This action is irreversible and cannot be undone.',
       label: 'Delete', danger: true
     },
     resend: {
-      icon: '✉️', title: 'Resend Invitation',
+      icon: 'mail',        iconCls: 'icon-2xl text-indigo',
+      title: 'Resend Invitation',
       body: `Send a new activation email to <strong>${escHtml(email)}</strong>.`,
       warning: null, label: 'Resend', danger: false
     },
   }[type];
 
-  document.getElementById('confirmIcon').textContent   = cfg.icon;
+  document.getElementById('confirmIcon').innerHTML  = icon(cfg.icon, cfg.iconCls);
   document.getElementById('confirmTitle').textContent  = cfg.title;
   document.getElementById('confirmBody').innerHTML     = cfg.body;
   document.getElementById('confirmLabel').textContent  = cfg.label;
@@ -565,6 +591,7 @@ function confirmAction(type, userId, email) {
   }
 
   document.getElementById('confirmModalBg').classList.add('open');
+  lucide.createIcons();
 }
 
 document.getElementById('confirmOkBtn').onclick = async () => {
@@ -607,8 +634,9 @@ function closeConfirmModal() {
 let toastTimer;
 function toast(msg, type = 'success') {
   const el = document.getElementById('toast');
-  el.textContent = (type === 'success' ? '✅ ' : '❌ ') + msg;
-  el.className   = 'show ' + type;
+  el.innerHTML = `${icon(type === 'success' ? 'check-circle' : 'x-circle', 'icon-sm')} ${msg}`;
+  el.className = 'show ' + type;
+  lucide.createIcons();
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.className = ''; }, 3500);
 }
@@ -620,6 +648,7 @@ document.addEventListener('keydown', e => {
   }
 });
 
+lucide.createIcons();
 init();
 </script>
 </body>

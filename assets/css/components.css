@@ -200,9 +200,9 @@
 .dropdown-sep               { height: 1px; background: var(--border); margin: 3px 0; }
 
 /* ── Table State (loading / empty / error) ───────────────────────── */
-.table-state       { text-align: center; padding: 56px 24px; color: var(--text3); }
-.table-state .icon { font-size: 36px; margin-bottom: 12px; }
-.table-state h3    { font-size: 15px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+.table-state        { text-align: center; padding: 56px 24px; color: var(--text3); }
+.table-state .icon  { display: flex; justify-content: center; margin-bottom: 12px; color: var(--text3); }
+.table-state h3     { font-size: 15px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
 .table-state .loading-center,
 .loading-center { text-align: center; padding: 24px; }
 
@@ -275,14 +275,14 @@
   grid-column: 1 / -1;
 }
 .ls-empty p          { color: var(--text2); }
-.ls-empty-icon       { font-size: 48px; margin-bottom: 16px; opacity: .6; }
+.ls-empty-icon       { display: flex; justify-content: center; margin-bottom: 16px; opacity: .6; color: var(--text3); }
 .ls-empty h3         { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
 .ls-empty > p        { font-size: 13px; max-width: 320px; margin: 0 auto 20px; }
 .ls-empty .btn       { margin: 0 auto; }
 
-.empty-state           { text-align: center; padding: 60px 20px; color: var(--text3); }
-.empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: .5; }
-.empty-state p         { font-size: 14px; color: var(--text2); }
+.empty-state             { text-align: center; padding: 60px 20px; color: var(--text3); }
+.empty-state .empty-icon { display: flex; justify-content: center; margin-bottom: 12px; opacity: .5; color: var(--text3); }
+.empty-state p           { font-size: 14px; color: var(--text2); }
 
 /* ── View Toggle ─────────────────────────────────────────────────── */
 .view-toggle {
@@ -424,7 +424,7 @@
 
 /* ── Confirm Modal ───────────────────────────────────────────────── */
 .confirm-modal   { max-width: 400px; }
-.confirm-icon    { font-size: 40px; text-align: center; margin-bottom: 12px; }
+.confirm-icon    { display: flex; justify-content: center; margin-bottom: 16px; }
 .confirm-title   { font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 8px; }
 .confirm-body    { font-size: 13px; color: var(--text2); text-align: center; line-height: 1.6; }
 .confirm-warning {

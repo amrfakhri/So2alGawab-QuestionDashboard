@@ -12,20 +12,23 @@
 <link rel="stylesheet" href="./assets/css/dashboard.css">
 <link rel="stylesheet" href="./assets/css/responsive.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="./services/supabase.js"></script>
 <script src="./services/auth.js"></script>
 </head>
 <body>
 
 <div class="topbar">
-  <a id="btnUsers" href="./users.html" class="topbar-nav-link" style="display:none;">👥 Users</a>
+  <a id="btnUsers" href="./users.html" class="topbar-nav-link" style="display:none;">
+    <i data-lucide="users" class="icon-sm"></i> Users
+  </a>
   <div id="userBar" class="topbar-user-bar"></div>
 </div>
 
 <div class="container">
 
     <div class="hero">
-        <h1>🎮 Game Questions Dashboard</h1>
+        <h1><i data-lucide="gamepad-2" class="icon-xl"></i> Game Questions Dashboard</h1>
         <p>Automatically loads gamedata1.json and lets you upload another JSON file anytime.</p>
 
         <div class="upload-box">
@@ -35,11 +38,15 @@
                 <select id="listSelector" class="list-selector">
                     <option value="">— Select a List —</option>
                 </select>
-                <button class="button" id="loadSupabaseBtn">🗄 Load List</button>
-                <label class="button" for="fileInput">📁 Upload JSON</label>
+                <button class="button" id="loadSupabaseBtn">
+                    <i data-lucide="database" class="icon-sm"></i> Load List
+                </button>
+                <label class="button" for="fileInput">
+                    <i data-lucide="folder-open" class="icon-sm"></i> Upload JSON
+                </label>
                 <input type="file" id="fileInput" accept=".json">
                 <a class="button button-purple" href="./database.html">
-                    🗄 Database
+                    <i data-lucide="layout-dashboard" class="icon-sm"></i> Database
                 </a>
             </div>
             <div class="file-name" id="fileName">Connecting to Supabase…</div>
@@ -68,13 +75,14 @@ async function initDashboard() {
 
     Auth.renderUserChip(document.getElementById('userBar'));
     if (await Auth.isSuperAdmin()) {
-        document.getElementById('btnUsers').style.display = 'inline-block';
+        document.getElementById('btnUsers').style.display = 'inline-flex';
     }
 
     try {
         const ok = await window.SupabaseDB.ping();
         if (!ok) {
-            fileName.innerHTML = '⚠️ Could not reach Supabase. Upload a local JSON file to preview.';
+            fileName.innerHTML = '<i data-lucide="triangle-alert" class="icon-sm"></i> Could not reach Supabase. Upload a local JSON file to preview.';
+            lucide.createIcons();
             return;
         }
 
@@ -98,7 +106,8 @@ async function initDashboard() {
 
     } catch (err) {
         console.error(err);
-        fileName.innerHTML = '⚠️ Supabase error: ' + err.message;
+        fileName.innerHTML = '<i data-lucide="triangle-alert" class="icon-sm"></i> Supabase error: ' + err.message;
+        lucide.createIcons();
     }
 }
 
@@ -113,11 +122,13 @@ async function loadList(listId, listTitle) {
         const catMap = {};
         (list.categories || []).forEach(c => { catMap[c.id] = c.name; });
 
-        fileName.innerHTML = `✅ Loaded: <strong>${list.title}</strong> — ${list.questions.length} questions`;
+        fileName.innerHTML = `<i data-lucide="check-circle" class="icon-sm"></i> Loaded: <strong>${list.title}</strong> — ${list.questions.length} questions`;
+        lucide.createIcons();
         render(list.questions, catMap);
     } catch (err) {
         console.error(err);
-        fileName.innerHTML = '❌ Failed to load list: ' + err.message;
+        fileName.innerHTML = `<i data-lucide="x-circle" class="icon-sm"></i> Failed to load list: ` + err.message;
+        lucide.createIcons();
     }
 }
 
@@ -134,10 +145,12 @@ fileInput.addEventListener('change', async (e) => {
     try {
         const text = await file.text();
         const json = JSON.parse(text);
-        fileName.innerHTML = `📁 Loaded local file: ${file.name}`;
+        fileName.innerHTML = `<i data-lucide="folder-open" class="icon-sm"></i> Loaded local file: ${file.name}`;
+        lucide.createIcons();
         render(json.data || [], {});
     } catch (err) {
-        fileName.innerHTML = '❌ Invalid JSON file';
+        fileName.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> Invalid JSON file';
+        lucide.createIcons();
     }
 });
 
@@ -170,6 +183,8 @@ function render(items, catMap) {
         `;
         app.appendChild(section);
     });
+
+    lucide.createIcons();
 }
 
 function createCard(item) {
@@ -191,7 +206,7 @@ function createCard(item) {
             ${media}
             <div class="content">
                 <div class="badges">
-                    <div class="badge">⭐ ${item.points || 0} Points</div>
+                    <div class="badge"><i data-lucide="star" class="icon-xs"></i> ${item.points || 0} Points</div>
                     <div class="badge">${item.buttonClick || ''}</div>
                     <div class="badge">${q.questionTypeView || ''}</div>
                 </div>
@@ -210,7 +225,7 @@ function createCard(item) {
     `;
 }
 
-initDashboard();
+initDashboard().then(() => lucide.createIcons());
 
 </script>
 
