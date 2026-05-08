@@ -482,10 +482,7 @@ async function submitUserForm(e) {
       });
       toast('User updated successfully', 'success');
     } else {
-      await Auth.callAdminFunction('createUser', {
-        email, full_name, role,
-        redirectTo: window.location.origin + '/index.html',
-      });
+      await Auth.callAdminFunction('createUser', { email, full_name, role });
       toast('Invitation sent to ' + email, 'success');
     }
     closeUserModal();
@@ -603,10 +600,7 @@ document.getElementById('confirmOkBtn').onclick = async () => {
 
   try {
     if (type === 'resend') {
-      await Auth.callAdminFunction('resendInvite', {
-        email,
-        redirectTo: window.location.origin + '/index.html',
-      });
+      await Auth.callAdminFunction('resendInvite', { email });
       toast('Invitation resent to ' + email, 'success');
     } else {
       const actionMap = { disable: 'disableUser', enable: 'enableUser', delete: 'deleteUser' };

@@ -142,6 +142,29 @@ function showSetPasswordScreen(type) {
     document.getElementById('setPwLabel').textContent          = 'Set New Password';
     lucide.createIcons();
   }
+
+  // Disable form until Supabase has exchanged the hash tokens for a session.
+  // This is async — the client processes the URL hash in the background.
+  const btn = document.getElementById('setPwBtn');
+  btn.disabled = true;
+  document.getElementById('setPwLabel').textContent = 'Verifying link…';
+
+  const { data: { subscription } } = window._sb.auth.onAuthStateChange((event, session) => {
+    subscription.unsubscribe();
+    if (event === 'SIGNED_IN' && session) {
+      // Token exchanged successfully — form is ready
+      btn.disabled = false;
+      document.getElementById('setPwLabel').textContent =
+        type === 'recovery' ? 'Set New Password' : 'Activate Account';
+    } else {
+      // Token was expired or already used
+      showSetPwAlert(
+        'This link has expired or has already been used. Ask your admin to send a new invite.',
+        'error'
+      );
+      document.getElementById('setPasswordForm').style.display = 'none';
+    }
+  });
 }
 
 function showSetPwAlert(msg, type = 'error') {
@@ -178,11 +201,21 @@ async function handleSetPassword(e) {
 }
 
 // ── Bootstrap ─────────────────────────────────────────────────
-const params = new URLSearchParams(window.location.search);
+const params     = new URLSearchParams(window.location.search);
 const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
 const urlType    = hashParams.get('type');
+const hashError  = hashParams.get('error');
 
-if (urlType === 'invite' || urlType === 'recovery') {
+if (hashError) {
+  // Supabase embeds error details in the hash when a link fails (e.g. expired)
+  const desc = hashParams.get('error_description') || 'The link is invalid or has expired.';
+  document.getElementById('authForm').closest('.auth-card').style.display = 'none';
+  const screen = document.getElementById('setPasswordScreen');
+  screen.style.display = 'block';
+  document.getElementById('setPasswordForm').style.display = 'none';
+  showSetPwAlert(decodeURIComponent(desc.replace(/\+/g, ' ')), 'error');
+  lucide.createIcons();
+} else if (urlType === 'invite' || urlType === 'recovery') {
   showSetPasswordScreen(urlType);
 } else if (params.get('pending') === '1') {
   document.getElementById('pendingScreen').style.display = 'flex';
