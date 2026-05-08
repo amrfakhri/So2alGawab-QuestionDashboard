@@ -228,22 +228,39 @@ Deno.serve(async (req: Request) => {
 
       // Promote a pending user to their intended role.
       case 'approveUser': {
-        const { userId } = body
+        const { userId, role: bodyRole } = body
         if (!userId) return err('userId is required', 400)
 
-        const { data: target } = await admin
+        // Try full query (with pending_role). If it fails (column missing in older DBs),
+        // fall back to a query without it and rely on bodyRole sent from the UI.
+        let target: any = null
+        const { data: fullTarget, error: fetchErr } = await admin
           .from('user_roles')
           .select('role, pending_role, email, full_name')
           .eq('user_id', userId)
           .single()
 
-        if (!target) return err('User not found', 404)
+        if (fetchErr) {
+          const { data: basicTarget, error: basicErr } = await admin
+            .from('user_roles')
+            .select('role, email, full_name')
+            .eq('user_id', userId)
+            .single()
+          if (basicErr || !basicTarget) return err('User not found', 404)
+          target = basicTarget
+        } else {
+          if (!fullTarget) return err('User not found', 404)
+          target = fullTarget
+        }
+
         if (target.role !== 'pending') return err('User is not in pending state', 400)
-        if (!target.pending_role) return err('No intended role set for this user', 400)
+
+        const grantRole = target.pending_role ?? bodyRole
+        if (!grantRole) return err('No intended role set for this user', 400)
 
         await admin
           .from('user_roles')
-          .update({ role: target.pending_role, pending_role: null })
+          .update({ role: grantRole, pending_role: null })
           .eq('user_id', userId)
 
         // Optionally send approval notification email to the user
@@ -273,7 +290,7 @@ Deno.serve(async (req: Request) => {
           })
         }
 
-        return json({ success: true, role: target.pending_role })
+        return json({ success: true, role: grantRole })
       }
 
       // Resend invite to an unconfirmed user

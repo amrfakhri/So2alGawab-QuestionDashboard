@@ -617,7 +617,7 @@ document.getElementById('confirmOkBtn').onclick = async () => {
 
   try {
     if (type === 'approve') {
-      const { role } = await Auth.callAdminFunction('approveUser', { userId });
+      const { role } = await Auth.callAdminFunction('approveUser', { userId, role: pendingAction.pendingRole });
       toast(`${email} approved as ${(role || pendingAction.pendingRole).replace('_', ' ')}`, 'success');
     } else if (type === 'resend') {
       await Auth.callAdminFunction('resendInvite', { email });
