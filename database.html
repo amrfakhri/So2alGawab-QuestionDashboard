@@ -398,6 +398,48 @@
   </div>
 </div>
 
+<!-- MOVE CATEGORY MODAL -->
+<div class="modal-overlay" id="moveCatModal">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <i data-lucide="arrow-right-left" class="icon-xl"></i>
+      <h3>Move Category</h3>
+      <button class="icon-btn" id="btnCloseMoveCat"><i data-lucide="x" class="icon-sm"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="move-cat-info">
+        <div class="move-cat-row">
+          <span class="move-cat-label">Category</span>
+          <strong class="move-cat-value" id="moveCatName">—</strong>
+        </div>
+        <div class="move-cat-row">
+          <span class="move-cat-label">From list</span>
+          <span class="move-cat-value" id="moveCatFromList">—</span>
+        </div>
+        <div class="move-cat-row">
+          <span class="move-cat-label">Questions</span>
+          <span class="move-cat-value" id="moveCatQCount">—</span>
+        </div>
+      </div>
+      <div class="move-cat-warning">
+        <i data-lucide="info" class="icon-sm"></i>
+        All questions in this category will move with it. No data will be lost.
+      </div>
+      <div class="modal-section">
+        <label class="modal-label">Destination List <span class="text-required">*</span></label>
+        <select class="modal-input" id="moveCatDestList"></select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="btnCancelMoveCat">Cancel</button>
+      <button class="btn btn-primary" id="moveCatConfirmBtn">
+        <span class="spinner spinner-sm" id="moveCatSpinner" style="display:none;"></span>
+        Move Category
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
@@ -625,6 +667,7 @@ function renderCategoriesBar() {
           <span class="cat-count">${count}</span>
           <span class="cat-actions">
             <span class="icon-btn" data-action="rename-cat" data-id="${cat.id}" title="Rename">${icon('pencil', 'icon-sm')}</span>
+            <span class="icon-btn" data-action="move-cat" data-id="${cat.id}" title="Move to list">${icon('arrow-right-left', 'icon-sm')}</span>
             <span class="icon-btn danger" data-action="delete-cat" data-id="${cat.id}" title="Delete">${icon('x', 'icon-sm')}</span>
           </span>
         </button>
@@ -1155,6 +1198,7 @@ function setupTableDrag() {
 ===================================================== */
 let _newListModalMode = 'create';
 let _renamingListId   = null;
+let _movingCatId      = null;
 
 function openNewListModal(renameListId) {
   _newListModalMode = renameListId ? 'rename' : 'create';
@@ -1304,6 +1348,9 @@ async function handleAction(action, dataset) {
   const list = appState.activeListData;
   if (!list) return;
 
+  if (action === 'move-cat') {
+    openMoveCategoryModal(dataset.id); return;
+  }
   if (action === 'rename-cat') {
     const cat = list.categories.find(c => c.id === dataset.id);
     if (!cat) return;
@@ -1382,6 +1429,88 @@ document.addEventListener('click', async e => {
 });
 
 /* =====================================================
+   MOVE CATEGORY MODAL
+===================================================== */
+async function openMoveCategoryModal(catId) {
+  const list = appState.activeListData;
+  const cat  = (list?.categories || []).find(c => c.id === catId);
+  if (!cat) return;
+
+  const qCount = (list.questions || []).filter(q => q.categoryId === catId).length;
+
+  // Refresh list cache if needed (user may have navigated directly to the editor)
+  if (!appState.cachedLists.length) {
+    appState.cachedLists = await DB.getLists();
+  }
+  const otherLists = appState.cachedLists.filter(l => l.id !== appState.activeListId);
+
+  document.getElementById('moveCatName').textContent     = cat.name;
+  document.getElementById('moveCatFromList').textContent = list.title;
+  document.getElementById('moveCatQCount').textContent   =
+    `${qCount} question${qCount !== 1 ? 's' : ''}`;
+
+  const destSel = document.getElementById('moveCatDestList');
+  if (otherLists.length) {
+    destSel.innerHTML = otherLists
+      .map(l => `<option value="${escHtml(l.id)}">${escHtml(l.title)}</option>`)
+      .join('');
+    destSel.value = otherLists[0].id;
+    document.getElementById('moveCatConfirmBtn').disabled = false;
+  } else {
+    destSel.innerHTML = '<option value="" disabled selected>No other lists available</option>';
+    document.getElementById('moveCatConfirmBtn').disabled = true;
+  }
+
+  _movingCatId = catId;
+  document.getElementById('moveCatModal').classList.add('open');
+  lucide.createIcons();
+}
+
+function closeMoveCategoryModal() {
+  document.getElementById('moveCatModal').classList.remove('open');
+  _movingCatId = null;
+}
+
+async function confirmMoveCategory() {
+  const catId = _movingCatId;
+  if (!catId) return;
+
+  const destListId = document.getElementById('moveCatDestList').value;
+  if (!destListId) { toast('Please select a destination list', 'error'); return; }
+
+  const list = appState.activeListData;
+  const cat  = (list?.categories || []).find(c => c.id === catId);
+  if (!cat) { closeMoveCategoryModal(); return; }
+
+  const questionsToMove = (list.questions || []).filter(q => q.categoryId === catId);
+  const questionIds     = questionsToMove.map(q => q.questionId);
+
+  const btn = document.getElementById('moveCatConfirmBtn');
+  btn.disabled = true;
+  document.getElementById('moveCatSpinner').style.display = 'inline-block';
+
+  try {
+    await DB.moveCategory(catId, destListId, questionIds);
+
+    // Optimistically remove from current list's in-memory state
+    list.categories = list.categories.filter(c => c.id !== catId);
+    list.questions  = list.questions.filter(q => q.categoryId !== catId);
+    if (appState.activeCategoryId === catId) appState.activeCategoryId = 'all';
+
+    const destList = appState.cachedLists.find(l => l.id === destListId);
+    toast(`"${cat.name}" moved to "${destList?.title || 'destination list'}"`, 'success');
+    closeMoveCategoryModal();
+    renderCategoriesBar();
+    renderQuestions();
+  } catch (e) {
+    toast('Move failed: ' + e.message, 'error');
+    btn.disabled = false;
+  } finally {
+    document.getElementById('moveCatSpinner').style.display = 'none';
+  }
+}
+
+/* =====================================================
    WIRE UP STATIC BUTTONS
 ===================================================== */
 function wireButtons() {
@@ -1390,6 +1519,11 @@ function wireButtons() {
   document.getElementById('btnCancelNewList').onclick  = closeNewListModal;
   document.getElementById('btnCloseNewListModal').onclick = closeNewListModal;
   document.getElementById('newListTitle').addEventListener('keydown', e => { if (e.key === 'Enter') confirmNewList(); });
+
+  document.getElementById('moveCatConfirmBtn').onclick = confirmMoveCategory;
+  document.getElementById('btnCancelMoveCat').onclick  = closeMoveCategoryModal;
+  document.getElementById('btnCloseMoveCat').onclick   = closeMoveCategoryModal;
+  document.getElementById('moveCatModal').addEventListener('click', e => { if (e.target.id === 'moveCatModal') closeMoveCategoryModal(); });
 
   document.getElementById('listsSearch').addEventListener('input', function() {
     appState.listsSearch = this.value;
@@ -1477,6 +1611,7 @@ function wireButtons() {
       closeDrawer();
       document.getElementById('previewModal').classList.remove('open');
       closeNewListModal();
+      closeMoveCategoryModal();
     }
   });
 }

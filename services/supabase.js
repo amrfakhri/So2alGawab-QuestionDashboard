@@ -364,6 +364,27 @@ const SupabaseDB = {
         '_syncQuestions:question_media'
       );
     }
+  },
+
+  /* ---- Move a category (and all its questions) to another list ---- */
+  async moveCategory(catId, destListId, questionIds) {
+    const listRes = await _sb.from('lists').select('id').eq('id', destListId).single();
+    if (listRes.error || !listRes.data) throw new Error('Destination list not found');
+
+    _throwIfError(
+      await _sb.from('categories').update({ list_id: destListId }).eq('id', catId),
+      'moveCategory:category'
+    );
+
+    if (questionIds && questionIds.length) {
+      _throwIfError(
+        await _sb.from('questions').update({ list_id: destListId }).in('id', questionIds),
+        'moveCategory:questions'
+      );
+    }
+
+    await _sb.from('lists').update({ updated_at: new Date().toISOString() }).eq('id', destListId);
+    return true;
   }
 };
 
