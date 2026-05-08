@@ -1,0 +1,106 @@
+/* ================================================================
+   GLOBAL — Design Tokens · Reset · Base Typography · Animations
+   ================================================================ */
+
+/* ── Design Tokens ──────────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --bg:        #0f172a;
+  --panel:     #080f1e;
+  --surface:   #1e293b;
+  --surface2:  #263348;
+  --surface3:  #2d3f5e;
+
+  /* Borders */
+  --border:    rgba(255,255,255,0.08);
+  --border2:   rgba(255,255,255,0.14);
+
+  /* Text */
+  --text:      #f1f5f9;
+  --text2:     #94a3b8;
+  --text3:     #64748b;
+
+  /* Brand colors */
+  --blue:      #2563eb;
+  --blue-h:    #1d4ed8;
+  --blue-bg:   rgba(37,99,235,0.1);
+  --blue-br:   rgba(37,99,235,0.3);
+  --blue-s:    rgba(37,99,235,0.12);
+  --green:     #22c55e;
+  --green-bg:  rgba(34,197,94,0.1);
+  --green-br:  rgba(34,197,94,0.3);
+  --amber:     #f59e0b;
+  --amber-bg:  rgba(245,158,11,0.1);
+  --red:       #ef4444;
+  --red-bg:    rgba(239,68,68,0.1);
+  --purple:    #a855f7;
+  --gold:      #fbbf24;
+  --indigo:    #6366f1;
+
+  /* Typography */
+  --font:      'Inter', sans-serif;
+  --font-ar:   'Cairo', sans-serif;
+
+  /* Border radii */
+  --radius:    10px;
+  --radius-sm: 7px;
+  --r-xl:      16px;
+
+  /* Shadows */
+  --shadow:    0 2px 12px rgba(0,0,0,0.35);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.55);
+}
+
+/* ── Database editor — darker theme override ────────────────────── */
+body.db-page {
+  --bg:        #0c0f17;
+  --panel:     #070a12;
+  --surface:   #111827;
+  --surface2:  #1a2236;
+  --surface3:  #222d42;
+  --text:      #eef1f7;
+  --text2:     #8892a4;
+  --text3:     #4e5b6e;
+  --blue:      #3b82f6;
+  --blue-h:    #2563eb;
+  --blue-bg:   rgba(59,130,246,0.1);
+  --blue-br:   rgba(59,130,246,0.28);
+  --blue-s:    rgba(59,130,246,0.12);
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.13);
+}
+
+/* ── Reset ──────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+button { font-family: var(--font); cursor: pointer; border: none; outline: none; }
+input, select, textarea { font-family: var(--font); outline: none; }
+a { color: inherit; text-decoration: none; }
+summary { list-style: none; }
+summary::-webkit-details-marker { display: none; }
+input[type="file"] { display: none; }
+
+/* ── Scrollbar ──────────────────────────────────────────────────── */
+::-webkit-scrollbar         { width: 5px; height: 5px; }
+::-webkit-scrollbar-track   { background: transparent; }
+::-webkit-scrollbar-thumb   { background: var(--surface3); border-radius: 99px; }
+
+/* ── Focus ──────────────────────────────────────────────────────── */
+button:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* ── Utility ────────────────────────────────────────────────────── */
+.text-muted    { color: var(--text3); }
+.text-required { color: var(--red); }
+.text-error    { color: var(--red); }
+.text-green    { color: var(--green); }
+.text-indigo   { color: #a5b4fc; }
+
+/* ── Animations ─────────────────────────────────────────────────── */
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes pulse   { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+@keyframes slideIn { from { transform: translateX(20px); opacity: 0; } }

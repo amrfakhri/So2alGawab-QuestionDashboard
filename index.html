@@ -6,154 +6,15 @@
 <title>Sign In — So2alGawab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/global.css">
+<link rel="stylesheet" href="./assets/css/auth.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="./services/supabase.js"></script>
 <script src="./services/auth.js"></script>
-
-<style>
-*{ box-sizing:border-box; margin:0; padding:0; }
-
-body{
-  font-family:'Inter',sans-serif;
-  background:#0f172a;
-  color:#f1f5f9;
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:24px;
-}
-
-.card{
-  width:100%;
-  max-width:400px;
-  background:#1e293b;
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:20px;
-  padding:40px;
-  box-shadow:0 24px 64px rgba(0,0,0,0.5);
-}
-
-.logo{
-  text-align:center;
-  margin-bottom:32px;
-}
-
-.logo-icon{
-  font-size:48px;
-  display:block;
-  margin-bottom:12px;
-}
-
-.logo h1{
-  font-size:22px;
-  font-weight:700;
-  margin-bottom:4px;
-}
-
-.logo p{
-  font-size:14px;
-  color:#64748b;
-}
-
-
-.form-group{
-  margin-bottom:16px;
-}
-
-label{
-  display:block;
-  font-size:13px;
-  font-weight:500;
-  color:#94a3b8;
-  margin-bottom:6px;
-}
-
-input{
-  width:100%;
-  background:#0f172a;
-  border:1px solid rgba(255,255,255,0.1);
-  border-radius:10px;
-  padding:11px 14px;
-  color:#f1f5f9;
-  font-family:'Inter',sans-serif;
-  font-size:14px;
-  transition:.15s;
-}
-
-input:focus{
-  outline:none;
-  border-color:#2563eb;
-  box-shadow:0 0 0 3px rgba(37,99,235,0.15);
-}
-
-input::placeholder{ color:#475569; }
-
-.btn-primary{
-  width:100%;
-  background:#2563eb;
-  color:white;
-  border:none;
-  border-radius:10px;
-  padding:12px;
-  font-family:'Inter',sans-serif;
-  font-size:14px;
-  font-weight:600;
-  cursor:pointer;
-  transition:.15s;
-  margin-top:8px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-}
-
-.btn-primary:hover{ background:#1d4ed8; }
-.btn-primary:disabled{ opacity:.5; cursor:not-allowed; }
-
-.alert{
-  border-radius:10px;
-  padding:12px 14px;
-  font-size:13px;
-  margin-bottom:16px;
-  display:none;
-}
-
-.alert.error{
-  background:rgba(239,68,68,0.1);
-  border:1px solid rgba(239,68,68,0.3);
-  color:#fca5a5;
-}
-
-.alert.success{
-  background:rgba(34,197,94,0.1);
-  border:1px solid rgba(34,197,94,0.3);
-  color:#86efac;
-}
-
-.spinner{
-  width:16px;height:16px;
-  border:2px solid rgba(255,255,255,0.3);
-  border-top-color:white;
-  border-radius:50%;
-  animation:spin .6s linear infinite;
-  display:none;
-}
-
-@keyframes spin{ to{ transform:rotate(360deg); } }
-
-.signup-note{
-  margin-top:20px;
-  text-align:center;
-  font-size:12px;
-  color:#475569;
-  line-height:1.6;
-}
-</style>
 </head>
 <body>
 
-<div class="card">
+<div class="auth-card">
   <div class="logo">
     <span class="logo-icon">🎮</span>
     <h1>So2alGawab</h1>
@@ -181,27 +42,15 @@ input::placeholder{ color:#475569; }
 </div>
 
 <!-- Pending approval screen (hidden by default) -->
-<div id="pendingScreen" style="
-  display:none;position:fixed;inset:0;background:#0f172a;
-  align-items:center;justify-content:center;padding:24px;
-">
-  <div style="
-    max-width:400px;width:100%;background:#1e293b;
-    border:1px solid rgba(245,158,11,0.3);border-radius:20px;
-    padding:40px;text-align:center;
-  ">
-    <div style="font-size:48px;margin-bottom:16px;">⏳</div>
-    <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;color:#f1f5f9;">Awaiting Approval</h2>
-    <p style="font-size:14px;color:#94a3b8;line-height:1.6;margin-bottom:24px;">
+<div id="pendingScreen" class="pending-overlay">
+  <div class="pending-card">
+    <div class="pending-icon">⏳</div>
+    <h2>Awaiting Approval</h2>
+    <p>
       Your account has been created and is waiting for a super admin to approve it.
       You'll be able to sign in once your access is confirmed.
     </p>
-    <button onclick="Auth.signOut()" style="
-      background:rgba(239,68,68,0.12);color:#f87171;
-      border:1px solid rgba(239,68,68,0.3);border-radius:10px;
-      padding:10px 20px;font-size:13px;font-weight:500;cursor:pointer;
-      font-family:'Inter',sans-serif;
-    ">Sign Out</button>
+    <button class="btn-sign-out" onclick="Auth.signOut()">Sign Out</button>
   </div>
 </div>
 
