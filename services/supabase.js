@@ -366,6 +366,31 @@ const SupabaseDB = {
     }
   },
 
+  /* ---- Get categories for a given list ---- */
+  async getCategories(listId) {
+    const res = await _sb.from('categories').select('*').eq('list_id', listId).order('sort_order');
+    _throwIfError(res, 'getCategories');
+    return (res.data || []).map(c => ({ id: c.id, name: c.name, order: c.sort_order }));
+  },
+
+  /* ---- Move a single question to a different category / list ---- */
+  async moveQuestion(questionId, destListId, destCategoryId) {
+    // Validate the destination category belongs to the destination list
+    const catRes = await _sb.from('categories').select('id')
+      .eq('id', destCategoryId).eq('list_id', destListId).single();
+    if (catRes.error || !catRes.data) throw new Error('Destination category not found in target list');
+
+    _throwIfError(
+      await _sb.from('questions').update({
+        category_id: destCategoryId,
+        list_id:     destListId,
+        updated_at:  new Date().toISOString()
+      }).eq('id', questionId),
+      'moveQuestion'
+    );
+    return true;
+  },
+
   /* ---- Move a category (and all its questions) to another list ---- */
   async moveCategory(catId, destListId, questionIds) {
     const listRes = await _sb.from('lists').select('id').eq('id', destListId).single();
