@@ -11,11 +11,13 @@
 <link rel="stylesheet" href="./assets/css/components.css">
 <link rel="stylesheet" href="./assets/css/forms.css">
 <link rel="stylesheet" href="./assets/css/editor.css">
+<link rel="stylesheet" href="./assets/css/media.css">
 <link rel="stylesheet" href="./assets/css/responsive.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="./services/supabase.js"></script>
 <script src="./services/auth.js"></script>
+<script src="./services/mediaService.js"></script>
 </head>
 <body class="db-page">
 
@@ -32,6 +34,7 @@
         <span id="connLabel">Checking…</span>
       </div>
       <a class="btn btn-ghost" href="./dashboard.html"><i data-lucide="arrow-left" class="icon-sm"></i> Dashboard</a>
+      <a class="btn btn-ghost" href="./media.html"><i data-lucide="images" class="icon-sm"></i> Media Library</a>
       <a class="btn btn-ghost" id="btnUsers" href="./users.html" style="display:none;"><i data-lucide="users" class="icon-sm"></i> Users</a>
       <div id="userChip"></div>
     </div>
@@ -248,22 +251,79 @@
         <!-- MEDIA -->
         <div class="form-section">
           <div class="form-section-title">Media</div>
-          <div class="form-group">
-            <label class="form-label">Images</label>
-            <div class="media-field" id="imageFields"></div>
-            <button type="button" class="btn-add-note" id="btnAddImage"><i data-lucide="plus" class="icon-xs"></i> Add image URL</button>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Videos</label>
-            <div class="media-field" id="videoFields"></div>
-            <button type="button" class="btn-add-note" id="btnAddVideo"><i data-lucide="plus" class="icon-xs"></i> Add video URL</button>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Audio</label>
-            <div class="media-field" id="audioFields"></div>
-            <button type="button" class="btn-add-note" id="btnAddAudio"><i data-lucide="plus" class="icon-xs"></i> Add audio URL</button>
-          </div>
-          <div class="form-group">
+          <div class="mu-section">
+
+            <!-- Tab strip -->
+            <div class="mu-tabs">
+              <button type="button" class="mu-tab active" data-mu-tab="image">
+                <i data-lucide="image" class="icon-xs"></i> Images
+                <span class="mu-count" id="muCountImage" style="display:none;"></span>
+              </button>
+              <button type="button" class="mu-tab" data-mu-tab="video">
+                <i data-lucide="video" class="icon-xs"></i> Videos
+                <span class="mu-count" id="muCountVideo" style="display:none;"></span>
+              </button>
+              <button type="button" class="mu-tab" data-mu-tab="audio">
+                <i data-lucide="music" class="icon-xs"></i> Audio
+                <span class="mu-count" id="muCountAudio" style="display:none;"></span>
+              </button>
+            </div>
+
+            <!-- IMAGE panel -->
+            <div class="mu-panel active" id="muPanelImage">
+              <div class="mu-drop" id="muDropImage">
+                <i data-lucide="image" class="icon-2xl"></i>
+                <span class="mu-drop-hint">
+                  Drop images here or <label for="muPickerImage">browse</label>
+                </span>
+                <span class="mu-drop-sub">JPG, PNG, WEBP — max 10 MB each</span>
+                <input type="file" id="muPickerImage" class="mu-file-input"
+                       accept=".jpg,.jpeg,.png,.webp" multiple>
+              </div>
+              <div class="mu-items" id="imageItems" data-type="image"></div>
+              <button type="button" class="mu-url-toggle" id="btnAddImageUrl">
+                <i data-lucide="link" class="icon-xs"></i> Add image URL instead
+              </button>
+            </div>
+
+            <!-- VIDEO panel -->
+            <div class="mu-panel" id="muPanelVideo">
+              <div class="mu-drop" id="muDropVideo">
+                <i data-lucide="video" class="icon-2xl"></i>
+                <span class="mu-drop-hint">
+                  Drop videos here or <label for="muPickerVideo">browse</label>
+                </span>
+                <span class="mu-drop-sub">MP4, WEBM, MOV — max 100 MB each</span>
+                <input type="file" id="muPickerVideo" class="mu-file-input"
+                       accept=".mp4,.webm,.mov" multiple>
+              </div>
+              <div class="mu-items" id="videoItems" data-type="video"></div>
+              <button type="button" class="mu-url-toggle" id="btnAddVideoUrl">
+                <i data-lucide="link" class="icon-xs"></i> Add video URL instead
+              </button>
+            </div>
+
+            <!-- AUDIO panel -->
+            <div class="mu-panel" id="muPanelAudio">
+              <div class="mu-drop" id="muDropAudio">
+                <i data-lucide="music" class="icon-2xl"></i>
+                <span class="mu-drop-hint">
+                  Drop audio files here or <label for="muPickerAudio">browse</label>
+                </span>
+                <span class="mu-drop-sub">MP3, WAV, M4A — max 25 MB each</span>
+                <input type="file" id="muPickerAudio" class="mu-file-input"
+                       accept=".mp3,.wav,.m4a" multiple>
+              </div>
+              <div class="mu-items" id="audioItems" data-type="audio"></div>
+              <button type="button" class="mu-url-toggle" id="btnAddAudioUrl">
+                <i data-lucide="link" class="icon-xs"></i> Add audio URL instead
+              </button>
+            </div>
+
+          </div><!-- /mu-section -->
+
+          <!-- Correct Answer Media (URL) — unchanged for backward compat -->
+          <div class="form-group" style="margin-top:14px;">
             <label class="form-label">Correct Answer Media (URL)</label>
             <div class="media-row">
               <div class="media-preview-wrap" id="ansMediaPreviewWrap" style="display:none;">
@@ -867,7 +927,7 @@ function openDrawer(questionId) {
     document.getElementById('fHintQuestion').value = '{}';
     setLayoutThumb(2);
     if (appState.activeCategoryId !== 'all' && list?.categories.find(c => c.id === appState.activeCategoryId)) catSel.value = appState.activeCategoryId;
-    clearMediaFields(); addMediaField('imageFields',''); addMediaField('videoFields',''); addMediaField('audioFields','');
+    clearMediaFields();
     clearNotes([]);
   } else {
     const q = list.questions.find(q => q.questionId === questionId || q.GamesQuestion?.id === questionId);
@@ -897,22 +957,228 @@ function populateDrawer(q, gq) {
   setLayoutThumb(gq.layoutTemplate || 2);
   updateAnsMediaPreview(gq.correctAnswerMedia || '');
   clearMediaFields();
-  (gq.image?.length ? gq.image : ['']).forEach(url => addMediaField('imageFields', url));
-  (gq.video?.length ? gq.video : ['']).forEach(url => addMediaField('videoFields', url));
-  (gq.audio?.length ? gq.audio : ['']).forEach(url => addMediaField('audioFields', url));
+  // Populate with existing media — prefer full metadata rows when available
+  const imgMeta  = gq.imageMeta  || [];
+  const vidMeta  = gq.videoMeta  || [];
+  const audMeta  = gq.audioMeta  || [];
+  (gq.image || []).filter(Boolean).forEach((url, i) => {
+    const m = imgMeta[i] || {};
+    _muAddItem('imageItems', { url, filePath: m.filePath||null, fileName: m.fileName||null, mimeType: m.mimeType||null, fileSize: m.fileSize||null, type: 'image' });
+  });
+  (gq.video || []).filter(Boolean).forEach((url, i) => {
+    const m = vidMeta[i] || {};
+    _muAddItem('videoItems', { url, filePath: m.filePath||null, fileName: m.fileName||null, mimeType: m.mimeType||null, fileSize: m.fileSize||null, type: 'video' });
+  });
+  (gq.audio || []).filter(Boolean).forEach((url, i) => {
+    const m = audMeta[i] || {};
+    _muAddItem('audioItems', { url, filePath: m.filePath||null, fileName: m.fileName||null, mimeType: m.mimeType||null, fileSize: m.fileSize||null, type: 'audio' });
+  });
   clearNotes(gq.note || []);
 }
 
-function clearMediaFields() { ['imageFields','videoFields','audioFields'].forEach(id => document.getElementById(id).innerHTML = ''); }
+/* ── Media upload state for the active drawer ── */
+const _muOrphanPaths = []; // storage paths uploaded in this session, cleaned if cancelled
+
+function _muContainerIdForType(type) {
+  return type === 'image' ? 'imageItems' : type === 'video' ? 'videoItems' : 'audioItems';
+}
+
+function _muUpdateCount(type) {
+  const count = document.querySelectorAll(`#${_muContainerIdForType(type)} .mu-item`).length;
+  const badge = document.getElementById('muCount' + type.charAt(0).toUpperCase() + type.slice(1));
+  if (!badge) return;
+  if (count > 0) { badge.textContent = count; badge.style.display = 'flex'; }
+  else { badge.style.display = 'none'; }
+  updateLivePreview();
+}
+
+/* Clear all media items (used when opening drawer) */
+function clearMediaFields() {
+  ['imageItems','videoItems','audioItems'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
+  ['image','video','audio'].forEach(t => _muUpdateCount(t));
+  _muOrphanPaths.length = 0;
+}
+
+/* Add a media item (URL-only, backward-compat entry point) */
 function addMediaField(containerId, url) {
-  const type = containerId.includes('image') ? 'image' : containerId.includes('video') ? 'video' : 'audio';
+  if (!url || !url.trim()) return;
+  const type = containerId.includes('image') ? 'image'
+             : containerId.includes('video') ? 'video'
+             : 'audio';
+  const newId = containerId.replace('Fields','Items');
+  _muAddItem(newId, { url: url.trim(), filePath: null, fileName: null, mimeType: null, fileSize: null, type });
+}
+
+/* Core: render a media item element */
+function _muAddItem(containerId, { url, filePath, fileName, mimeType, fileSize, type }) {
   const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const name     = fileName || (url ? url.split('/').pop().split('?')[0] : '') || '—';
+  const sizeText = fileSize ? MediaService.formatFileSize(fileSize) : (url ? 'External URL' : '');
+
+  let thumbHtml = '';
+  if (type === 'image') {
+    thumbHtml = `<div class="mu-item-thumb"><img src="${escHtml(url||'')}" alt="" onerror="this.parentElement.innerHTML='<i data-lucide=image class=icon-md></i>'"></div>`;
+  } else if (type === 'audio') {
+    thumbHtml = `<div class="mu-item-thumb">${icon('music','icon-md')}</div>`;
+  } else {
+    thumbHtml = `<div class="mu-item-thumb">${icon('video','icon-md')}</div>`;
+  }
+
+  const item = document.createElement('div');
+  item.className = 'mu-item';
+  item.draggable = true;
+  item.dataset.url      = url      || '';
+  item.dataset.filePath = filePath || '';
+  item.dataset.fileName = fileName || '';
+  item.dataset.mimeType = mimeType || '';
+  item.dataset.fileSize = fileSize || '';
+
+  item.innerHTML = `
+    <div class="mu-drag-handle">${icon('grip-vertical','icon-sm')}</div>
+    ${thumbHtml}
+    <div class="mu-item-info">
+      <div class="mu-item-name" title="${escHtml(url||'')}">${escHtml(name)}</div>
+      <div class="mu-item-meta">${escHtml(sizeText)}</div>
+    </div>
+    <div class="mu-item-actions">
+      <button type="button" class="icon-btn danger mu-remove-btn" title="Remove">${icon('x','icon-sm')}</button>
+    </div>`;
+
+  item.querySelector('.mu-remove-btn').addEventListener('click', () => {
+    item.remove();
+    _muUpdateCount(type);
+  });
+
+  /* Drag-to-reorder within the same container */
+  item.addEventListener('dragstart', e => {
+    e.dataTransfer.effectAllowed = 'move';
+    item.classList.add('dragging');
+    item._dragContainer = containerId;
+  });
+  item.addEventListener('dragend', () => item.classList.remove('dragging'));
+  item.addEventListener('dragover', e => {
+    e.preventDefault();
+    const dragging = container.querySelector('.mu-item.dragging');
+    if (dragging && dragging !== item) item.classList.add('drag-over');
+  });
+  item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+  item.addEventListener('drop', e => {
+    e.preventDefault();
+    item.classList.remove('drag-over');
+    const dragging = container.querySelector('.mu-item.dragging');
+    if (dragging && dragging !== item) container.insertBefore(dragging, item);
+    _muUpdateCount(type);
+  });
+
+  container.appendChild(item);
+  lucide.createIcons({ nodes: [item] });
+  _muUpdateCount(type);
+}
+
+/* Upload a File object and add the resulting item */
+async function _muUploadFile(file, type) {
+  const containerId = _muContainerIdForType(type);
+  const container   = document.getElementById(containerId);
+  const qId         = appState.editingQuestionId || uid();
+
+  // Validate before showing progress
+  try { MediaService.validateFile(file, type); }
+  catch(e) { toast(e.message, 'error'); return; }
+
+  // Progress placeholder
+  const placeholder = document.createElement('div');
+  placeholder.className = 'mu-item uploading';
+  placeholder.innerHTML = `
+    <div class="mu-item-thumb">${icon('upload','icon-md')}</div>
+    <div class="mu-item-info">
+      <div class="mu-item-name">${escHtml(file.name)}</div>
+      <div class="mu-item-meta">${MediaService.formatFileSize(file.size)}</div>
+      <div class="mu-progress"><div class="mu-progress-bar indeterminate"></div></div>
+    </div>`;
+  container.appendChild(placeholder);
+  lucide.createIcons({ nodes: [placeholder] });
+
+  try {
+    const result = await MediaService.uploadFile(file, qId, type, () => {});
+    _muOrphanPaths.push(result.filePath);
+    placeholder.remove();
+    _muAddItem(containerId, {
+      url:      result.mediaUrl,
+      filePath: result.filePath,
+      fileName: result.fileName,
+      mimeType: result.mimeType,
+      fileSize: result.fileSize,
+      type
+    });
+    toast(`${file.name} uploaded`);
+  } catch(e) {
+    placeholder.remove();
+    toast(`Upload failed: ${e.message}`, 'error');
+  }
+}
+
+/* Add a URL item via the "Add URL instead" button */
+function _muAddUrlRow(type) {
+  const containerId = _muContainerIdForType(type);
+  const panel = document.getElementById('muPanel' + type.charAt(0).toUpperCase() + type.slice(1));
+  const existing = panel.querySelector('.mu-url-row');
+  if (existing) { existing.querySelector('.mu-url-input')?.focus(); return; }
+
   const row = document.createElement('div');
-  row.className = 'media-row';
-  row.innerHTML = `<div class="form-input-wrap"><input class="form-input media-url-input" data-type="${type}" type="text" placeholder="https://…" value="${escHtml(url||'')}"><span class="form-hint">${type} URL</span></div><button type="button" class="icon-btn danger media-remove-btn">${icon('x', 'icon-sm')}</button>`;
-  row.querySelector('.media-remove-btn').onclick = () => row.remove();
-  container.appendChild(row);
-  lucide.createIcons();
+  row.className = 'mu-url-row';
+  row.innerHTML = `<input class="form-input mu-url-input" type="text" placeholder="https://…"><button type="button" class="btn btn-ghost btn-sm" style="flex-shrink:0;">Add</button><button type="button" class="icon-btn danger" style="flex-shrink:0;">${icon('x','icon-sm')}</button>`;
+  const input = row.querySelector('.mu-url-input');
+  const addBtn = row.querySelectorAll('button')[0];
+  const cancelBtn = row.querySelectorAll('button')[1];
+
+  const commit = () => {
+    const val = input.value.trim();
+    if (val) _muAddItem(containerId, { url: val, filePath: null, fileName: null, mimeType: null, fileSize: null, type });
+    row.remove();
+  };
+  addBtn.addEventListener('click', commit);
+  cancelBtn.addEventListener('click', () => row.remove());
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } });
+
+  const toggle = panel.querySelector('.mu-url-toggle');
+  panel.insertBefore(row, toggle);
+  lucide.createIcons({ nodes: [row] });
+  input.focus();
+}
+
+/* Setup drag-and-drop + file picker for a given type's drop zone */
+function _muSetupDropZone(type) {
+  const dropEl  = document.getElementById('muDrop' + type.charAt(0).toUpperCase() + type.slice(1));
+  const picker  = document.getElementById('muPicker' + type.charAt(0).toUpperCase() + type.slice(1));
+  if (!dropEl || !picker) return;
+
+  dropEl.addEventListener('dragover', e => { e.preventDefault(); dropEl.classList.add('drag-active'); });
+  dropEl.addEventListener('dragleave', e => { if (!dropEl.contains(e.relatedTarget)) dropEl.classList.remove('drag-active'); });
+  dropEl.addEventListener('drop', e => {
+    e.preventDefault();
+    dropEl.classList.remove('drag-active');
+    [...e.dataTransfer.files].forEach(f => _muUploadFile(f, type));
+  });
+  picker.addEventListener('change', e => {
+    [...e.target.files].forEach(f => _muUploadFile(f, type));
+    e.target.value = '';
+  });
+}
+
+/* Collect all media items from a container */
+function _muCollectItems(containerId) {
+  return [...document.querySelectorAll(`#${containerId} .mu-item`)].map(el => ({
+    url:      el.dataset.url      || '',
+    filePath: el.dataset.filePath || null,
+    fileName: el.dataset.fileName || null,
+    mimeType: el.dataset.mimeType || null,
+    fileSize: el.dataset.fileSize ? parseInt(el.dataset.fileSize) : null
+  })).filter(m => m.url);
 }
 function clearNotes(notes) { document.getElementById('notesFields').innerHTML = ''; (notes||[]).forEach(n => addNoteField(n)); }
 function addNoteField(val) {
@@ -929,7 +1195,12 @@ function updateAnsMediaPreview(url) {
   if (url) { wrap.style.display = 'block'; img.src = url; }
   else      { wrap.style.display = 'none'; }
 }
-function closeDrawer() {
+function closeDrawer(cancelledNew = false) {
+  // If drawer was cancelled without saving a new question, clean up orphan storage files
+  if (cancelledNew && _muOrphanPaths.length) {
+    MediaService.cleanupOrphanFiles([..._muOrphanPaths]).catch(() => {});
+  }
+  _muOrphanPaths.length = 0;
   appState.editingQuestionId = null;
   document.getElementById('drawerOverlay').classList.remove('open');
   document.getElementById('questionDrawer').classList.remove('open');
@@ -996,9 +1267,12 @@ function buildSchematic4() {
 }
 
 function collectDrawerData() {
-  const images = [...document.querySelectorAll('#imageFields .media-url-input')].map(i => i.value.trim());
-  const videos = [...document.querySelectorAll('#videoFields .media-url-input')].map(i => i.value.trim());
-  const audios = [...document.querySelectorAll('#audioFields .media-url-input')].map(i => i.value.trim());
+  const imageItems = _muCollectItems('imageItems');
+  const videoItems = _muCollectItems('videoItems');
+  const audioItems = _muCollectItems('audioItems');
+  const images = imageItems.map(m => m.url);
+  const videos = videoItems.map(m => m.url);
+  const audios = audioItems.map(m => m.url);
   const notes  = [...document.querySelectorAll('.note-input')].map(i => i.value.trim()).filter(Boolean);
   let hintQuestion = {};
   try { hintQuestion = JSON.parse(document.getElementById('fHintQuestion').value || '{}'); } catch(e){}
@@ -1034,6 +1308,9 @@ function collectDrawerData() {
       image: images.length ? images : [''],
       video: videos.length ? videos : [''],
       audio: audios.length ? audios : [''],
+      imageMeta: imageItems,
+      videoMeta: videoItems,
+      audioMeta: audioItems,
       status: document.getElementById('fStatus').value,
       fixQuestion: document.getElementById('fFixQuestion').checked,
       duplicateQuestion: document.getElementById('fDuplicateQuestion').checked,
@@ -1084,9 +1361,9 @@ function updateLivePreview() {
   const qtv           = document.getElementById('fQuestionTypeView')?.value || 'Regular_Question';
   const status        = document.getElementById('fStatus')?.value || 'ACTIVE';
   const label         = document.getElementById('fLabel')?.value.trim() || '';
-  const images        = [...document.querySelectorAll('#imageFields .media-url-input')].map(i => i.value.trim()).filter(Boolean);
-  const videos        = [...document.querySelectorAll('#videoFields .media-url-input')].map(i => i.value.trim()).filter(Boolean);
-  const audios        = [...document.querySelectorAll('#audioFields .media-url-input')].map(i => i.value.trim()).filter(Boolean);
+  const images        = [...document.querySelectorAll('#imageItems .mu-item')].map(el => el.dataset.url).filter(Boolean);
+  const videos        = [...document.querySelectorAll('#videoItems .mu-item')].map(el => el.dataset.url).filter(Boolean);
+  const audios        = [...document.querySelectorAll('#audioItems .mu-item')].map(el => el.dataset.url).filter(Boolean);
 
   if (!question && !correctAnswer) {
     container.innerHTML = `<div class="lp-empty">Start filling in the form to see the question preview here.</div>`;
@@ -1768,9 +2045,9 @@ function wireButtons() {
     toast('Questions deleted');
   };
 
-  document.getElementById('btnCloseDrawer').onclick  = closeDrawer;
-  document.getElementById('btnCancelDrawer').onclick = closeDrawer;
-  document.getElementById('drawerOverlay').onclick   = closeDrawer;
+  document.getElementById('btnCloseDrawer').onclick  = () => closeDrawer(!appState.editingQuestionId);
+  document.getElementById('btnCancelDrawer').onclick = () => closeDrawer(!appState.editingQuestionId);
+  document.getElementById('drawerOverlay').onclick   = () => closeDrawer(!appState.editingQuestionId);
   document.getElementById('btnSaveQuestion').onclick = saveQuestion;
 
   document.getElementById('layoutThumbs').addEventListener('click', e => {
@@ -1793,18 +2070,31 @@ function wireButtons() {
     updateAnsMediaPreview('');
     document.getElementById('unsavedDot').style.display = 'inline-block';
   };
-  document.getElementById('btnAddImage').onclick = () => { addMediaField('imageFields', ''); };
-  document.getElementById('btnAddVideo').onclick = () => { addMediaField('videoFields', ''); };
-  document.getElementById('btnAddAudio').onclick = () => { addMediaField('audioFields', ''); };
-  document.getElementById('btnAddNote').onclick  = () => addNoteField('');
+  // URL-fallback toggles
+  document.getElementById('btnAddImageUrl').onclick = () => _muAddUrlRow('image');
+  document.getElementById('btnAddVideoUrl').onclick = () => _muAddUrlRow('video');
+  document.getElementById('btnAddAudioUrl').onclick = () => _muAddUrlRow('audio');
+  document.getElementById('btnAddNote').onclick     = () => addNoteField('');
 
-  document.getElementById('questionDrawer').addEventListener('input', e => {
-    if (e.target.classList.contains('media-url-input')) updateLivePreview();
+  // Media tab switching
+  document.querySelectorAll('.mu-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mu-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.mu-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const type = btn.dataset.muTab;
+      document.getElementById('muPanel' + type.charAt(0).toUpperCase() + type.slice(1))?.classList.add('active');
+    });
   });
+
+  // Drop zones for all three types
+  _muSetupDropZone('image');
+  _muSetupDropZone('video');
+  _muSetupDropZone('audio');
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
-      closeDrawer();
+      closeDrawer(!appState.editingQuestionId);
       document.getElementById('previewModal').classList.remove('open');
       closeNewListModal();
       closeMoveCategoryModal();

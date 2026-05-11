@@ -73,20 +73,36 @@ function _assembleQuestion(q, gs, mediaRows, meta) {
       createdAt:          q.created_at,
       updatedAt:          q.updated_at,
       // Rebuild media arrays; return [''] placeholder so the form renders an empty field
-      image: _mediaOfType(media, 'image'),
-      video: _mediaOfType(media, 'video'),
-      audio: _mediaOfType(media, 'audio'),
-      note:  Array.isArray(notes) ? notes : []
+      image:     _mediaOfType(media, 'image'),
+      video:     _mediaOfType(media, 'video'),
+      audio:     _mediaOfType(media, 'audio'),
+      // Parallel metadata arrays for storage-backed files (null entries for URL-only items)
+      imageMeta: _mediaMetaOfType(media, 'image'),
+      videoMeta: _mediaMetaOfType(media, 'video'),
+      audioMeta: _mediaMetaOfType(media, 'audio'),
+      note:      Array.isArray(notes) ? notes : []
     }
   };
 }
 
 function _mediaOfType(rows, type) {
-  const urls = rows
+  const sorted = rows
+    .filter(m => m.media_type === type)
+    .sort((a, b) => a.sort_order - b.sort_order);
+  const urls = sorted.map(m => m.media_url);
+  return urls.length ? urls : [''];
+}
+
+function _mediaMetaOfType(rows, type) {
+  return rows
     .filter(m => m.media_type === type)
     .sort((a, b) => a.sort_order - b.sort_order)
-    .map(m => m.media_url);
-  return urls.length ? urls : [''];
+    .map(m => ({
+      filePath: m.file_path || null,
+      fileName: m.file_name || null,
+      mimeType: m.mime_type || null,
+      fileSize: m.file_size || null
+    }));
 }
 
 /* =====================================================
@@ -344,7 +360,9 @@ const SupabaseDB = {
     );
 
     // ---- question_media table ----
-    // Delete current rows then re-insert — simpler than diffing individual URLs
+    // Delete current rows then re-insert — simpler than diffing individual URLs.
+    // Includes optional file-storage metadata (file_path, file_name, mime_type, file_size)
+    // when present; falls back to URL-only for backward compatibility.
     await _sb.from('question_media').delete().in('question_id', newQIds);
 
     const mediaRows = [];
@@ -352,10 +370,26 @@ const SupabaseDB = {
       const gq  = q.GamesQuestion || {};
       const qId = q.questionId;
       let   pos = 0;
-      // Only store non-empty URLs
-      (gq.image || []).filter(Boolean).forEach(url => mediaRows.push({ question_id: qId, media_type: 'image', media_url: url, sort_order: pos++ }));
-      (gq.video || []).filter(Boolean).forEach(url => mediaRows.push({ question_id: qId, media_type: 'video', media_url: url, sort_order: pos++ }));
-      (gq.audio || []).filter(Boolean).forEach(url => mediaRows.push({ question_id: qId, media_type: 'audio', media_url: url, sort_order: pos++ }));
+
+      const pushRows = (type, urls, metaArr) => {
+        (urls || []).filter(Boolean).forEach((url, i) => {
+          const m = (metaArr && metaArr[i]) || {};
+          mediaRows.push({
+            question_id: qId,
+            media_type:  type,
+            media_url:   url,
+            file_path:   m.filePath  || null,
+            file_name:   m.fileName  || null,
+            mime_type:   m.mimeType  || null,
+            file_size:   m.fileSize  ? parseInt(m.fileSize)  : null,
+            sort_order:  pos++
+          });
+        });
+      };
+
+      pushRows('image', gq.image, gq.imageMeta);
+      pushRows('video', gq.video, gq.videoMeta);
+      pushRows('audio', gq.audio, gq.audioMeta);
     });
 
     if (mediaRows.length) {

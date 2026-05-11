@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>So2alGawab — Media Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/global.css">
+<link rel="stylesheet" href="./assets/css/layout.css">
+<link rel="stylesheet" href="./assets/css/components.css">
+<link rel="stylesheet" href="./assets/css/forms.css">
+<link rel="stylesheet" href="./assets/css/media.css">
+<link rel="stylesheet" href="./assets/css/responsive.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="./services/supabase.js"></script>
+<script src="./services/auth.js"></script>
+<script src="./services/mediaService.js"></script>
+</head>
+<body class="db-page ml-page">
+
+<!-- ── TOPBAR ──────────────────────────────────────────────────── -->
+<div class="ml-topbar">
+  <div class="ml-topbar-logo">
+    <i data-lucide="gamepad-2" class="icon-lg"></i>
+    <span class="accent">So2alGawab</span>
+    <span style="color:var(--text3);margin:0 6px;">/</span>
+    <span style="color:var(--text2);font-weight:500;font-size:14px;">Media Library</span>
+  </div>
+  <div class="ml-topbar-right">
+    <a class="btn btn-ghost btn-sm" href="./database.html">
+      <i data-lucide="database" class="icon-sm"></i> Database
+    </a>
+    <a class="btn btn-ghost btn-sm" href="./dashboard.html">
+      <i data-lucide="layout-dashboard" class="icon-sm"></i> Dashboard
+    </a>
+    <a class="btn btn-ghost btn-sm" id="btnUsers" href="./users.html" style="display:none;">
+      <i data-lucide="users" class="icon-sm"></i> Users
+    </a>
+    <div id="userChip"></div>
+  </div>
+</div>
+
+<!-- ── BODY ────────────────────────────────────────────────────── -->
+<div class="ml-body">
+
+  <!-- Page header -->
+  <div class="ml-header">
+    <div class="ml-header-left">
+      <h1><i data-lucide="images" class="icon-xl"></i> Media Library</h1>
+      <p>Manage all question media — images, audio, and video files.</p>
+      <div class="ml-stats" id="mlStats">
+        <div class="ml-stat"><span class="ml-stat-num" id="statTotal">—</span> total files</div>
+        <div class="ml-stat"><i data-lucide="image" class="icon-xs"></i> <span class="ml-stat-num" id="statImages">—</span> images</div>
+        <div class="ml-stat"><i data-lucide="music" class="icon-xs"></i> <span class="ml-stat-num" id="statAudio">—</span> audio</div>
+        <div class="ml-stat"><i data-lucide="video" class="icon-xs"></i> <span class="ml-stat-num" id="statVideos">—</span> video</div>
+        <div class="ml-stat"><i data-lucide="hard-drive" class="icon-xs"></i> <span class="ml-stat-num" id="statSize">—</span></div>
+      </div>
+    </div>
+    <div class="ml-header-right" id="mlHeaderRight">
+      <!-- Upload button shown to editor/admin/super_admin -->
+    </div>
+  </div>
+
+  <!-- Upload zone (editor+ only) -->
+  <div id="mlUploadZone" style="display:none;">
+    <div class="ml-upload-zone" id="mlDropZone">
+      <i data-lucide="upload-cloud" class="icon-2xl"></i>
+      <p>Drop files here or <label for="mlGlobalFilePicker">browse to upload</label></p>
+      <span>Images (JPG, PNG, WEBP), Audio (MP3, WAV, M4A), Video (MP4, WEBM, MOV)</span>
+      <input type="file" id="mlGlobalFilePicker" class="mu-file-input"
+             accept=".jpg,.jpeg,.png,.webp,.mp3,.wav,.m4a,.mp4,.webm,.mov" multiple>
+    </div>
+    <!-- Upload progress list -->
+    <div id="mlUploadList" style="margin-bottom:16px;display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+
+  <!-- Recently uploaded (last 24h) -->
+  <div id="mlRecentSection" style="display:none;">
+    <div class="ml-section-head">
+      <div class="ml-section-title">
+        <i data-lucide="clock" class="icon-xs"></i> Recently Uploaded
+      </div>
+    </div>
+    <div class="ml-recent-strip" id="mlRecentStrip"></div>
+  </div>
+
+  <!-- Filters -->
+  <div class="ml-filters">
+    <div class="ml-search-wrap">
+      <i data-lucide="search"></i>
+      <input class="ml-search-input" id="mlSearch" type="text" placeholder="Search by filename or URL…">
+    </div>
+
+    <div class="ml-type-tabs" id="mlTypeTabs">
+      <button class="ml-type-btn active" data-type="all">
+        <i data-lucide="layers" class="icon-xs"></i> All
+      </button>
+      <button class="ml-type-btn" data-type="image">
+        <i data-lucide="image" class="icon-xs"></i> Images
+      </button>
+      <button class="ml-type-btn" data-type="audio">
+        <i data-lucide="music" class="icon-xs"></i> Audio
+      </button>
+      <button class="ml-type-btn" data-type="video">
+        <i data-lucide="video" class="icon-xs"></i> Video
+      </button>
+    </div>
+
+    <button class="ml-chip" id="chipUnused">
+      <i data-lucide="unlink" class="icon-xs"></i> Unlinked only
+    </button>
+
+    <select class="ml-sort" id="mlSort">
+      <option value="newest">Newest first</option>
+      <option value="oldest">Oldest first</option>
+      <option value="largest">Largest file</option>
+    </select>
+
+    <div class="ml-view-toggle">
+      <button class="ml-view-btn active" id="btnGridView" title="Grid view">
+        <i data-lucide="layout-grid" class="icon-sm"></i>
+      </button>
+      <button class="ml-view-btn" id="btnListView" title="List view">
+        <i data-lucide="list" class="icon-sm"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Results count -->
+  <div id="mlResultMeta" style="font-size:11px;color:var(--text3);margin-bottom:12px;"></div>
+
+  <!-- Media grid/list -->
+  <div class="ml-grid" id="mlGrid">
+    <div class="ml-empty">
+      <div class="spinner spinner-lg" style="margin:0 auto 16px;"></div>
+      <p>Loading media…</p>
+    </div>
+  </div>
+
+  <!-- Load more -->
+  <div class="ml-load-more-wrap" id="mlLoadMoreWrap" style="display:none;">
+    <button class="ml-load-more" id="mlLoadMoreBtn">
+      <i data-lucide="chevrons-down" class="icon-sm"></i> Load More
+    </button>
+  </div>
+
+</div><!-- /ml-body -->
+
+<!-- ── MEDIA DETAIL DRAWER ──────────────────────────────────────── -->
+<div class="md-drawer-overlay" id="mdOverlay"></div>
+<div class="md-drawer" id="mdDrawer">
+  <div class="md-drawer-head">
+    <i data-lucide="file" class="icon-md" id="mdDrawerIcon"></i>
+    <h3 id="mdDrawerTitle">Media Details</h3>
+    <button class="icon-btn" id="btnCloseDetail"><i data-lucide="x" class="icon-sm"></i></button>
+  </div>
+  <div class="md-drawer-body" id="mdDrawerBody">
+    <div class="ml-empty" style="padding:40px 0;">
+      <div class="spinner" style="margin:0 auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONFIRM DIALOG ───────────────────────────────────────────── -->
+<div class="dialog-overlay" id="confirmOverlay">
+  <div class="dialog">
+    <h3 id="confirmTitle">Confirm</h3>
+    <p id="confirmMsg">Are you sure?</p>
+    <div class="dialog-actions">
+      <button class="btn btn-ghost" id="confirmCancel">Cancel</button>
+      <button class="btn btn-danger" id="confirmOk">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ────────────────────────────────────────────────────── -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+'use strict';
+
+function icon(name, cls = '') {
+  return `<i data-lucide="${name}"${cls ? ` class="${cls}"` : ''}></i>`;
+}
+
+/* ── App state ─────────────────────────────────────────────────── */
+let mlState = {
+  type:    'all',
+  search:  '',
+  sort:    'newest',
+  page:    1,
+  pageSize: 48,
+  viewMode: 'grid',
+  showUnlinked: false,
+  items:   [],
+  total:   0,
+  loading: false,
+  userRole: null
+};
+
+/* ── Role helpers ──────────────────────────────────────────────── */
+function canUpload()  { return ['editor','admin','super_admin'].includes(mlState.userRole); }
+function canDelete()  { return ['admin','super_admin'].includes(mlState.userRole); }
+
+/* ── Utilities ─────────────────────────────────────────────────── */
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+  catch { return iso; }
+}
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `${icon(type==='success'?'check-circle':'x-circle','icon-sm')} ${escHtml(msg)}`;
+  document.getElementById('toastContainer').appendChild(el);
+  lucide.createIcons();
+  setTimeout(() => el.remove(), 3500);
+}
+
+function showConfirm(title, msg) {
+  return new Promise(resolve => {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMsg').textContent   = msg;
+    const overlay = document.getElementById('confirmOverlay');
+    overlay.classList.add('open');
+    const ok     = document.getElementById('confirmOk');
+    const cancel = document.getElementById('confirmCancel');
+    const cleanup = val => { overlay.classList.remove('open'); ok.onclick = cancel.onclick = overlay.onclick = null; resolve(val); };
+    ok.onclick      = () => cleanup(true);
+    cancel.onclick  = () => cleanup(false);
+    overlay.onclick = e => { if (e.target===overlay) cleanup(false); };
+  });
+}
+
+/* ── Media type helpers ────────────────────────────────────────── */
+const TYPE_META = {
+  image: { icon: 'image',  color: 'var(--blue)',  label: 'IMAGE' },
+  audio: { icon: 'music',  color: 'var(--purple)', label: 'AUDIO' },
+  video: { icon: 'video',  color: 'var(--amber)', label: 'VIDEO' }
+};
+
+function mediaMimeOk(url, type) {
+  if (!url) return false;
+  if (type === 'image') return /\.(jpg|jpeg|png|webp|gif|svg)(\?|$)/i.test(url);
+  return true;
+}
+
+/* ── Load & render ─────────────────────────────────────────────── */
+async function loadMedia(reset = false) {
+  if (mlState.loading) return;
+  if (reset) { mlState.page = 1; mlState.items = []; }
+  mlState.loading = true;
+
+  if (reset) {
+    document.getElementById('mlGrid').innerHTML = renderSkeletons();
+    lucide.createIcons();
+  }
+
+  try {
+    const items = await MediaService.getMediaLibrary({
+      type:     mlState.type,
+      search:   mlState.search,
+      sort:     mlState.sort,
+      page:     mlState.page,
+      pageSize: mlState.pageSize
+    });
+
+    if (reset) mlState.items = items;
+    else mlState.items = [...mlState.items, ...items];
+
+    const count = await MediaService.getMediaCount({ type: mlState.type, search: mlState.search });
+    mlState.total = count;
+
+    renderGrid();
+    updateResultMeta();
+    updateLoadMore(items.length);
+  } catch(e) {
+    document.getElementById('mlGrid').innerHTML = `
+      <div class="ml-empty" style="grid-column:1/-1;">
+        ${icon('alert-circle','icon-xl')}
+        <h3>Failed to load media</h3>
+        <p>${escHtml(e.message)}</p>
+      </div>`;
+    lucide.createIcons();
+  } finally {
+    mlState.loading = false;
+  }
+}
+
+function renderSkeletons() {
+  return Array(8).fill(0).map(() =>
+    `<div class="ml-skeleton ml-skeleton-card"></div>`
+  ).join('');
+}
+
+function renderGrid() {
+  const grid = document.getElementById('mlGrid');
+  grid.className = 'ml-grid' + (mlState.viewMode === 'list' ? ' list-mode' : '');
+
+  if (!mlState.items.length) {
+    grid.innerHTML = `
+      <div class="ml-empty">
+        ${icon('images','icon-3xl')}
+        <h3>No media found</h3>
+        <p>${mlState.search ? 'Try a different search term.' : 'Upload files to get started.'}</p>
+      </div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  grid.innerHTML = mlState.items.map(item =>
+    mlState.viewMode === 'grid' ? renderCard(item) : renderListRow(item)
+  ).join('');
+  lucide.createIcons();
+}
+
+function renderCard(item) {
+  const meta  = TYPE_META[item.media_type] || TYPE_META.image;
+  const name  = item.file_name || item.media_url?.split('/').pop() || '—';
+  const size  = MediaService.formatFileSize(item.file_size);
+  const date  = fmtDate(item.created_at);
+  const linked = item.questions ? 1 : 0;
+
+  let mediaEl = '';
+  if (item.media_type === 'image') {
+    mediaEl = `<img src="${escHtml(item.media_url)}" loading="lazy" onerror="this.parentElement.innerHTML='${icon('image','icon-xl').replace(/'/g,'\\\'')}'">`;
+  } else if (item.media_type === 'audio') {
+    mediaEl = icon(meta.icon, 'icon-2xl');
+  } else {
+    mediaEl = icon(meta.icon, 'icon-2xl');
+  }
+
+  const deleteBtn = canDelete()
+    ? `<button class="icon-btn" data-action="delete" data-id="${item.id}" data-fp="${escHtml(item.file_path||'')}" title="Delete">${icon('trash-2','icon-sm')}</button>`
+    : '';
+  const copyBtn = `<button class="icon-btn" data-action="copy" data-url="${escHtml(item.media_url)}" title="Copy URL">${icon('copy','icon-sm')}</button>`;
+  const viewBtn = `<button class="icon-btn" data-action="view" data-id="${item.id}" title="View details">${icon('eye','icon-sm')}</button>`;
+
+  return `
+    <div class="ml-card" data-id="${item.id}" data-action="view">
+      <div class="ml-card-media">
+        ${mediaEl}
+        <div class="ml-type-badge">${icon(meta.icon,'icon-xs')} ${meta.label}</div>
+        <div class="ml-card-overlay" onclick="event.stopPropagation()">
+          ${viewBtn}${copyBtn}${deleteBtn}
+        </div>
+      </div>
+      <div class="ml-card-body">
+        <div class="ml-card-name" title="${escHtml(name)}">${escHtml(name)}</div>
+        <div class="ml-card-meta">
+          <span>${size}</span>
+          <span class="ml-card-linked ${linked?'has-links':''}">
+            ${icon('link','icon-xs')} ${linked} linked
+          </span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderListRow(item) {
+  const meta  = TYPE_META[item.media_type] || TYPE_META.image;
+  const name  = item.file_name || item.media_url?.split('/').pop() || '—';
+  const size  = MediaService.formatFileSize(item.file_size);
+  const date  = fmtDate(item.created_at);
+  const linked = item.questions ? 1 : 0;
+
+  let thumbEl = '';
+  if (item.media_type === 'image') {
+    thumbEl = `<img src="${escHtml(item.media_url)}" loading="lazy" onerror="this.style.display='none'">`;
+  } else {
+    thumbEl = icon(meta.icon, 'icon-md');
+  }
+
+  const deleteBtn = canDelete()
+    ? `<button class="icon-btn" data-action="delete" data-id="${item.id}" data-fp="${escHtml(item.file_path||'')}" title="Delete">${icon('trash-2','icon-sm')}</button>`
+    : '';
+
+  return `
+    <div class="ml-list-row" data-id="${item.id}" data-action="view">
+      <div class="ml-list-thumb">${thumbEl}</div>
+      <div class="ml-list-info">
+        <div class="ml-list-name" title="${escHtml(name)}">${escHtml(name)}</div>
+        <div class="ml-list-meta">${date} · ${linked} linked question${linked!==1?'s':''}</div>
+      </div>
+      <div class="ml-list-type">
+        <span class="badge badge-${item.media_type==='image'?'blue':item.media_type==='audio'?'purple':'amber'}">${escHtml(meta.label)}</span>
+      </div>
+      <div class="ml-list-size">${size}</div>
+      <div class="ml-list-actions" onclick="event.stopPropagation()">
+        <button class="icon-btn" data-action="copy" data-url="${escHtml(item.media_url)}" title="Copy URL">${icon('copy','icon-sm')}</button>
+        ${deleteBtn}
+      </div>
+    </div>`;
+}
+
+function updateResultMeta() {
+  const el = document.getElementById('mlResultMeta');
+  if (!mlState.total) { el.textContent = ''; return; }
+  el.textContent = `Showing ${mlState.items.length} of ${mlState.total} files`;
+}
+
+function updateLoadMore(fetched) {
+  const wrap = document.getElementById('mlLoadMoreWrap');
+  const hasMore = mlState.items.length < mlState.total;
+  wrap.style.display = hasMore && fetched === mlState.pageSize ? 'flex' : 'none';
+}
+
+/* ── Stats ─────────────────────────────────────────────────────── */
+async function loadStats() {
+  try {
+    const s = await MediaService.getMediaStats();
+    document.getElementById('statTotal').textContent  = s.total;
+    document.getElementById('statImages').textContent = s.byType.image;
+    document.getElementById('statAudio').textContent  = s.byType.audio;
+    document.getElementById('statVideos').textContent = s.byType.video;
+    document.getElementById('statSize').textContent   = MediaService.formatFileSize(s.totalSize);
+  } catch(e) { console.warn('Stats load failed:', e); }
+}
+
+/* ── Recent media ──────────────────────────────────────────────── */
+async function loadRecent() {
+  try {
+    const recent = await MediaService.getRecentMedia(12);
+    if (!recent.length) return;
+
+    const section = document.getElementById('mlRecentSection');
+    section.style.display = 'block';
+    const strip   = document.getElementById('mlRecentStrip');
+
+    strip.innerHTML = recent.map(item => {
+      const meta = TYPE_META[item.media_type] || TYPE_META.image;
+      const name = item.file_name || item.media_url?.split('/').pop() || '—';
+      let mediaEl = item.media_type === 'image'
+        ? `<img src="${escHtml(item.media_url)}" loading="lazy" onerror="this.style.display='none'">`
+        : icon(meta.icon, 'icon-xl');
+
+      return `
+        <div class="ml-recent-card" data-id="${item.id}" data-action="view">
+          <div class="ml-recent-card-media">${mediaEl}</div>
+          <div class="ml-recent-card-info">
+            <div class="ml-recent-card-name" title="${escHtml(name)}">${escHtml(name)}</div>
+          </div>
+        </div>`;
+    }).join('');
+    lucide.createIcons();
+  } catch(e) { console.warn('Recent load failed:', e); }
+}
+
+/* ── Detail drawer ─────────────────────────────────────────────── */
+function openDetailDrawer(id) {
+  const item = mlState.items.find(i => i.id === id);
+  if (!item) return;
+
+  document.getElementById('mdOverlay').classList.add('open');
+  document.getElementById('mdDrawer').classList.add('open');
+
+  const meta = TYPE_META[item.media_type] || TYPE_META.image;
+  const name = item.file_name || item.media_url?.split('/').pop() || '—';
+
+  // Set drawer icon
+  document.getElementById('mdDrawerIcon').setAttribute('data-lucide', meta.icon);
+  document.getElementById('mdDrawerTitle').textContent = name.length > 30 ? name.slice(0,28)+'…' : name;
+
+  // Build preview
+  let previewEl = '';
+  if (item.media_type === 'image') {
+    previewEl = `<img src="${escHtml(item.media_url)}" alt="${escHtml(name)}" style="max-width:100%;max-height:100%;">`;
+  } else if (item.media_type === 'audio') {
+    previewEl = `<audio controls style="width:100%;padding:20px;"><source src="${escHtml(item.media_url)}"></audio>`;
+  } else if (item.media_type === 'video') {
+    previewEl = `<video controls style="width:100%;height:100%;"><source src="${escHtml(item.media_url)}"></video>`;
+  } else {
+    previewEl = `<div class="md-preview-placeholder">${icon(meta.icon,'icon-3xl')}<span>${meta.label}</span></div>`;
+  }
+
+  // Delete / replace buttons
+  const deleteBtn = canDelete()
+    ? `<button class="btn btn-danger btn-sm" id="mdBtnDelete"><i data-lucide="trash-2" class="icon-sm"></i> Delete</button>`
+    : '';
+
+  // Linked question
+  const linked = item.questions;
+  const linkedHtml = linked
+    ? `<div class="md-question-card" data-action="open-q" data-q-id="${linked.id}">
+         <div class="md-question-text">${escHtml(linked.question || '—')}</div>
+         <div class="md-question-meta">
+           <span>${icon('list','icon-xs')} ${escHtml(linked.list_id || '—')}</span>
+           <span>${icon('tag','icon-xs')} ${escHtml(linked.category_id || '—')}</span>
+         </div>
+       </div>`
+    : `<div class="md-no-links">${icon('unlink','icon-sm')} Not linked to any question</div>`;
+
+  document.getElementById('mdDrawerBody').innerHTML = `
+    <div class="md-preview">${previewEl}</div>
+
+    <div class="md-info">
+      <div class="md-info-row">
+        <span class="md-info-label">Filename</span>
+        <span class="md-info-value">${escHtml(name)}</span>
+      </div>
+      <div class="md-info-row">
+        <span class="md-info-label">Type</span>
+        <span class="md-info-value">${escHtml(meta.label)}</span>
+      </div>
+      <div class="md-info-row">
+        <span class="md-info-label">Size</span>
+        <span class="md-info-value">${MediaService.formatFileSize(item.file_size)}</span>
+      </div>
+      <div class="md-info-row">
+        <span class="md-info-label">Uploaded</span>
+        <span class="md-info-value">${fmtDate(item.created_at)}</span>
+      </div>
+      <div class="md-info-row">
+        <span class="md-info-label">URL</span>
+        <span class="md-info-value">
+          <a class="md-info-url" href="${escHtml(item.media_url)}" target="_blank" rel="noopener"
+             title="${escHtml(item.media_url)}">${escHtml(item.media_url)}</a>
+        </span>
+      </div>
+    </div>
+
+    <div class="md-actions">
+      <button class="btn btn-ghost btn-sm" id="mdBtnCopy">
+        ${icon('copy','icon-sm')} Copy URL
+      </button>
+      ${deleteBtn}
+    </div>
+
+    <div>
+      <div class="md-section-title">${icon('link','icon-xs')} Linked Question</div>
+      ${linkedHtml}
+    </div>
+  `;
+  lucide.createIcons();
+
+  // Copy URL
+  document.getElementById('mdBtnCopy')?.addEventListener('click', async () => {
+    const ok = await MediaService.copyToClipboard(item.media_url);
+    toast(ok ? 'URL copied to clipboard' : 'Copy failed — check permissions', ok ? 'success' : 'error');
+  });
+
+  // Delete
+  document.getElementById('mdBtnDelete')?.addEventListener('click', async () => {
+    const confirmed = await showConfirm('Delete Media', `Delete "${name}"? This cannot be undone.`);
+    if (!confirmed) return;
+    try {
+      await MediaService.deleteMediaItem(item.id, item.file_path);
+      toast('Media deleted');
+      closeDetailDrawer();
+      mlState.items = mlState.items.filter(i => i.id !== item.id);
+      mlState.total = Math.max(0, mlState.total - 1);
+      renderGrid();
+      updateResultMeta();
+      loadStats();
+    } catch(e) {
+      toast('Delete failed: ' + e.message, 'error');
+    }
+  });
+}
+
+function closeDetailDrawer() {
+  document.getElementById('mdOverlay').classList.remove('open');
+  document.getElementById('mdDrawer').classList.remove('open');
+}
+
+/* ── Upload ────────────────────────────────────────────────────── */
+const _pendingQuestionId = 'LIBRARY_UPLOAD_' + Date.now();
+
+async function handleFileUpload(files) {
+  if (!canUpload()) { toast('You do not have permission to upload files', 'error'); return; }
+
+  const uploadList = document.getElementById('mlUploadList');
+
+  for (const file of files) {
+    // Auto-detect media type from MIME
+    let mediaType = 'image';
+    if (file.type.startsWith('audio/')) mediaType = 'audio';
+    else if (file.type.startsWith('video/')) mediaType = 'video';
+
+    // Validate
+    try {
+      MediaService.validateFile(file, mediaType);
+    } catch(e) {
+      toast(`${file.name}: ${e.message}`, 'error');
+      continue;
+    }
+
+    // Progress item
+    const progressId = 'up-' + Math.random().toString(36).slice(2);
+    const progressEl = document.createElement('div');
+    progressEl.id = progressId;
+    progressEl.className = 'mu-item uploading';
+    progressEl.innerHTML = `
+      <div class="mu-item-thumb">${icon('upload','icon-md')}</div>
+      <div class="mu-item-info">
+        <div class="mu-item-name">${escHtml(file.name)}</div>
+        <div class="mu-item-meta">${MediaService.formatFileSize(file.size)}</div>
+        <div class="mu-progress"><div class="mu-progress-bar indeterminate"></div></div>
+      </div>`;
+    uploadList.appendChild(progressEl);
+    lucide.createIcons({ nodes: [progressEl] });
+
+    try {
+      const result = await MediaService.uploadFile(file, _pendingQuestionId, mediaType, () => {});
+
+      // Save record to question_media (not linked to any question yet)
+      const { error } = await window._sb.from('question_media').insert({
+        question_id: null,
+        media_type:  result.mediaType,
+        media_url:   result.mediaUrl,
+        file_path:   result.filePath,
+        file_name:   result.fileName,
+        mime_type:   result.mimeType,
+        file_size:   result.fileSize,
+        sort_order:  0
+      });
+
+      progressEl.remove();
+
+      if (error) {
+        toast(`${file.name}: DB save failed — ${error.message}`, 'error');
+      } else {
+        toast(`${file.name} uploaded`);
+        await loadMedia(true);
+        await loadStats();
+        await loadRecent();
+      }
+    } catch(e) {
+      progressEl.remove();
+      toast(`${file.name}: ${e.message}`, 'error');
+    }
+  }
+}
+
+/* ── Event handlers ────────────────────────────────────────────── */
+function setupEvents() {
+  // Search (debounced)
+  let searchTimer;
+  document.getElementById('mlSearch').addEventListener('input', e => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      mlState.search = e.target.value.trim();
+      loadMedia(true);
+    }, 300);
+  });
+
+  // Type tabs
+  document.getElementById('mlTypeTabs').addEventListener('click', e => {
+    const btn = e.target.closest('.ml-type-btn');
+    if (!btn) return;
+    document.querySelectorAll('.ml-type-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    mlState.type = btn.dataset.type;
+    loadMedia(true);
+  });
+
+  // Unlinked chip
+  document.getElementById('chipUnused').addEventListener('click', () => {
+    mlState.showUnlinked = !mlState.showUnlinked;
+    document.getElementById('chipUnused').classList.toggle('active', mlState.showUnlinked);
+    loadMedia(true);
+  });
+
+  // Sort
+  document.getElementById('mlSort').addEventListener('change', e => {
+    mlState.sort = e.target.value;
+    loadMedia(true);
+  });
+
+  // View toggle
+  document.getElementById('btnGridView').addEventListener('click', () => {
+    mlState.viewMode = 'grid';
+    document.getElementById('btnGridView').classList.add('active');
+    document.getElementById('btnListView').classList.remove('active');
+    renderGrid();
+  });
+  document.getElementById('btnListView').addEventListener('click', () => {
+    mlState.viewMode = 'list';
+    document.getElementById('btnListView').classList.add('active');
+    document.getElementById('btnGridView').classList.remove('active');
+    renderGrid();
+  });
+
+  // Load more
+  document.getElementById('mlLoadMoreBtn').addEventListener('click', () => {
+    mlState.page++;
+    loadMedia(false);
+  });
+
+  // Grid/recent click delegation
+  document.getElementById('mlGrid').addEventListener('click', e => {
+    handleGridClick(e);
+  });
+  document.getElementById('mlRecentStrip')?.addEventListener('click', e => {
+    const card = e.target.closest('[data-action="view"][data-id]');
+    if (card) openDetailDrawer(card.dataset.id);
+  });
+
+  // Detail drawer close
+  document.getElementById('btnCloseDetail').addEventListener('click', closeDetailDrawer);
+  document.getElementById('mdOverlay').addEventListener('click', closeDetailDrawer);
+
+  // Upload zone (editor+)
+  if (canUpload()) {
+    const dropZone   = document.getElementById('mlDropZone');
+    const filePicker = document.getElementById('mlGlobalFilePicker');
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-active'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-active'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-active');
+      handleFileUpload([...e.dataTransfer.files]);
+    });
+    filePicker.addEventListener('change', e => {
+      handleFileUpload([...e.target.files]);
+      e.target.value = '';
+    });
+  }
+}
+
+function handleGridClick(e) {
+  const actionEl = e.target.closest('[data-action]');
+  if (!actionEl) return;
+
+  const action = actionEl.dataset.action;
+
+  if (action === 'view') {
+    const card = actionEl.closest('[data-id]');
+    if (card) openDetailDrawer(card.dataset.id);
+    return;
+  }
+
+  if (action === 'copy') {
+    e.stopPropagation();
+    MediaService.copyToClipboard(actionEl.dataset.url).then(ok => {
+      toast(ok ? 'URL copied' : 'Copy failed', ok ? 'success' : 'error');
+    });
+    return;
+  }
+
+  if (action === 'delete') {
+    e.stopPropagation();
+    const id = actionEl.dataset.id;
+    const fp = actionEl.dataset.fp || null;
+    const item = mlState.items.find(i => i.id === id);
+    const name = item?.file_name || '—';
+    showConfirm('Delete Media', `Delete "${name}"? This cannot be undone.`).then(async confirmed => {
+      if (!confirmed) return;
+      try {
+        await MediaService.deleteMediaItem(id, fp);
+        toast('Media deleted');
+        mlState.items = mlState.items.filter(i => i.id !== id);
+        mlState.total = Math.max(0, mlState.total - 1);
+        renderGrid();
+        updateResultMeta();
+        loadStats();
+      } catch(err) {
+        toast('Delete failed: ' + err.message, 'error');
+      }
+    });
+    return;
+  }
+}
+
+/* ── Init ──────────────────────────────────────────────────────── */
+async function init() {
+  const role = await Auth.requireAuth(['super_admin','admin','editor','viewer']);
+  if (!role) return;
+
+  mlState.userRole = await Auth.getRole();
+
+  // Show users nav link for super_admin
+  if (mlState.userRole === 'super_admin') {
+    document.getElementById('btnUsers').style.display = 'inline-flex';
+  }
+
+  // Render user chip
+  const chipEl = document.getElementById('userChip');
+  if (chipEl) chipEl.innerHTML = Auth.renderUserChip ? Auth.renderUserChip() : '';
+
+  // Show upload UI for editors+
+  if (canUpload()) {
+    document.getElementById('mlUploadZone').style.display = 'block';
+    document.getElementById('mlHeaderRight').innerHTML = `
+      <label class="btn btn-primary btn-sm" for="mlGlobalFilePicker">
+        ${icon('upload-cloud','icon-sm')} Upload Files
+      </label>`;
+    lucide.createIcons({ nodes: [document.getElementById('mlHeaderRight')] });
+  }
+
+  setupEvents();
+
+  await Promise.all([
+    loadMedia(true),
+    loadStats(),
+    loadRecent()
+  ]);
+
+  lucide.createIcons();
+}
+
+init();
+</script>
+</body>
+</html>
