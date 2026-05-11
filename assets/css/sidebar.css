@@ -1,0 +1,363 @@
+/* ================================================================
+   SIDEBAR — App shell · Fixed sidebar · Nav items · User profile ·
+             Mobile hamburger · Overlay
+   ================================================================ */
+
+/* ── CSS Custom Properties ──────────────────────────────────────── */
+:root {
+  --sb-w:   220px;
+  --sb-bg:  var(--panel);
+}
+
+/* ── App Shell — sidebar is fixed, body gets left margin ───────── */
+
+body {
+  margin-left: var(--sb-w);
+}
+
+/* Login / public pages opt out */
+body.no-sidebar {
+  margin-left: 0;
+}
+
+/* database.html: screens need to fill the remaining viewport width */
+/* .screen uses height:100vh which remains correct — only margin shifts */
+
+/* ── Sidebar (fixed, always on left) ───────────────────────────── */
+
+.sidebar {
+  position: fixed;
+  left:   0;
+  top:    0;
+  bottom: 0;
+  width:  var(--sb-w);
+  background: var(--sb-bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 200;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar::-webkit-scrollbar          { width: 3px; }
+.sidebar::-webkit-scrollbar-track    { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb    { background: var(--surface3); border-radius: 99px; }
+
+/* ── Logo ───────────────────────────────────────────────────────── */
+
+.sb-logo {
+  display:     flex;
+  align-items: center;
+  gap:         9px;
+  padding:     0 14px;
+  height:      52px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+  transition: background .12s;
+}
+.sb-logo:hover      { background: var(--surface); }
+.sb-logo-icon       { color: var(--blue); flex-shrink: 0; }
+.sb-logo-text       { font-size: 14px; font-weight: 700; color: var(--text); }
+.sb-logo-text span  { color: var(--blue); }
+
+/* ── Navigation ─────────────────────────────────────────────────── */
+
+.sb-nav {
+  flex:    1;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sb-section-label {
+  font-size:      9px;
+  font-weight:    700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color:          var(--text3);
+  padding:        10px 8px 4px;
+}
+
+.sb-item {
+  display:         flex;
+  align-items:     center;
+  gap:             9px;
+  padding:         0 10px;
+  height:          34px;
+  border-radius:   7px;
+  font-size:       13px;
+  font-weight:     500;
+  color:           var(--text2);
+  text-decoration: none;
+  transition:      background .12s, color .12s;
+  white-space:     nowrap;
+  user-select:     none;
+  position: relative;
+}
+.sb-item:hover               { background: var(--surface); color: var(--text); }
+.sb-item:hover i             { color: var(--text2); }
+.sb-item.active              { background: var(--blue-bg); color: var(--blue); font-weight: 600; }
+.sb-item.active i            { color: var(--blue); }
+.sb-item i                   { flex-shrink: 0; color: var(--text3); transition: color .12s; }
+
+.sb-item-badge {
+  margin-left:  auto;
+  background:   var(--surface3);
+  color:        var(--text3);
+  font-size:    10px;
+  font-weight:  700;
+  padding:      1px 6px;
+  border-radius: 99px;
+}
+
+.sb-sep {
+  height:     1px;
+  background: var(--border);
+  margin:     5px 8px;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────── */
+
+.sb-footer {
+  padding:   6px 8px;
+  border-top: 1px solid var(--border);
+  display:   flex;
+  flex-direction: column;
+  gap:       2px;
+  flex-shrink: 0;
+}
+
+/* Supabase connection status pill */
+.sb-conn {
+  display:     flex;
+  align-items: center;
+  gap:         7px;
+  padding:     6px 10px;
+  border-radius: 7px;
+  font-size:   11px;
+  color:       var(--text3);
+  text-decoration: none;
+  transition:  background .12s, color .12s;
+  cursor: pointer;
+}
+.sb-conn:hover { background: var(--surface); color: var(--text2); }
+
+/* Conn dot (shared between old conn-badge and sb-conn) */
+.conn-dot {
+  width:         7px;
+  height:        7px;
+  border-radius: 50%;
+  background:    var(--text3);
+  flex-shrink:   0;
+  transition:    background .25s;
+}
+.conn-badge.connected .conn-dot { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,.5); }
+.conn-badge.local     .conn-dot { background: var(--amber); }
+.conn-badge.checking  .conn-dot { animation: sbPulse 1.2s ease-in-out infinite; }
+
+@keyframes sbPulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+
+/* ── User Profile Button ────────────────────────────────────────── */
+
+.sb-user {
+  display:     flex;
+  align-items: center;
+  gap:         9px;
+  padding:     7px 9px;
+  border-radius: 8px;
+  cursor:      pointer;
+  background:  none;
+  border:      none;
+  width:       100%;
+  text-align:  left;
+  color:       inherit;
+  transition:  background .12s;
+  position:    relative;
+}
+.sb-user:hover { background: var(--surface); }
+
+.sb-avatar {
+  width:         28px;
+  height:        28px;
+  border-radius: 8px;
+  background:    var(--blue);
+  color:         #fff;
+  font-size:     11px;
+  font-weight:   700;
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  flex-shrink:   0;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+
+.sb-user-info {
+  flex:    1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sb-user-name {
+  font-size:     12px;
+  font-weight:   600;
+  color:         var(--text);
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+}
+.sb-user-email {
+  font-size:     10px;
+  color:         var(--text3);
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+}
+.sb-user-chevron { color: var(--text3); flex-shrink: 0; }
+
+/* ── Role Badges ────────────────────────────────────────────────── */
+
+.sb-role {
+  display:        inline-flex;
+  align-items:    center;
+  padding:        2px 6px;
+  border-radius:  4px;
+  font-size:      9px;
+  font-weight:    800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  width:          fit-content;
+}
+.sb-role.super-admin { background: rgba(251,191,36,.15); color: #fbbf24; border: 1px solid rgba(251,191,36,.25); }
+.sb-role.admin       { background: rgba(249,115,22,.15); color: #f97316; border: 1px solid rgba(249,115,22,.25); }
+.sb-role.editor      { background: rgba(59,130,246,.15); color: #60a5fa; border: 1px solid rgba(59,130,246,.25); }
+.sb-role.viewer      { background: rgba(100,116,139,.12); color: #94a3b8; border: 1px solid rgba(100,116,139,.2); }
+.sb-role.pending     { background: rgba(245,158,11,.15); color: #f59e0b; border: 1px solid rgba(245,158,11,.25); }
+
+/* ── User Dropdown Menu ─────────────────────────────────────────── */
+
+.sb-user-menu {
+  position:   absolute;
+  bottom:     calc(100% + 4px);
+  left:       8px;
+  right:      8px;
+  background: var(--surface);
+  border:     1px solid var(--border2);
+  border-radius: 10px;
+  padding:    4px;
+  box-shadow: var(--shadow-lg);
+  z-index:    310;
+  opacity:    0;
+  pointer-events: none;
+  transform:  translateY(8px);
+  transition: opacity .15s, transform .15s;
+}
+.sb-user-menu.open {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+
+.sb-menu-header {
+  padding:       8px 10px 7px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.sb-menu-header-name  { font-size: 12px; font-weight: 600; color: var(--text); }
+.sb-menu-header-email { font-size: 10px; color: var(--text3); margin-top: 1px; word-break: break-all; }
+
+.sb-menu-role-wrap { padding: 0 10px 8px; }
+
+.sb-menu-item {
+  display:         flex;
+  align-items:     center;
+  gap:             9px;
+  padding:         7px 10px;
+  border-radius:   7px;
+  font-size:       12px;
+  color:           var(--text2);
+  cursor:          pointer;
+  transition:      background .12s, color .12s;
+  text-decoration: none;
+  background:      none;
+  border:          none;
+  width:           100%;
+  text-align:      left;
+  font-family:     var(--font);
+}
+.sb-menu-item:hover         { background: var(--surface2); color: var(--text); }
+.sb-menu-item i             { flex-shrink: 0; color: var(--text3); }
+.sb-menu-item:hover i       { color: var(--text2); }
+.sb-menu-item.danger        { color: var(--red); }
+.sb-menu-item.danger:hover  { background: rgba(239,68,68,.1); }
+.sb-menu-item.danger i      { color: var(--red); }
+.sb-menu-sep { height: 1px; background: var(--border); margin: 3px 0; }
+
+/* ── Mobile Topbar (hamburger) ──────────────────────────────────── */
+
+.sb-mobile-bar {
+  display:    none;
+  align-items: center;
+  gap:        12px;
+  height:     52px;
+  padding:    0 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  position:   sticky;
+  top:        0;
+  z-index:    150;
+  flex-shrink: 0;
+}
+
+.sb-hamburger {
+  background:    none;
+  border:        none;
+  color:         var(--text2);
+  cursor:        pointer;
+  display:       flex;
+  align-items:   center;
+  padding:       5px;
+  border-radius: 6px;
+  transition:    background .12s, color .12s;
+}
+.sb-hamburger:hover { background: var(--surface); color: var(--text); }
+
+.sb-mobile-title {
+  font-size:   14px;
+  font-weight: 600;
+  color:       var(--text);
+}
+
+/* Sidebar overlay backdrop (mobile only) */
+.sb-overlay {
+  display: none;
+  position: fixed;
+  inset:   0;
+  background: rgba(0,0,0,.55);
+  z-index: 190;
+  backdrop-filter: blur(2px);
+}
+.sb-overlay.open { display: block; }
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+
+@media (max-width: 860px) {
+  body { margin-left: 0 !important; }
+
+  .sidebar {
+    transform:  translateX(-100%);
+    transition: transform .22s cubic-bezier(.4,0,.2,1);
+    box-shadow: none;
+  }
+  .sidebar.open {
+    transform:  translateX(0);
+    box-shadow: 4px 0 28px rgba(0,0,0,.55);
+  }
+
+  .sb-mobile-bar { display: flex; }
+}

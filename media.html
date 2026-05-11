@@ -11,35 +11,24 @@
 <link rel="stylesheet" href="./assets/css/components.css">
 <link rel="stylesheet" href="./assets/css/forms.css">
 <link rel="stylesheet" href="./assets/css/media.css">
+<link rel="stylesheet" href="./assets/css/sidebar.css">
 <link rel="stylesheet" href="./assets/css/responsive.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="./services/supabase.js"></script>
 <script src="./services/auth.js"></script>
 <script src="./services/mediaService.js"></script>
+<script src="./services/sidebar.js"></script>
 </head>
 <body class="db-page ml-page">
 
-<!-- ── TOPBAR ──────────────────────────────────────────────────── -->
-<div class="ml-topbar">
-  <div class="ml-topbar-logo">
-    <i data-lucide="gamepad-2" class="icon-lg"></i>
-    <span class="accent">So2alGawab</span>
-    <span style="color:var(--text3);margin:0 6px;">/</span>
-    <span style="color:var(--text2);font-weight:500;font-size:14px;">Media Library</span>
-  </div>
-  <div class="ml-topbar-right">
-    <a class="btn btn-ghost btn-sm" href="./database.html">
-      <i data-lucide="database" class="icon-sm"></i> Database
-    </a>
-    <a class="btn btn-ghost btn-sm" href="./dashboard.html">
-      <i data-lucide="layout-dashboard" class="icon-sm"></i> Dashboard
-    </a>
-    <a class="btn btn-ghost btn-sm" id="btnUsers" href="./users.html" style="display:none;">
-      <i data-lucide="users" class="icon-sm"></i> Users
-    </a>
-    <div id="userChip"></div>
-  </div>
+<aside class="sidebar" id="appSidebar"></aside>
+<div class="sb-overlay" id="sbOverlay"></div>
+<div class="sb-mobile-bar">
+  <button class="sb-hamburger" id="sbToggle" type="button">
+    <i data-lucide="menu" class="icon-md"></i>
+  </button>
+  <span class="sb-mobile-title" id="sbMobileTitle">Media Library</span>
 </div>
 
 <!-- ── BODY ────────────────────────────────────────────────────── -->
@@ -772,19 +761,13 @@ function handleGridClick(e) {
 
 /* ── Init ──────────────────────────────────────────────────────── */
 async function init() {
-  const role = await Auth.requireAuth(['super_admin','admin','editor','viewer']);
-  if (!role) return;
+  const session = await Auth.requireAuth(['super_admin','admin','editor','viewer']);
+  if (!session) return;
 
   mlState.userRole = await Auth.getRole();
 
-  // Show users nav link for super_admin
-  if (mlState.userRole === 'super_admin') {
-    document.getElementById('btnUsers').style.display = 'inline-flex';
-  }
-
-  // Render user chip
-  const chipEl = document.getElementById('userChip');
-  if (chipEl) chipEl.innerHTML = Auth.renderUserChip ? Auth.renderUserChip() : '';
+  Sidebar.init('media');
+  Sidebar.setUser(session.user, mlState.userRole);
 
   // Show upload UI for editors+
   if (canUpload()) {

@@ -10,28 +10,23 @@
 <link rel="stylesheet" href="./assets/css/layout.css">
 <link rel="stylesheet" href="./assets/css/components.css">
 <link rel="stylesheet" href="./assets/css/forms.css">
+<link rel="stylesheet" href="./assets/css/sidebar.css">
 <link rel="stylesheet" href="./assets/css/responsive.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="./services/supabase.js"></script>
 <script src="./services/auth.js"></script>
+<script src="./services/sidebar.js"></script>
 </head>
 <body>
 
-<!-- ── Topbar ──────────────────────────────────────────────────── -->
-<div class="topbar">
-  <div class="topbar-logo">
-    <i data-lucide="gamepad-2" class="icon-lg"></i>
-    <span class="accent">So2alGawab</span>
-  </div>
-  <span class="topbar-sep">/</span>
-  <span class="topbar-title">Users</span>
-  <div class="topbar-right">
-    <a class="btn btn-ghost btn-sm" href="./database.html">
-      <i data-lucide="arrow-left" class="icon-sm"></i> Database
-    </a>
-    <div id="userChip"></div>
-  </div>
+<aside class="sidebar" id="appSidebar"></aside>
+<div class="sb-overlay" id="sbOverlay"></div>
+<div class="sb-mobile-bar">
+  <button class="sb-hamburger" id="sbToggle" type="button">
+    <i data-lucide="menu" class="icon-md"></i>
+  </button>
+  <span class="sb-mobile-title" id="sbMobileTitle">Users</span>
 </div>
 
 <!-- ── Page ────────────────────────────────────────────────────── -->
@@ -235,7 +230,8 @@ async function init() {
   if (!session) return;
 
   currentUser = session.user;
-  Auth.renderUserChip(document.getElementById('userChip'));
+  Sidebar.init('users');
+  Sidebar.setUser(session.user, 'super_admin');
   await loadUsers();
 }
 

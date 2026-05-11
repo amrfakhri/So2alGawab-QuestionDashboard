@@ -10,22 +10,23 @@
 <link rel="stylesheet" href="./assets/css/global.css">
 <link rel="stylesheet" href="./assets/css/layout.css">
 <link rel="stylesheet" href="./assets/css/dashboard.css">
+<link rel="stylesheet" href="./assets/css/sidebar.css">
 <link rel="stylesheet" href="./assets/css/responsive.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="./services/supabase.js"></script>
 <script src="./services/auth.js"></script>
+<script src="./services/sidebar.js"></script>
 </head>
 <body>
 
-<div class="topbar">
-  <a id="btnUsers" href="./users.html" class="topbar-nav-link" style="display:none;">
-    <i data-lucide="users" class="icon-sm"></i> Users
-  </a>
-  <a href="./media.html" class="topbar-nav-link">
-    <i data-lucide="images" class="icon-sm"></i> Media Library
-  </a>
-  <div id="userBar" class="topbar-user-bar"></div>
+<aside class="sidebar" id="appSidebar"></aside>
+<div class="sb-overlay" id="sbOverlay"></div>
+<div class="sb-mobile-bar">
+  <button class="sb-hamburger" id="sbToggle" type="button">
+    <i data-lucide="menu" class="icon-md"></i>
+  </button>
+  <span class="sb-mobile-title" id="sbMobileTitle">Overview</span>
 </div>
 
 <div class="container">
@@ -76,10 +77,9 @@ async function initDashboard() {
     const session = await Auth.requireAuth();
     if (!session) return; // redirecting to login
 
-    Auth.renderUserChip(document.getElementById('userBar'));
-    if (await Auth.isSuperAdmin()) {
-        document.getElementById('btnUsers').style.display = 'inline-flex';
-    }
+    Sidebar.init('overview');
+    const role = await Auth.getRole();
+    Sidebar.setUser(session.user, role);
 
     try {
         const ok = await window.SupabaseDB.ping();

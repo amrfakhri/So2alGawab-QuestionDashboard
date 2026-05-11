@@ -12,33 +12,30 @@
 <link rel="stylesheet" href="./assets/css/forms.css">
 <link rel="stylesheet" href="./assets/css/editor.css">
 <link rel="stylesheet" href="./assets/css/media.css">
+<link rel="stylesheet" href="./assets/css/sidebar.css">
 <link rel="stylesheet" href="./assets/css/responsive.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="./services/supabase.js"></script>
 <script src="./services/auth.js"></script>
 <script src="./services/mediaService.js"></script>
+<script src="./services/sidebar.js"></script>
 </head>
 <body class="db-page">
+
+<aside class="sidebar" id="appSidebar"></aside>
+<div class="sb-overlay" id="sbOverlay"></div>
+<div class="sb-mobile-bar">
+  <button class="sb-hamburger" id="sbToggle" type="button">
+    <i data-lucide="menu" class="icon-md"></i>
+  </button>
+  <span class="sb-mobile-title" id="sbMobileTitle">Database</span>
+</div>
 
 <!-- =====================================================
      SCREEN 1: QUESTIONS LISTS
 ===================================================== -->
 <div class="screen active" id="listsScreen">
-
-  <div class="ls-topbar">
-    <div class="ls-logo"><i data-lucide="gamepad-2" class="icon-lg"></i> <span class="accent">So2alGawab</span></div>
-    <div class="ls-topbar-right">
-      <div class="conn-badge checking" id="connBadge">
-        <span class="conn-dot"></span>
-        <span id="connLabel">Checking…</span>
-      </div>
-      <a class="btn btn-ghost" href="./dashboard.html"><i data-lucide="arrow-left" class="icon-sm"></i> Dashboard</a>
-      <a class="btn btn-ghost" href="./media.html"><i data-lucide="images" class="icon-sm"></i> Media Library</a>
-      <a class="btn btn-ghost" id="btnUsers" href="./users.html" style="display:none;"><i data-lucide="users" class="icon-sm"></i> Users</a>
-      <div id="userChip"></div>
-    </div>
-  </div>
 
   <div class="ls-body">
     <div class="ls-header">
@@ -576,6 +573,7 @@ DB.ping = async function() {
 function updateConnBadge() {
   const badge = document.getElementById('connBadge');
   const label = document.getElementById('connLabel');
+  if (!badge || !label) return;
   badge.className = 'conn-badge ' + (DB.connected ? 'connected' : 'local');
   label.textContent = DB.connected ? 'Supabase Connected' : 'Offline';
 }
@@ -2110,11 +2108,9 @@ async function init() {
   const session = await Auth.requireAuth(['super_admin', 'admin', 'editor']);
   if (!session) return;
 
-  Auth.renderUserChip(document.getElementById('userChip'));
-
-  if (await Auth.isSuperAdmin()) {
-    document.getElementById('btnUsers').style.display = 'inline-flex';
-  }
+  Sidebar.init('database');
+  const role = await Auth.getRole();
+  Sidebar.setUser(session.user, role);
 
   wireButtons();
   updateConnBadge();
