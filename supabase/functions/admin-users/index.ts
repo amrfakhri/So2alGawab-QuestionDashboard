@@ -7,7 +7,7 @@ const cors = {
 }
 
 // Must match a URL in Supabase Auth → URL Configuration → Redirect URLs
-const DEFAULT_REDIRECT = 'https://game.amrfakhri.com/'
+const DEFAULT_REDIRECT = 'https://game.amrfakhri.com/auth/callback'
 const APP_URL          = 'https://game.amrfakhri.com'
 
 function json(data: unknown, status = 200) {
