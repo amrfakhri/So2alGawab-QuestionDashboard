@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signing in… — So2alGawab</title>
+</head>
+<body>
+<script>
+// Supabase redirects here after verifying an invite or recovery link.
+// The session tokens are in the URL hash (#access_token=...&type=invite).
+// The invite/recovery UI lives in index.html — relay everything there.
+
+const hash   = window.location.hash;   // #access_token=...&type=invite
+const search = window.location.search; // ?error=... (Supabase error fallback)
+
+// Some Supabase error paths use query params instead of hash
+const params    = new URLSearchParams(search);
+const errorCode = params.get('error');
+const errorDesc = params.get('error_description');
+
+if (errorCode) {
+  // Convert query-param errors to hash format that index.html understands
+  const desc = errorDesc ? '&error_description=' + encodeURIComponent(errorDesc) : '';
+  window.location.replace('/index.html#error=' + encodeURIComponent(errorCode) + desc);
+} else {
+  // Forward the hash tokens to the login page — Supabase client and invite
+  // handling logic in index.html will take over from here.
+  window.location.replace('/index.html' + (hash || search));
+}
+</script>
+</body>
+</html>
