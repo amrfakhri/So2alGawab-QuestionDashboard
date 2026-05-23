@@ -54,6 +54,17 @@
 
   <!-- Upload zone (editor+ only) -->
   <div id="mlUploadZone" style="display:none;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <span style="font-size:12px;color:var(--text2);font-weight:600;white-space:nowrap;">Upload for:</span>
+      <div id="mlUploadPurposeToggle" style="display:flex;gap:4px;">
+        <button class="ml-type-btn active" data-upload-purpose="question">
+          <i data-lucide="help-circle" class="icon-xs"></i> Questions
+        </button>
+        <button class="ml-type-btn" data-upload-purpose="game_ui">
+          <i data-lucide="layout" class="icon-xs"></i> Game UI
+        </button>
+      </div>
+    </div>
     <div class="ml-upload-zone" id="mlDropZone">
       <i data-lucide="upload-cloud" class="icon-2xl"></i>
       <p>Drop files here or <label for="mlGlobalFilePicker">browse to upload</label></p>
@@ -189,18 +200,19 @@ function icon(name, cls = '') {
 
 /* ── App state ─────────────────────────────────────────────────── */
 let mlState = {
-  type:    'all',
-  purpose: 'all',
-  search:  '',
-  sort:    'newest',
-  page:    1,
-  pageSize: 48,
-  viewMode: 'grid',
-  showUnlinked: false,
-  items:   [],
-  total:   0,
-  loading: false,
-  userRole: null
+  type:          'all',
+  purpose:       'all',
+  uploadPurpose: 'question',
+  search:        '',
+  sort:          'newest',
+  page:          1,
+  pageSize:      48,
+  viewMode:      'grid',
+  showUnlinked:  false,
+  items:         [],
+  total:         0,
+  loading:       false,
+  userRole:      null
 };
 
 /* ── Role helpers ──────────────────────────────────────────────── */
@@ -652,7 +664,7 @@ async function handleFileUpload(files) {
 
   const uploadList = document.getElementById('mlUploadList');
 
-  const mediaPurpose = mlState.purpose === 'all' ? 'question' : mlState.purpose;
+  const mediaPurpose = mlState.uploadPurpose;
 
   for (const file of files) {
     // Auto-detect media type from MIME and extension fallback
@@ -729,14 +741,30 @@ function setupEvents() {
     }, 300);
   });
 
-  // Purpose tabs
+  // Purpose tabs (filter) — also syncs the upload toggle
   document.getElementById('mlPurposeBar').addEventListener('click', e => {
     const btn = e.target.closest('.ml-type-btn');
     if (!btn || !btn.dataset.purpose) return;
     document.querySelectorAll('#mlPurposeBar .ml-type-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     mlState.purpose = btn.dataset.purpose;
+    // Keep upload toggle in sync: if a specific purpose is active, preselect it
+    if (btn.dataset.purpose !== 'all') {
+      mlState.uploadPurpose = btn.dataset.purpose;
+      document.querySelectorAll('#mlUploadPurposeToggle .ml-type-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.uploadPurpose === mlState.uploadPurpose);
+      });
+    }
     loadMedia(true);
+  });
+
+  // Upload purpose toggle
+  document.getElementById('mlUploadPurposeToggle')?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-upload-purpose]');
+    if (!btn) return;
+    document.querySelectorAll('#mlUploadPurposeToggle .ml-type-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    mlState.uploadPurpose = btn.dataset.uploadPurpose;
   });
 
   // Type tabs
