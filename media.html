@@ -19,6 +19,35 @@
 <script src="./services/auth.js"></script>
 <script src="./services/mediaService.js"></script>
 <script src="./services/sidebar.js"></script>
+<style>
+/* ── Multi-select ─────────────────────────────────────── */
+.ml-card { position: relative; }
+.ml-card-check {
+  position: absolute; top: 8px; left: 8px; z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity .15s; cursor: pointer;
+}
+.ml-card:hover .ml-card-check,
+.ml-card.ml-selected .ml-card-check { opacity: 1; }
+.ml-card-check input[type="checkbox"] {
+  width: 17px; height: 17px; cursor: pointer;
+  accent-color: var(--blue, #3b82f6);
+  border-radius: 4px;
+}
+.ml-card.ml-selected {
+  outline: 2px solid var(--blue, #3b82f6);
+  outline-offset: -2px;
+}
+.ml-card.ml-selected .ml-card-media { opacity: .85; }
+.ml-list-check {
+  display: flex; align-items: center; padding: 0 10px 0 4px; flex-shrink: 0;
+}
+.ml-list-check input[type="checkbox"] {
+  width: 15px; height: 15px; cursor: pointer;
+  accent-color: var(--blue, #3b82f6);
+}
+.ml-list-row.ml-selected { background: rgba(59,130,246,.07); }
+</style>
 </head>
 <body class="db-page ml-page">
 
@@ -144,6 +173,29 @@
   <!-- Results count -->
   <div id="mlResultMeta" style="font-size:11px;color:var(--text3);margin-bottom:12px;"></div>
 
+  <!-- Bulk action bar (visible when ≥1 item selected) -->
+  <div id="mlBulkBar" style="display:none;align-items:center;gap:8px;padding:10px 14px;background:var(--surface-raised,#f0f4ff);border:1.5px solid var(--blue,#3b82f6);border-radius:10px;margin-bottom:12px;flex-wrap:wrap;">
+    <label style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;">
+      <input type="checkbox" id="mlSelectAll" style="width:15px;height:15px;cursor:pointer;accent-color:var(--blue,#3b82f6);">
+      <span id="mlSelCount" style="font-size:13px;font-weight:600;color:var(--text1);">0 selected</span>
+    </label>
+    <div style="flex:1;min-width:8px;"></div>
+    <span style="font-size:12px;color:var(--text2);font-weight:500;">Move to:</span>
+    <button class="btn btn-ghost btn-sm" id="btnBulkQuestion">
+      <i data-lucide="help-circle" class="icon-xs"></i> Questions
+    </button>
+    <button class="btn btn-ghost btn-sm" id="btnBulkGameUI">
+      <i data-lucide="layout" class="icon-xs"></i> Game UI
+    </button>
+    <div style="width:1px;height:20px;background:var(--border);margin:0 2px;"></div>
+    <button class="btn btn-danger btn-sm" id="btnBulkDelete">
+      <i data-lucide="trash-2" class="icon-xs"></i> Delete
+    </button>
+    <button class="icon-btn" id="btnBulkClose" title="Clear selection">
+      <i data-lucide="x" class="icon-sm"></i>
+    </button>
+  </div>
+
   <!-- Media grid/list -->
   <div class="ml-grid" id="mlGrid">
     <div class="ml-empty">
@@ -212,7 +264,8 @@ let mlState = {
   items:         [],
   total:         0,
   loading:       false,
-  userRole:      null
+  userRole:      null,
+  selected:      new Set()
 };
 
 /* ── Role helpers ──────────────────────────────────────────────── */
@@ -270,7 +323,7 @@ function mediaMimeOk(url, type) {
 /* ── Load & render ─────────────────────────────────────────────── */
 async function loadMedia(reset = false) {
   if (mlState.loading) return;
-  if (reset) { mlState.page = 1; mlState.items = []; }
+  if (reset) { mlState.page = 1; mlState.items = []; mlState.selected.clear(); }
   mlState.loading = true;
 
   if (reset) {
@@ -295,6 +348,7 @@ async function loadMedia(reset = false) {
     mlState.total = count;
 
     renderGrid();
+    updateBulkBar();
     updateResultMeta();
     updateLoadMore(items.length);
   } catch(e) {
@@ -338,17 +392,15 @@ function renderGrid() {
 }
 
 function renderCard(item) {
-  const meta  = TYPE_META[item.media_type] || TYPE_META.image;
-  const name  = item.file_name || item.media_url?.split('/').pop() || '—';
-  const size  = MediaService.formatFileSize(item.file_size);
-  const date  = fmtDate(item.created_at);
-  const linked = item.questions ? 1 : 0;
+  const meta       = TYPE_META[item.media_type] || TYPE_META.image;
+  const name       = item.file_name || item.media_url?.split('/').pop() || '—';
+  const size       = MediaService.formatFileSize(item.file_size);
+  const linked     = item.questions ? 1 : 0;
+  const isSelected = mlState.selected.has(item.id);
 
   let mediaEl = '';
   if (item.media_type === 'image') {
     mediaEl = `<img src="${escHtml(item.media_url)}" loading="lazy" onerror="this.parentElement.innerHTML='${icon('image','icon-xl').replace(/'/g,'\\\'')}'">`;
-  } else if (item.media_type === 'audio') {
-    mediaEl = icon(meta.icon, 'icon-2xl');
   } else {
     mediaEl = icon(meta.icon, 'icon-2xl');
   }
@@ -360,7 +412,10 @@ function renderCard(item) {
   const viewBtn = `<button class="icon-btn" data-action="view" data-id="${item.id}" title="View details">${icon('eye','icon-sm')}</button>`;
 
   return `
-    <div class="ml-card" data-id="${item.id}" data-action="view">
+    <div class="ml-card${isSelected ? ' ml-selected' : ''}" data-id="${item.id}" data-action="view">
+      <label class="ml-card-check" onclick="event.stopPropagation()">
+        <input type="checkbox" data-action="select" data-id="${item.id}"${isSelected ? ' checked' : ''}>
+      </label>
       <div class="ml-card-media">
         ${mediaEl}
         <div class="ml-type-badge">${icon(meta.icon,'icon-xs')} ${meta.label}</div>
@@ -372,7 +427,7 @@ function renderCard(item) {
         <div class="ml-card-name" title="${escHtml(name)}">${escHtml(name)}</div>
         <div class="ml-card-meta">
           <span>${size}</span>
-          <span class="ml-card-linked ${linked?'has-links':''}">
+          <span class="ml-card-linked ${linked ? 'has-links' : ''}">
             ${icon('link','icon-xs')} ${linked} linked
           </span>
         </div>
@@ -381,25 +436,26 @@ function renderCard(item) {
 }
 
 function renderListRow(item) {
-  const meta  = TYPE_META[item.media_type] || TYPE_META.image;
-  const name  = item.file_name || item.media_url?.split('/').pop() || '—';
-  const size  = MediaService.formatFileSize(item.file_size);
-  const date  = fmtDate(item.created_at);
-  const linked = item.questions ? 1 : 0;
+  const meta       = TYPE_META[item.media_type] || TYPE_META.image;
+  const name       = item.file_name || item.media_url?.split('/').pop() || '—';
+  const size       = MediaService.formatFileSize(item.file_size);
+  const date       = fmtDate(item.created_at);
+  const linked     = item.questions ? 1 : 0;
+  const isSelected = mlState.selected.has(item.id);
 
-  let thumbEl = '';
-  if (item.media_type === 'image') {
-    thumbEl = `<img src="${escHtml(item.media_url)}" loading="lazy" onerror="this.style.display='none'">`;
-  } else {
-    thumbEl = icon(meta.icon, 'icon-md');
-  }
+  let thumbEl = item.media_type === 'image'
+    ? `<img src="${escHtml(item.media_url)}" loading="lazy" onerror="this.style.display='none'">`
+    : icon(meta.icon, 'icon-md');
 
   const deleteBtn = canDelete()
     ? `<button class="icon-btn" data-action="delete" data-id="${item.id}" data-fp="${escHtml(item.file_path||'')}" title="Delete">${icon('trash-2','icon-sm')}</button>`
     : '';
 
   return `
-    <div class="ml-list-row" data-id="${item.id}" data-action="view">
+    <div class="ml-list-row${isSelected ? ' ml-selected' : ''}" data-id="${item.id}" data-action="view">
+      <label class="ml-list-check" onclick="event.stopPropagation()">
+        <input type="checkbox" data-action="select" data-id="${item.id}"${isSelected ? ' checked' : ''}>
+      </label>
       <div class="ml-list-thumb">${thumbEl}</div>
       <div class="ml-list-info">
         <div class="ml-list-name" title="${escHtml(name)}">${escHtml(name)}</div>
@@ -467,6 +523,77 @@ async function loadRecent() {
     }).join('');
     lucide.createIcons();
   } catch(e) { console.warn('Recent load failed:', e); }
+}
+
+/* ── Multi-select ──────────────────────────────────────────────── */
+function toggleSelect(id) {
+  if (mlState.selected.has(id)) mlState.selected.delete(id);
+  else mlState.selected.add(id);
+  // Patch just this card's visual — no full re-render needed
+  const el = document.querySelector(`.ml-grid [data-id="${id}"]`);
+  if (el) {
+    el.classList.toggle('ml-selected', mlState.selected.has(id));
+    const cb = el.querySelector('input[data-action="select"]');
+    if (cb) cb.checked = mlState.selected.has(id);
+  }
+  updateBulkBar();
+}
+
+function clearSelection() {
+  mlState.selected.clear();
+  updateBulkBar();
+  renderGrid();
+}
+
+function updateBulkBar() {
+  const count      = mlState.selected.size;
+  const bar        = document.getElementById('mlBulkBar');
+  const countEl    = document.getElementById('mlSelCount');
+  const selectAll  = document.getElementById('mlSelectAll');
+
+  bar.style.display = count > 0 ? 'flex' : 'none';
+  if (!count) return;
+
+  countEl.textContent = `${count} item${count !== 1 ? 's' : ''} selected`;
+
+  const visibleCount = mlState.items.filter(i => mlState.selected.has(i.id)).length;
+  selectAll.indeterminate = visibleCount > 0 && visibleCount < mlState.items.length;
+  selectAll.checked = mlState.items.length > 0 && visibleCount === mlState.items.length;
+}
+
+async function bulkChangePurpose(purpose) {
+  const ids = [...mlState.selected];
+  if (!ids.length) return;
+  const label = purpose === 'game_ui' ? 'Game UI' : 'Questions';
+  try {
+    await MediaService.bulkUpdatePurpose(ids, purpose);
+    toast(`${ids.length} item${ids.length !== 1 ? 's' : ''} moved to ${label}`);
+    clearSelection();
+    await loadMedia(true);
+    await loadStats();
+  } catch(e) {
+    toast('Failed: ' + e.message, 'error');
+  }
+}
+
+async function bulkDelete() {
+  const ids = [...mlState.selected];
+  if (!ids.length) return;
+  const confirmed = await showConfirm(
+    'Delete Selected',
+    `Delete ${ids.length} item${ids.length !== 1 ? 's' : ''}? This cannot be undone.`
+  );
+  if (!confirmed) return;
+  const items = mlState.items.filter(i => ids.includes(i.id));
+  try {
+    await MediaService.bulkDeleteItems(items);
+    toast(`${ids.length} item${ids.length !== 1 ? 's' : ''} deleted`);
+    clearSelection();
+    await loadMedia(true);
+    await loadStats();
+  } catch(e) {
+    toast('Delete failed: ' + e.message, 'error');
+  }
 }
 
 /* ── Category image picker ─────────────────────────────────────── */
@@ -758,6 +885,19 @@ function setupEvents() {
     loadMedia(true);
   });
 
+  // Bulk bar
+  document.getElementById('mlSelectAll').addEventListener('change', e => {
+    if (e.target.checked) mlState.items.forEach(i => mlState.selected.add(i.id));
+    else                  mlState.items.forEach(i => mlState.selected.delete(i.id));
+    updateBulkBar();
+    renderGrid();
+  });
+  document.getElementById('btnBulkQuestion').addEventListener('click', () => bulkChangePurpose('question'));
+  document.getElementById('btnBulkGameUI').addEventListener('click',   () => bulkChangePurpose('game_ui'));
+  document.getElementById('btnBulkDelete').addEventListener('click',   bulkDelete);
+  document.getElementById('btnBulkClose').addEventListener('click',    clearSelection);
+  if (!canDelete()) document.getElementById('btnBulkDelete').style.display = 'none';
+
   // Upload purpose toggle
   document.getElementById('mlUploadPurposeToggle')?.addEventListener('click', e => {
     const btn = e.target.closest('[data-upload-purpose]');
@@ -847,6 +987,12 @@ function handleGridClick(e) {
   if (!actionEl) return;
 
   const action = actionEl.dataset.action;
+
+  if (action === 'select') {
+    e.stopPropagation();
+    toggleSelect(actionEl.dataset.id);
+    return;
+  }
 
   if (action === 'view') {
     const card = actionEl.closest('[data-id]');

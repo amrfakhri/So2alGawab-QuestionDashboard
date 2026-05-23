@@ -218,6 +218,30 @@ const MediaService = {
     return data || [];
   },
 
+  /* ---- Bulk update media_purpose for multiple items ---- */
+  async bulkUpdatePurpose(ids, purpose) {
+    if (!ids.length) return;
+    const { error } = await window._sb
+      .from('question_media')
+      .update({ media_purpose: purpose })
+      .in('id', ids);
+    if (error) throw new Error(`Failed to update purpose: ${error.message}`);
+    return true;
+  },
+
+  /* ---- Bulk delete items (storage files + DB rows) ---- */
+  async bulkDeleteItems(items) {
+    const filePaths = items.map(i => i.file_path).filter(Boolean);
+    if (filePaths.length) await this.cleanupOrphanFiles(filePaths);
+    const ids = items.map(i => i.id);
+    const { error } = await window._sb
+      .from('question_media')
+      .delete()
+      .in('id', ids);
+    if (error) throw new Error(`Failed to delete: ${error.message}`);
+    return true;
+  },
+
   /* ---- Set a media asset as a category's image ---- */
   async setCategoryImage(categoryId, imageUrl) {
     const { error } = await window._sb
