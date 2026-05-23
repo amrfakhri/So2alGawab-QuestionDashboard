@@ -122,8 +122,64 @@ const MediaService = {
     }
   },
 
-  /* ---- Delete media record + its storage file ---- */
+  /* ---- Return the category using this URL as its image (or null) ---- */
+  async getCategoryByImageUrl(mediaUrl) {
+    if (!mediaUrl) return null;
+    const { data } = await window._sb
+      .from('categories')
+      .select('id, name, list_id, question_lists ( title )')
+      .eq('image_url', mediaUrl)
+      .limit(1)
+      .maybeSingle();
+    return data || null;
+  },
+
+  /* ---- Unlink media from its question (question_id → null) ---- */
+  async unlinkFromQuestion(mediaId) {
+    const { error } = await window._sb
+      .from('question_media')
+      .update({ question_id: null })
+      .eq('id', mediaId);
+    if (error) throw new Error(`Failed to unlink from question: ${error.message}`);
+    return true;
+  },
+
+  /* ---- Remove a URL from any category's image_url ---- */
+  async unlinkFromCategory(mediaUrl) {
+    const { error } = await window._sb
+      .from('categories')
+      .update({ image_url: null })
+      .eq('image_url', mediaUrl);
+    if (error) throw new Error(`Failed to unlink from category: ${error.message}`);
+    return true;
+  },
+
+  /* ---- Delete media record + its storage file (blocks if linked) ---- */
   async deleteMediaItem(id, filePath) {
+    // Live-check question link
+    const { data: rec } = await window._sb
+      .from('question_media')
+      .select('question_id, media_url')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (rec?.question_id) {
+      throw new Error('Cannot delete: this file is linked to a question. Unlink it first.');
+    }
+
+    // Live-check category link
+    if (rec?.media_url) {
+      const { data: cat } = await window._sb
+        .from('categories')
+        .select('name')
+        .eq('image_url', rec.media_url)
+        .limit(1)
+        .maybeSingle();
+      if (cat) {
+        throw new Error(`Cannot delete: file is the image for category "${cat.name}". Unlink it first.`);
+      }
+    }
+
     await this.deleteStorageFile(filePath);
     const { error } = await window._sb.from('question_media').delete().eq('id', id);
     if (error) throw new Error(`Failed to delete record: ${error.message}`);
@@ -229,17 +285,34 @@ const MediaService = {
     return true;
   },
 
-  /* ---- Bulk delete items (storage files + DB rows) ---- */
+  /* ---- Bulk delete items — skips any that are linked ---- */
   async bulkDeleteItems(items) {
-    const filePaths = items.map(i => i.file_path).filter(Boolean);
+    // Check each item for links (question link from loaded data; category via DB)
+    const checks = await Promise.all(items.map(async item => {
+      if (item.questions) return { item, linked: true };
+      if (item.media_url) {
+        const { data: cat } = await window._sb
+          .from('categories').select('id').eq('image_url', item.media_url).limit(1).maybeSingle();
+        if (cat) return { item, linked: true };
+      }
+      return { item, linked: false };
+    }));
+
+    const deletable = checks.filter(c => !c.linked).map(c => c.item);
+    const skipped   = checks.filter(c =>  c.linked).length;
+
+    if (!deletable.length) {
+      throw new Error('All selected items are linked to questions or categories. Unlink them first.');
+    }
+
+    const filePaths = deletable.map(i => i.file_path).filter(Boolean);
     if (filePaths.length) await this.cleanupOrphanFiles(filePaths);
-    const ids = items.map(i => i.id);
-    const { error } = await window._sb
-      .from('question_media')
-      .delete()
-      .in('id', ids);
+
+    const ids = deletable.map(i => i.id);
+    const { error } = await window._sb.from('question_media').delete().in('id', ids);
     if (error) throw new Error(`Failed to delete: ${error.message}`);
-    return true;
+
+    return { deleted: deletable.length, skipped };
   },
 
   /* ---- Set a media asset as a category's image ---- */

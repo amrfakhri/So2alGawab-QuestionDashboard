@@ -405,8 +405,11 @@ function renderCard(item) {
     mediaEl = icon(meta.icon, 'icon-2xl');
   }
 
-  const deleteBtn = canDelete()
-    ? `<button class="icon-btn" data-action="delete" data-id="${item.id}" data-fp="${escHtml(item.file_path||'')}" title="Delete">${icon('trash-2','icon-sm')}</button>`
+  const isLinkedQ  = !!item.questions;
+  const deleteBtn  = canDelete()
+    ? isLinkedQ
+      ? `<button class="icon-btn" disabled style="opacity:.35;cursor:not-allowed;" title="Unlink from question first">${icon('trash-2','icon-sm')}</button>`
+      : `<button class="icon-btn" data-action="delete" data-id="${item.id}" data-fp="${escHtml(item.file_path||'')}" title="Delete">${icon('trash-2','icon-sm')}</button>`
     : '';
   const copyBtn = `<button class="icon-btn" data-action="copy" data-url="${escHtml(item.media_url)}" title="Copy URL">${icon('copy','icon-sm')}</button>`;
   const viewBtn = `<button class="icon-btn" data-action="view" data-id="${item.id}" title="View details">${icon('eye','icon-sm')}</button>`;
@@ -447,8 +450,11 @@ function renderListRow(item) {
     ? `<img src="${escHtml(item.media_url)}" loading="lazy" onerror="this.style.display='none'">`
     : icon(meta.icon, 'icon-md');
 
-  const deleteBtn = canDelete()
-    ? `<button class="icon-btn" data-action="delete" data-id="${item.id}" data-fp="${escHtml(item.file_path||'')}" title="Delete">${icon('trash-2','icon-sm')}</button>`
+  const isLinkedQ2 = !!item.questions;
+  const deleteBtn  = canDelete()
+    ? isLinkedQ2
+      ? `<button class="icon-btn" disabled style="opacity:.35;cursor:not-allowed;" title="Unlink from question first">${icon('trash-2','icon-sm')}</button>`
+      : `<button class="icon-btn" data-action="delete" data-id="${item.id}" data-fp="${escHtml(item.file_path||'')}" title="Delete">${icon('trash-2','icon-sm')}</button>`
     : '';
 
   return `
@@ -579,20 +585,25 @@ async function bulkChangePurpose(purpose) {
 async function bulkDelete() {
   const ids = [...mlState.selected];
   if (!ids.length) return;
-  const confirmed = await showConfirm(
-    'Delete Selected',
-    `Delete ${ids.length} item${ids.length !== 1 ? 's' : ''}? This cannot be undone.`
-  );
+
+  const items    = mlState.items.filter(i => ids.includes(i.id));
+  const linkedCt = items.filter(i => i.questions).length;
+  const msg      = linkedCt > 0
+    ? `${ids.length} item${ids.length !== 1 ? 's' : ''} selected — ${linkedCt} are linked and will be skipped. Delete the rest?`
+    : `Delete ${ids.length} item${ids.length !== 1 ? 's' : ''}? This cannot be undone.`;
+
+  const confirmed = await showConfirm('Delete Selected', msg);
   if (!confirmed) return;
-  const items = mlState.items.filter(i => ids.includes(i.id));
+
   try {
-    await MediaService.bulkDeleteItems(items);
-    toast(`${ids.length} item${ids.length !== 1 ? 's' : ''} deleted`);
+    const { deleted, skipped } = await MediaService.bulkDeleteItems(items);
+    const skipNote = skipped > 0 ? ` (${skipped} linked item${skipped !== 1 ? 's' : ''} skipped)` : '';
+    toast(`${deleted} item${deleted !== 1 ? 's' : ''} deleted${skipNote}`);
     clearSelection();
     await loadMedia(true);
     await loadStats();
   } catch(e) {
-    toast('Delete failed: ' + e.message, 'error');
+    toast(e.message, 'error');
   }
 }
 
@@ -629,7 +640,7 @@ async function loadCategoriesForPicker(selectEl) {
 }
 
 /* ── Detail drawer ─────────────────────────────────────────────── */
-function openDetailDrawer(id) {
+async function openDetailDrawer(id) {
   const item = mlState.items.find(i => i.id === id);
   if (!item) return;
 
@@ -639,11 +650,23 @@ function openDetailDrawer(id) {
   const meta = TYPE_META[item.media_type] || TYPE_META.image;
   const name = item.file_name || item.media_url?.split('/').pop() || '—';
 
-  // Set drawer icon
   document.getElementById('mdDrawerIcon').setAttribute('data-lucide', meta.icon);
   document.getElementById('mdDrawerTitle').textContent = name.length > 30 ? name.slice(0,28)+'…' : name;
 
-  // Build preview
+  // Show spinner while checking category link
+  document.getElementById('mdDrawerBody').innerHTML =
+    `<div style="padding:60px 0;text-align:center;"><div class="spinner" style="margin:0 auto;"></div></div>`;
+  lucide.createIcons();
+
+  // Check if this image URL is used as a category image
+  const linkedCategory = item.media_type === 'image'
+    ? await MediaService.getCategoryByImageUrl(item.media_url).catch(() => null)
+    : null;
+
+  const linkedQuestion = item.questions;
+  const isLinked       = !!linkedQuestion || !!linkedCategory;
+
+  // Preview
   let previewEl = '';
   if (item.media_type === 'image') {
     previewEl = `<img src="${escHtml(item.media_url)}" alt="${escHtml(name)}" style="max-width:100%;max-height:100%;">`;
@@ -655,39 +678,77 @@ function openDetailDrawer(id) {
     previewEl = `<div class="md-preview-placeholder">${icon(meta.icon,'icon-3xl')}<span>${meta.label}</span></div>`;
   }
 
-  // Delete / replace buttons
-  const deleteBtn = canDelete()
-    ? `<button class="btn btn-danger btn-sm" id="mdBtnDelete"><i data-lucide="trash-2" class="icon-sm"></i> Delete</button>`
+  // Delete button — disabled until all links are removed
+  const deleteBtnHtml = canDelete()
+    ? isLinked
+      ? `<button class="btn btn-danger btn-sm" disabled style="opacity:.4;cursor:not-allowed;" title="Unlink all associations before deleting">
+           ${icon('trash-2','icon-sm')} Delete
+         </button>`
+      : `<button class="btn btn-danger btn-sm" id="mdBtnDelete">${icon('trash-2','icon-sm')} Delete</button>`
     : '';
 
-  // Linked question
-  const linked = item.questions;
-  const linkedHtml = linked
-    ? `<div class="md-question-card" data-action="open-q" data-q-id="${linked.id}">
-         <div class="md-question-text">${escHtml(linked.question || '—')}</div>
+  // Linked question section
+  const linkedQHtml = linkedQuestion
+    ? `<div class="md-question-card">
+         <div class="md-question-text">${escHtml(linkedQuestion.question || '—')}</div>
          <div class="md-question-meta">
-           <span>${icon('list','icon-xs')} ${escHtml(linked.list_id || '—')}</span>
-           <span>${icon('tag','icon-xs')} ${escHtml(linked.category_id || '—')}</span>
+           <span>${icon('list','icon-xs')} ${escHtml(linkedQuestion.list_id || '—')}</span>
+           <span>${icon('tag','icon-xs')} ${escHtml(linkedQuestion.category_id || '—')}</span>
          </div>
+         ${canUpload()
+           ? `<button class="btn btn-ghost btn-sm" id="mdBtnUnlinkQ" style="margin-top:8px;">
+                ${icon('unlink','icon-xs')} Unlink from question
+              </button>`
+           : ''}
        </div>`
     : `<div class="md-no-links">${icon('unlink','icon-sm')} Not linked to any question</div>`;
 
+  // Linked category section
+  const linkedCatHtml = linkedCategory
+    ? `<div style="margin-top:20px;">
+         <div class="md-section-title">${icon('image','icon-xs')} Used as Category Image</div>
+         <div class="md-question-card" style="margin-top:8px;">
+           <div class="md-question-text">${escHtml(linkedCategory.name)}</div>
+           <div class="md-question-meta">
+             <span>${icon('list','icon-xs')} ${escHtml(linkedCategory.question_lists?.title || linkedCategory.list_id || '—')}</span>
+           </div>
+           ${canUpload()
+             ? `<button class="btn btn-ghost btn-sm" id="mdBtnUnlinkCat" style="margin-top:8px;">
+                  ${icon('unlink','icon-xs')} Remove as category image
+                </button>`
+             : ''}
+         </div>
+       </div>`
+    : '';
+
+  // "Set as category image" picker — only if not already a category image
+  const catPickerHtml = item.media_type === 'image' && canUpload() && !linkedCategory
+    ? `<div style="margin-top:20px;">
+         <div class="md-section-title">${icon('tag','icon-xs')} Set as Category Image</div>
+         <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+           <select id="mdCatSelect" style="flex:1;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text1);">
+             <option value="">Loading…</option>
+           </select>
+           <button class="btn btn-primary btn-sm" id="mdBtnSetCatImage">
+             ${icon('check','icon-sm')} Set
+           </button>
+         </div>
+       </div>`
+    : '';
+
   const purposeLabel = item.media_purpose === 'game_ui' ? 'Game UI' : 'Question';
-  const catImageSection = item.media_type === 'image' && canUpload() ? `
-    <div style="margin-top:20px;">
-      <div class="md-section-title">${icon('tag','icon-xs')} Set as Category Image</div>
-      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-        <select id="mdCatSelect" style="flex:1;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text1);">
-          <option value="">Loading…</option>
-        </select>
-        <button class="btn btn-primary btn-sm" id="mdBtnSetCatImage">
-          ${icon('check','icon-sm')} Set
-        </button>
-      </div>
-    </div>` : '';
+
+  // Warning banner if linked
+  const linkedBanner = isLinked
+    ? `<div style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:8px;font-size:12px;color:var(--amber,#f59e0b);margin-bottom:4px;">
+         ${icon('alert-triangle','icon-xs')} Linked — remove all associations below to enable deletion.
+       </div>`
+    : '';
 
   document.getElementById('mdDrawerBody').innerHTML = `
     <div class="md-preview">${previewEl}</div>
+
+    ${linkedBanner}
 
     <div class="md-info">
       <div class="md-info-row">
@@ -723,15 +784,16 @@ function openDetailDrawer(id) {
       <button class="btn btn-ghost btn-sm" id="mdBtnCopy">
         ${icon('copy','icon-sm')} Copy URL
       </button>
-      ${deleteBtn}
+      ${deleteBtnHtml}
     </div>
 
     <div>
       <div class="md-section-title">${icon('link','icon-xs')} Linked Question</div>
-      ${linkedHtml}
+      ${linkedQHtml}
     </div>
 
-    ${catImageSection}
+    ${linkedCatHtml}
+    ${catPickerHtml}
   `;
   lucide.createIcons();
 
@@ -741,7 +803,7 @@ function openDetailDrawer(id) {
     toast(ok ? 'URL copied to clipboard' : 'Copy failed — check permissions', ok ? 'success' : 'error');
   });
 
-  // Delete
+  // Delete (only reachable when not linked)
   document.getElementById('mdBtnDelete')?.addEventListener('click', async () => {
     const confirmed = await showConfirm('Delete Media', `Delete "${name}"? This cannot be undone.`);
     if (!confirmed) return;
@@ -759,7 +821,33 @@ function openDetailDrawer(id) {
     }
   });
 
-  // Category image picker
+  // Unlink from question
+  document.getElementById('mdBtnUnlinkQ')?.addEventListener('click', async () => {
+    try {
+      await MediaService.unlinkFromQuestion(item.id);
+      toast('Unlinked from question');
+      // Update state in-place so the card reflects the change
+      const idx = mlState.items.findIndex(i => i.id === id);
+      if (idx >= 0) mlState.items[idx] = { ...mlState.items[idx], questions: null };
+      renderGrid();
+      openDetailDrawer(id); // re-open with fresh link state
+    } catch(e) {
+      toast('Unlink failed: ' + e.message, 'error');
+    }
+  });
+
+  // Unlink from category
+  document.getElementById('mdBtnUnlinkCat')?.addEventListener('click', async () => {
+    try {
+      await MediaService.unlinkFromCategory(item.media_url);
+      toast('Removed as category image');
+      openDetailDrawer(id); // re-open — category check will return null now
+    } catch(e) {
+      toast('Unlink failed: ' + e.message, 'error');
+    }
+  });
+
+  // Set as category image picker
   const catSelect = document.getElementById('mdCatSelect');
   if (catSelect) {
     loadCategoriesForPicker(catSelect);
@@ -769,8 +857,7 @@ function openDetailDrawer(id) {
       try {
         await MediaService.setCategoryImage(catId, item.media_url);
         toast('Category image updated');
-        await loadCategoriesForPicker(catSelect);
-        catSelect.value = catId;
+        openDetailDrawer(id); // re-open to show the new link
       } catch(e) {
         toast('Failed: ' + e.message, 'error');
       }
@@ -950,6 +1037,11 @@ function setupEvents() {
     loadMedia(false);
   });
 
+  // Grid checkbox change delegation (change bubbles past label's onclick; click does not)
+  document.getElementById('mlGrid').addEventListener('change', e => {
+    if (e.target.dataset.action === 'select') toggleSelect(e.target.dataset.id);
+  });
+
   // Grid/recent click delegation
   document.getElementById('mlGrid').addEventListener('click', e => {
     handleGridClick(e);
@@ -987,12 +1079,6 @@ function handleGridClick(e) {
   if (!actionEl) return;
 
   const action = actionEl.dataset.action;
-
-  if (action === 'select') {
-    e.stopPropagation();
-    toggleSelect(actionEl.dataset.id);
-    return;
-  }
 
   if (action === 'view') {
     const card = actionEl.closest('[data-id]');
