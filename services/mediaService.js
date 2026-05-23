@@ -11,10 +11,10 @@ const MEDIA_BUCKET = 'question-media';
 
 const ACCEPTED_TYPES = {
   image: {
-    exts:    ['jpg', 'jpeg', 'png', 'webp'],
-    mimes:   ['image/jpeg', 'image/png', 'image/webp'],
+    exts:    ['jpg', 'jpeg', 'png', 'webp', 'svg'],
+    mimes:   ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'],
     maxSize: 10 * 1024 * 1024,
-    label:   'JPG, PNG, WEBP — max 10 MB'
+    label:   'JPG, PNG, WEBP, SVG — max 10 MB'
   },
   audio: {
     exts:    ['mp3', 'wav', 'm4a'],
@@ -45,7 +45,7 @@ const MediaService = {
     if (file.type) {
       const prefix = mediaType + '/';
       const isCorrectPrefix = file.type.startsWith(prefix);
-      // audio/x-m4a and audio/aac are valid aliases — allow them
+      // audio/x-m4a, audio/aac, image/svg+xml are valid aliases — allow them
       const isKnownAlias = rules.mimes.includes(file.type);
       if (!isCorrectPrefix && !isKnownAlias) {
         throw new Error(`Invalid MIME type "${file.type}" for ${mediaType}`);
@@ -131,19 +131,20 @@ const MediaService = {
   },
 
   /* ---- Paginated media library query ---- */
-  async getMediaLibrary({ type = 'all', search = '', sort = 'newest', page = 1, pageSize = 48 } = {}) {
+  async getMediaLibrary({ type = 'all', purpose = 'all', search = '', sort = 'newest', page = 1, pageSize = 48 } = {}) {
     const sb = window._sb;
 
     let query = sb
       .from('question_media')
       .select(`
-        id, question_id, media_type, media_url,
+        id, question_id, media_type, media_purpose, media_url,
         file_path, file_name, mime_type, file_size,
         sort_order, created_at,
         questions ( id, question, category_id, list_id )
       `);
 
-    if (type !== 'all') query = query.eq('media_type', type);
+    if (type !== 'all')    query = query.eq('media_type', type);
+    if (purpose !== 'all') query = query.eq('media_purpose', purpose);
 
     if (search) {
       query = query.or(
@@ -165,12 +166,13 @@ const MediaService = {
   },
 
   /* ---- Count total media items (for pagination) ---- */
-  async getMediaCount({ type = 'all', search = '' } = {}) {
+  async getMediaCount({ type = 'all', purpose = 'all', search = '' } = {}) {
     let query = window._sb
       .from('question_media')
       .select('id', { count: 'exact', head: true });
 
-    if (type !== 'all') query = query.eq('media_type', type);
+    if (type !== 'all')    query = query.eq('media_type', type);
+    if (purpose !== 'all') query = query.eq('media_purpose', purpose);
     if (search) query = query.or(`file_name.ilike.%${search}%,media_url.ilike.%${search}%`);
 
     const { count, error } = await query;
@@ -182,19 +184,23 @@ const MediaService = {
   async getMediaStats() {
     const { data, error } = await window._sb
       .from('question_media')
-      .select('media_type, file_size');
+      .select('media_type, media_purpose, file_size');
 
     if (error) throw error;
     const rows = data || [];
 
     return {
-      total:     rows.length,
-      byType:    {
+      total:      rows.length,
+      byType:     {
         image: rows.filter(r => r.media_type === 'image').length,
         audio: rows.filter(r => r.media_type === 'audio').length,
         video: rows.filter(r => r.media_type === 'video').length
       },
-      totalSize: rows.reduce((s, r) => s + (r.file_size || 0), 0)
+      byPurpose:  {
+        question: rows.filter(r => r.media_purpose === 'question').length,
+        game_ui:  rows.filter(r => r.media_purpose === 'game_ui').length
+      },
+      totalSize:  rows.reduce((s, r) => s + (r.file_size || 0), 0)
     };
   },
 
@@ -208,6 +214,27 @@ const MediaService = {
       .order('created_at', { ascending: false })
       .limit(limit);
 
+    if (error) throw error;
+    return data || [];
+  },
+
+  /* ---- Set a media asset as a category's image ---- */
+  async setCategoryImage(categoryId, imageUrl) {
+    const { error } = await window._sb
+      .from('categories')
+      .update({ image_url: imageUrl })
+      .eq('id', categoryId);
+    if (error) throw new Error(`Failed to set category image: ${error.message}`);
+    return true;
+  },
+
+  /* ---- Fetch all categories (grouped for picker UI) ---- */
+  async getCategories() {
+    const { data, error } = await window._sb
+      .from('categories')
+      .select('id, name, list_id, image_url, question_lists ( title )')
+      .order('list_id')
+      .order('order_index');
     if (error) throw error;
     return data || [];
   },

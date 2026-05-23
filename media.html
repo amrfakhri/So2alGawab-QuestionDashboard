@@ -57,9 +57,9 @@
     <div class="ml-upload-zone" id="mlDropZone">
       <i data-lucide="upload-cloud" class="icon-2xl"></i>
       <p>Drop files here or <label for="mlGlobalFilePicker">browse to upload</label></p>
-      <span>Images (JPG, PNG, WEBP), Audio (MP3, WAV, M4A), Video (MP4, WEBM, MOV)</span>
+      <span>Images (JPG, PNG, WEBP, SVG), Audio (MP3, WAV, M4A), Video (MP4, WEBM, MOV)</span>
       <input type="file" id="mlGlobalFilePicker" class="mu-file-input"
-             accept=".jpg,.jpeg,.png,.webp,.mp3,.wav,.m4a,.mp4,.webm,.mov" multiple>
+             accept=".jpg,.jpeg,.png,.webp,.svg,.mp3,.wav,.m4a,.mp4,.webm,.mov" multiple>
     </div>
     <!-- Upload progress list -->
     <div id="mlUploadList" style="margin-bottom:16px;display:flex;flex-direction:column;gap:6px;"></div>
@@ -73,6 +73,19 @@
       </div>
     </div>
     <div class="ml-recent-strip" id="mlRecentStrip"></div>
+  </div>
+
+  <!-- Purpose tabs -->
+  <div class="ml-purpose-bar" id="mlPurposeBar" style="display:flex;gap:6px;margin-bottom:10px;">
+    <button class="ml-type-btn active" data-purpose="all">
+      <i data-lucide="layers" class="icon-xs"></i> All
+    </button>
+    <button class="ml-type-btn" data-purpose="question">
+      <i data-lucide="help-circle" class="icon-xs"></i> Questions
+    </button>
+    <button class="ml-type-btn" data-purpose="game_ui">
+      <i data-lucide="layout" class="icon-xs"></i> Game UI
+    </button>
   </div>
 
   <!-- Filters -->
@@ -177,6 +190,7 @@ function icon(name, cls = '') {
 /* ── App state ─────────────────────────────────────────────────── */
 let mlState = {
   type:    'all',
+  purpose: 'all',
   search:  '',
   sort:    'newest',
   page:    1,
@@ -255,6 +269,7 @@ async function loadMedia(reset = false) {
   try {
     const items = await MediaService.getMediaLibrary({
       type:     mlState.type,
+      purpose:  mlState.purpose,
       search:   mlState.search,
       sort:     mlState.sort,
       page:     mlState.page,
@@ -264,7 +279,7 @@ async function loadMedia(reset = false) {
     if (reset) mlState.items = items;
     else mlState.items = [...mlState.items, ...items];
 
-    const count = await MediaService.getMediaCount({ type: mlState.type, search: mlState.search });
+    const count = await MediaService.getMediaCount({ type: mlState.type, purpose: mlState.purpose, search: mlState.search });
     mlState.total = count;
 
     renderGrid();
@@ -442,6 +457,38 @@ async function loadRecent() {
   } catch(e) { console.warn('Recent load failed:', e); }
 }
 
+/* ── Category image picker ─────────────────────────────────────── */
+async function loadCategoriesForPicker(selectEl) {
+  selectEl.innerHTML = '<option value="">Loading…</option>';
+  try {
+    const cats = await MediaService.getCategories();
+    if (!cats.length) {
+      selectEl.innerHTML = '<option value="">No categories found</option>';
+      return;
+    }
+    const byList = {};
+    cats.forEach(c => {
+      const listTitle = c.question_lists?.title || c.list_id;
+      if (!byList[listTitle]) byList[listTitle] = [];
+      byList[listTitle].push(c);
+    });
+    selectEl.innerHTML = '<option value="">Select a category…</option>';
+    Object.entries(byList).forEach(([listTitle, listCats]) => {
+      const og = document.createElement('optgroup');
+      og.label = listTitle;
+      listCats.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.id;
+        opt.textContent = cat.name + (cat.image_url ? ' ✓' : '');
+        og.appendChild(opt);
+      });
+      selectEl.appendChild(og);
+    });
+  } catch(e) {
+    selectEl.innerHTML = '<option value="">Failed to load</option>';
+  }
+}
+
 /* ── Detail drawer ─────────────────────────────────────────────── */
 function openDetailDrawer(id) {
   const item = mlState.items.find(i => i.id === id);
@@ -486,6 +533,20 @@ function openDetailDrawer(id) {
        </div>`
     : `<div class="md-no-links">${icon('unlink','icon-sm')} Not linked to any question</div>`;
 
+  const purposeLabel = item.media_purpose === 'game_ui' ? 'Game UI' : 'Question';
+  const catImageSection = item.media_type === 'image' && canUpload() ? `
+    <div style="margin-top:20px;">
+      <div class="md-section-title">${icon('tag','icon-xs')} Set as Category Image</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+        <select id="mdCatSelect" style="flex:1;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text1);">
+          <option value="">Loading…</option>
+        </select>
+        <button class="btn btn-primary btn-sm" id="mdBtnSetCatImage">
+          ${icon('check','icon-sm')} Set
+        </button>
+      </div>
+    </div>` : '';
+
   document.getElementById('mdDrawerBody').innerHTML = `
     <div class="md-preview">${previewEl}</div>
 
@@ -497,6 +558,10 @@ function openDetailDrawer(id) {
       <div class="md-info-row">
         <span class="md-info-label">Type</span>
         <span class="md-info-value">${escHtml(meta.label)}</span>
+      </div>
+      <div class="md-info-row">
+        <span class="md-info-label">Purpose</span>
+        <span class="md-info-value">${escHtml(purposeLabel)}</span>
       </div>
       <div class="md-info-row">
         <span class="md-info-label">Size</span>
@@ -526,6 +591,8 @@ function openDetailDrawer(id) {
       <div class="md-section-title">${icon('link','icon-xs')} Linked Question</div>
       ${linkedHtml}
     </div>
+
+    ${catImageSection}
   `;
   lucide.createIcons();
 
@@ -552,6 +619,24 @@ function openDetailDrawer(id) {
       toast('Delete failed: ' + e.message, 'error');
     }
   });
+
+  // Category image picker
+  const catSelect = document.getElementById('mdCatSelect');
+  if (catSelect) {
+    loadCategoriesForPicker(catSelect);
+    document.getElementById('mdBtnSetCatImage')?.addEventListener('click', async () => {
+      const catId = catSelect.value;
+      if (!catId) { toast('Select a category first', 'error'); return; }
+      try {
+        await MediaService.setCategoryImage(catId, item.media_url);
+        toast('Category image updated');
+        await loadCategoriesForPicker(catSelect);
+        catSelect.value = catId;
+      } catch(e) {
+        toast('Failed: ' + e.message, 'error');
+      }
+    });
+  }
 }
 
 function closeDetailDrawer() {
@@ -567,11 +652,14 @@ async function handleFileUpload(files) {
 
   const uploadList = document.getElementById('mlUploadList');
 
+  const mediaPurpose = mlState.purpose === 'all' ? 'question' : mlState.purpose;
+
   for (const file of files) {
-    // Auto-detect media type from MIME
+    // Auto-detect media type from MIME and extension fallback
+    const fileExt = (file.name.split('.').pop() || '').toLowerCase();
     let mediaType = 'image';
-    if (file.type.startsWith('audio/')) mediaType = 'audio';
-    else if (file.type.startsWith('video/')) mediaType = 'video';
+    if (file.type.startsWith('audio/') || ['mp3','wav','m4a'].includes(fileExt)) mediaType = 'audio';
+    else if (file.type.startsWith('video/') || ['mp4','webm','mov'].includes(fileExt)) mediaType = 'video';
 
     // Validate
     try {
@@ -601,14 +689,15 @@ async function handleFileUpload(files) {
 
       // Save record to question_media (not linked to any question yet)
       const { error } = await window._sb.from('question_media').insert({
-        question_id: null,
-        media_type:  result.mediaType,
-        media_url:   result.mediaUrl,
-        file_path:   result.filePath,
-        file_name:   result.fileName,
-        mime_type:   result.mimeType,
-        file_size:   result.fileSize,
-        sort_order:  0
+        question_id:   null,
+        media_type:    result.mediaType,
+        media_purpose: mediaPurpose,
+        media_url:     result.mediaUrl,
+        file_path:     result.filePath,
+        file_name:     result.fileName,
+        mime_type:     result.mimeType,
+        file_size:     result.fileSize,
+        sort_order:    0
       });
 
       progressEl.remove();
@@ -638,6 +727,16 @@ function setupEvents() {
       mlState.search = e.target.value.trim();
       loadMedia(true);
     }, 300);
+  });
+
+  // Purpose tabs
+  document.getElementById('mlPurposeBar').addEventListener('click', e => {
+    const btn = e.target.closest('.ml-type-btn');
+    if (!btn || !btn.dataset.purpose) return;
+    document.querySelectorAll('#mlPurposeBar .ml-type-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    mlState.purpose = btn.dataset.purpose;
+    loadMedia(true);
   });
 
   // Type tabs
