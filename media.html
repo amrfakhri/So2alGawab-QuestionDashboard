@@ -629,7 +629,7 @@ async function loadCategoriesForPicker(selectEl) {
       listCats.forEach(cat => {
         const opt = document.createElement('option');
         opt.value = cat.id;
-        opt.textContent = cat.name + (cat.image_url ? ' ✓' : '');
+        opt.textContent = cat.name + (cat.image_path ? ' ✓' : '');
         og.appendChild(opt);
       });
       selectEl.appendChild(og);
@@ -658,9 +658,9 @@ async function openDetailDrawer(id) {
     `<div style="padding:60px 0;text-align:center;"><div class="spinner" style="margin:0 auto;"></div></div>`;
   lucide.createIcons();
 
-  // Check if this image URL is used as a category image
-  const linkedCategory = item.media_type === 'image'
-    ? await MediaService.getCategoryByImageUrl(item.media_url).catch(() => null)
+  // Check if this file path is set as a category image
+  const linkedCategory = item.media_type === 'image' && item.file_path
+    ? await MediaService.getCategoryByFilePath(item.file_path).catch(() => null)
     : null;
 
   const linkedQuestion = item.questions;
@@ -721,8 +721,8 @@ async function openDetailDrawer(id) {
        </div>`
     : '';
 
-  // "Set as category image" picker — only if not already a category image
-  const catPickerHtml = item.media_type === 'image' && canUpload() && !linkedCategory
+  // "Set as category image" picker — only for files with a storage path, not already a category image
+  const catPickerHtml = item.media_type === 'image' && item.file_path && canUpload() && !linkedCategory
     ? `<div style="margin-top:20px;">
          <div class="md-section-title">${icon('tag','icon-xs')} Set as Category Image</div>
          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
@@ -839,7 +839,7 @@ async function openDetailDrawer(id) {
   // Unlink from category
   document.getElementById('mdBtnUnlinkCat')?.addEventListener('click', async () => {
     try {
-      await MediaService.unlinkFromCategory(item.media_url);
+      await MediaService.unlinkFromCategory(item.file_path);
       toast('Removed as category image');
       openDetailDrawer(id); // re-open — category check will return null now
     } catch(e) {
@@ -855,7 +855,7 @@ async function openDetailDrawer(id) {
       const catId = catSelect.value;
       if (!catId) { toast('Select a category first', 'error'); return; }
       try {
-        await MediaService.setCategoryImage(catId, item.media_url);
+        await MediaService.setCategoryImage(catId, item.file_path);
         toast('Category image updated');
         openDetailDrawer(id); // re-open to show the new link
       } catch(e) {

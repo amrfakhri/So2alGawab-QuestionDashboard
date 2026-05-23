@@ -122,13 +122,13 @@ const MediaService = {
     }
   },
 
-  /* ---- Return the category using this URL as its image (or null) ---- */
-  async getCategoryByImageUrl(mediaUrl) {
-    if (!mediaUrl) return null;
+  /* ---- Return the category whose image_path matches this file path (or null) ---- */
+  async getCategoryByFilePath(filePath) {
+    if (!filePath) return null;
     const { data } = await window._sb
       .from('categories')
       .select('id, name, list_id, lists ( title )')
-      .eq('image_url', mediaUrl)
+      .eq('image_path', filePath)
       .limit(1)
       .maybeSingle();
     return data || null;
@@ -144,12 +144,12 @@ const MediaService = {
     return true;
   },
 
-  /* ---- Remove a URL from any category's image_url ---- */
-  async unlinkFromCategory(mediaUrl) {
+  /* ---- Clear image_path from any category using this file path ---- */
+  async unlinkFromCategory(filePath) {
     const { error } = await window._sb
       .from('categories')
-      .update({ image_url: null })
-      .eq('image_url', mediaUrl);
+      .update({ image_path: null })
+      .eq('image_path', filePath);
     if (error) throw new Error(`Failed to unlink from category: ${error.message}`);
     return true;
   },
@@ -159,7 +159,7 @@ const MediaService = {
     // Live-check question link
     const { data: rec } = await window._sb
       .from('question_media')
-      .select('question_id, media_url')
+      .select('question_id, file_path')
       .eq('id', id)
       .maybeSingle();
 
@@ -168,11 +168,11 @@ const MediaService = {
     }
 
     // Live-check category link
-    if (rec?.media_url) {
+    if (rec?.file_path) {
       const { data: cat } = await window._sb
         .from('categories')
         .select('name')
-        .eq('image_url', rec.media_url)
+        .eq('image_path', rec.file_path)
         .limit(1)
         .maybeSingle();
       if (cat) {
@@ -290,9 +290,9 @@ const MediaService = {
     // Check each item for links (question link from loaded data; category via DB)
     const checks = await Promise.all(items.map(async item => {
       if (item.questions) return { item, linked: true };
-      if (item.media_url) {
+      if (item.file_path) {
         const { data: cat } = await window._sb
-          .from('categories').select('id').eq('image_url', item.media_url).limit(1).maybeSingle();
+          .from('categories').select('id').eq('image_path', item.file_path).limit(1).maybeSingle();
         if (cat) return { item, linked: true };
       }
       return { item, linked: false };
@@ -315,11 +315,11 @@ const MediaService = {
     return { deleted: deletable.length, skipped };
   },
 
-  /* ---- Set a media asset as a category's image ---- */
-  async setCategoryImage(categoryId, imageUrl) {
+  /* ---- Set a media file path as a category's image ---- */
+  async setCategoryImage(categoryId, filePath) {
     const { error } = await window._sb
       .from('categories')
-      .update({ image_url: imageUrl })
+      .update({ image_path: filePath })
       .eq('id', categoryId);
     if (error) throw new Error(`Failed to set category image: ${error.message}`);
     return true;
@@ -329,7 +329,7 @@ const MediaService = {
   async getCategories() {
     const { data, error } = await window._sb
       .from('categories')
-      .select('id, name, list_id, image_url, lists ( title )')
+      .select('id, name, list_id, image_path, lists ( title )')
       .order('list_id')
       .order('sort_order');
     if (error) throw error;

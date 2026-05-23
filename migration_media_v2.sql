@@ -13,10 +13,11 @@ ALTER TABLE question_media
   ADD CONSTRAINT question_media_purpose_check
   CHECK (media_purpose IN ('question', 'game_ui'));
 
--- 2. Add image_url to categories (for "Set as Category Image" feature)
-ALTER TABLE categories
-  ADD COLUMN IF NOT EXISTS image_url TEXT;
-
--- 3. Index to speed up purpose-filtered queries
+-- 2. Index to speed up purpose-filtered queries
 CREATE INDEX IF NOT EXISTS idx_question_media_purpose
   ON question_media(media_purpose);
+
+-- 3. Drop image_url from categories if it was created by an earlier version of this migration.
+--    The app uses the existing image_path column instead.
+ALTER TABLE categories
+  DROP COLUMN IF EXISTS image_url;
