@@ -127,7 +127,7 @@ const MediaService = {
     if (!mediaUrl) return null;
     const { data } = await window._sb
       .from('categories')
-      .select('id, name, list_id, question_lists ( title )')
+      .select('id, name, list_id, lists ( title )')
       .eq('image_url', mediaUrl)
       .limit(1)
       .maybeSingle();
@@ -329,9 +329,9 @@ const MediaService = {
   async getCategories() {
     const { data, error } = await window._sb
       .from('categories')
-      .select('id, name, list_id, image_url, question_lists ( title )')
+      .select('id, name, list_id, image_url, lists ( title )')
       .order('list_id')
-      .order('order_index');
+      .order('sort_order');
     if (error) throw error;
     return data || [];
   },

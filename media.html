@@ -618,7 +618,7 @@ async function loadCategoriesForPicker(selectEl) {
     }
     const byList = {};
     cats.forEach(c => {
-      const listTitle = c.question_lists?.title || c.list_id;
+      const listTitle = c.lists?.title || c.list_id;
       if (!byList[listTitle]) byList[listTitle] = [];
       byList[listTitle].push(c);
     });
@@ -710,7 +710,7 @@ async function openDetailDrawer(id) {
          <div class="md-question-card" style="margin-top:8px;">
            <div class="md-question-text">${escHtml(linkedCategory.name)}</div>
            <div class="md-question-meta">
-             <span>${icon('list','icon-xs')} ${escHtml(linkedCategory.question_lists?.title || linkedCategory.list_id || '—')}</span>
+             <span>${icon('list','icon-xs')} ${escHtml(linkedCategory.lists?.title || linkedCategory.list_id || '—')}</span>
            </div>
            ${canUpload()
              ? `<button class="btn btn-ghost btn-sm" id="mdBtnUnlinkCat" style="margin-top:8px;">
