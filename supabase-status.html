@@ -325,11 +325,11 @@ async function runChecks(session) {
   try {
     const supabase = window._sb ?? window.SupabaseDB?._client ?? window._supabase;
     if (supabase) {
-      const { data, error } = await supabase.storage.listBuckets();
+      // listBuckets() requires service_role key — use list() on the known bucket instead
+      const { data, error } = await supabase.storage.from('question-media').list('', { limit: 1 });
       if (error) throw error;
-      const bucket = (data || []).find(b => b.name === 'question-media');
       setDot('Storage', 'ok', 'Connected');
-      setVal('storageBucket', bucket ? 'question-media (found)' : 'question-media (not found)', bucket ? 'ok' : 'error');
+      setVal('storageBucket', 'question-media (found)', 'ok');
       setVal('storageAccess', 'Read OK', 'ok');
     } else {
       setDot('Storage', 'error', 'No client');

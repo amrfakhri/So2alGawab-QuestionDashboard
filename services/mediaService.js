@@ -147,34 +147,67 @@ const MediaService = {
 
   /* ---- Fetch all questions linked to a media item ---- */
   async getLinkedQuestionsForMedia(mediaId) {
-    const [linkRes, catRes] = await Promise.all([
+    const [linkRes, directRes, catRes] = await Promise.all([
       window._sb
         .from('question_media_links')
         .select('id, question_id, questions(id, question, list_id, category_id)')
         .eq('media_id', mediaId),
+      // Fallback: legacy direct question_id column
+      window._sb
+        .from('question_media')
+        .select('question_id, questions(id, question, list_id, category_id)')
+        .eq('id', mediaId)
+        .not('question_id', 'is', null)
+        .maybeSingle(),
       window._sb.from('categories').select('id, name')
     ]);
     if (linkRes.error) throw linkRes.error;
-    const catMap = new Map((catRes.data || []).map(c => [c.id, c.name]));
-    return (linkRes.data || []).map(r => ({
-      linkId:       r.id,
-      questionId:   r.question_id,
-      question:     r.questions?.question   || '',
-      listId:       r.questions?.list_id    || '',
-      categoryId:   r.questions?.category_id || '',
-      categoryName: catMap.get(r.questions?.category_id) || ''
-    }));
+
+    const catMap  = new Map((catRes.data || []).map(c => [c.id, c.name]));
+    const seen    = new Set();
+    const results = [];
+
+    const addLink = (linkId, q) => {
+      if (!q || seen.has(q.id)) return;
+      seen.add(q.id);
+      results.push({
+        linkId,
+        questionId:   q.id,
+        question:     q.question    || '',
+        listId:       q.list_id     || '',
+        categoryId:   q.category_id || '',
+        categoryName: catMap.get(q.category_id) || ''
+      });
+    };
+
+    (linkRes.data || []).forEach(r => addLink(r.id, r.questions));
+
+    // Include legacy direct link if not already in junction table
+    const directQ = directRes.data?.questions;
+    if (directQ) addLink('legacy-' + mediaId, directQ);
+
+    return results;
   },
 
   /* ---- Get link counts per media_id (for grid badges) ---- */
   async getMediaLinkCounts(mediaIds) {
     if (!mediaIds.length) return {};
-    const { data } = await window._sb
-      .from('question_media_links')
-      .select('media_id')
-      .in('media_id', mediaIds);
+    const [linksRes, directRes] = await Promise.all([
+      window._sb
+        .from('question_media_links')
+        .select('media_id')
+        .in('media_id', mediaIds),
+      // Fallback: legacy direct question_id column
+      window._sb
+        .from('question_media')
+        .select('id')
+        .in('id', mediaIds)
+        .not('question_id', 'is', null)
+    ]);
     const counts = {};
-    (data || []).forEach(r => { counts[r.media_id] = (counts[r.media_id] || 0) + 1; });
+    (linksRes.data || []).forEach(r => { counts[r.media_id] = (counts[r.media_id] || 0) + 1; });
+    // For items not yet in junction table, count the legacy link as 1
+    (directRes.data || []).forEach(r => { if (!counts[r.id]) counts[r.id] = 1; });
     return counts;
   },
 
@@ -190,14 +223,12 @@ const MediaService = {
 
   /* ---- Delete media record + its storage file (blocks if linked) ---- */
   async deleteMediaItem(id, filePath) {
-    // Live-check question links (junction table)
-    const { data: links } = await window._sb
-      .from('question_media_links')
-      .select('id')
-      .eq('media_id', id)
-      .limit(1)
-      .maybeSingle();
-    if (links) {
+    // Live-check question links (junction table + legacy column)
+    const [{ data: junctionLink }, { data: directRec }] = await Promise.all([
+      window._sb.from('question_media_links').select('id').eq('media_id', id).limit(1).maybeSingle(),
+      window._sb.from('question_media').select('question_id').eq('id', id).maybeSingle()
+    ]);
+    if (junctionLink || directRec?.question_id) {
       throw new Error('Cannot delete: this file is linked to one or more questions. Unlink first.');
     }
 
