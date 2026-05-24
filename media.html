@@ -666,6 +666,38 @@ async function loadCategoriesForPicker(selectEl) {
   }
 }
 
+async function loadQuestionsForPicker(selectEl) {
+  selectEl.innerHTML = '<option value="">Loading…</option>';
+  try {
+    const qs = await MediaService.getQuestionsForPicker();
+    if (!qs.length) {
+      selectEl.innerHTML = '<option value="">No questions found</option>';
+      return;
+    }
+    const byList = {};
+    qs.forEach(q => {
+      const listKey = q.list_id || 'Unknown';
+      if (!byList[listKey]) byList[listKey] = [];
+      byList[listKey].push(q);
+    });
+    selectEl.innerHTML = '<option value="">Select a question…</option>';
+    Object.entries(byList).forEach(([listId, listQs]) => {
+      const og = document.createElement('optgroup');
+      og.label = listId;
+      listQs.forEach(q => {
+        const opt = document.createElement('option');
+        opt.value = q.id;
+        const preview = (q.question || '—').slice(0, 60);
+        opt.textContent = preview.length < (q.question || '').length ? preview + '…' : preview;
+        og.appendChild(opt);
+      });
+      selectEl.appendChild(og);
+    });
+  } catch(e) {
+    selectEl.innerHTML = '<option value="">Failed to load</option>';
+  }
+}
+
 /* ── Detail drawer ─────────────────────────────────────────────── */
 async function openDetailDrawer(id) {
   const item = mlState.items.find(i => i.id === id);
@@ -748,8 +780,8 @@ async function openDetailDrawer(id) {
        </div>`
     : '';
 
-  // "Set as category image" picker — only for files with a storage path, not already a category image
-  const catPickerHtml = item.media_type === 'image' && item.file_path && canUpload() && !linkedCategory
+  // "Set as category image" picker — only for game_ui images with a storage path, not already a category image
+  const catPickerHtml = item.media_purpose === 'game_ui' && item.media_type === 'image' && item.file_path && canUpload() && !linkedCategory
     ? `<div style="margin-top:20px;">
          <div class="md-section-title">${icon('tag','icon-xs')} Set as Category Image</div>
          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
@@ -758,6 +790,21 @@ async function openDetailDrawer(id) {
            </select>
            <button class="btn btn-primary btn-sm" id="mdBtnSetCatImage">
              ${icon('check','icon-sm')} Set
+           </button>
+         </div>
+       </div>`
+    : '';
+
+  // "Link to question" picker — only for question-purpose media not yet linked
+  const questionPickerHtml = item.media_purpose === 'question' && canUpload() && !linkedQuestion
+    ? `<div style="margin-top:20px;">
+         <div class="md-section-title">${icon('link','icon-xs')} Link to Question</div>
+         <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+           <select id="mdQSelect" style="flex:1;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text1);">
+             <option value="">Loading…</option>
+           </select>
+           <button class="btn btn-primary btn-sm" id="mdBtnLinkQ">
+             ${icon('check','icon-sm')} Link
            </button>
          </div>
        </div>`
@@ -821,6 +868,7 @@ async function openDetailDrawer(id) {
 
     ${linkedCatHtml}
     ${catPickerHtml}
+    ${questionPickerHtml}
   `;
   lucide.createIcons();
 
@@ -884,7 +932,34 @@ async function openDetailDrawer(id) {
       try {
         await MediaService.setCategoryImage(catId, item.file_path);
         toast('Category image updated');
-        openDetailDrawer(id); // re-open to show the new link
+        openDetailDrawer(id);
+      } catch(e) {
+        toast('Failed: ' + e.message, 'error');
+      }
+    });
+  }
+
+  // Link to question picker
+  const qSelect = document.getElementById('mdQSelect');
+  if (qSelect) {
+    loadQuestionsForPicker(qSelect);
+    document.getElementById('mdBtnLinkQ')?.addEventListener('click', async () => {
+      const questionId = qSelect.value;
+      if (!questionId) { toast('Select a question first', 'error'); return; }
+      try {
+        await MediaService.linkToQuestion(item.id, questionId);
+        toast('Linked to question');
+        // Update state in-place so card reflects the change
+        const idx = mlState.items.findIndex(i => i.id === id);
+        if (idx >= 0) {
+          const selQ = qSelect.options[qSelect.selectedIndex];
+          mlState.items[idx] = {
+            ...mlState.items[idx],
+            questions: { id: questionId, question: selQ.textContent, category_id: '', list_id: '' }
+          };
+        }
+        renderGrid();
+        openDetailDrawer(id);
       } catch(e) {
         toast('Failed: ' + e.message, 'error');
       }

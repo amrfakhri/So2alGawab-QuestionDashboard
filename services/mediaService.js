@@ -315,6 +315,28 @@ const MediaService = {
     return { deleted: deletable.length, skipped };
   },
 
+  /* ---- Fetch questions for the link picker ---- */
+  async getQuestionsForPicker() {
+    const { data, error } = await window._sb
+      .from('questions')
+      .select('id, question, list_id, category_id')
+      .is('deleted_at', null)
+      .order('list_id')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  /* ---- Link a media item to a question ---- */
+  async linkToQuestion(mediaId, questionId) {
+    const { error } = await window._sb
+      .from('question_media')
+      .update({ question_id: questionId })
+      .eq('id', mediaId);
+    if (error) throw new Error(`Failed to link to question: ${error.message}`);
+    return true;
+  },
+
   /* ---- Set a media file path as a category's image ---- */
   async setCategoryImage(categoryId, filePath) {
     const { error } = await window._sb
