@@ -325,6 +325,17 @@ const MediaService = {
     return true;
   },
 
+  /* ---- Map of file_path → category for every category that has an image set ---- */
+  async getCategoryImagePathsMap() {
+    const { data } = await window._sb
+      .from('categories')
+      .select('id, name, image_path, lists ( title )')
+      .not('image_path', 'is', null);
+    const map = new Map();
+    (data || []).forEach(c => { if (c.image_path) map.set(c.image_path, c); });
+    return map;
+  },
+
   /* ---- Fetch all categories (grouped for picker UI) ---- */
   async getCategories() {
     const { data, error } = await window._sb

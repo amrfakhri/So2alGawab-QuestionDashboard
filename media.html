@@ -344,6 +344,13 @@ async function loadMedia(reset = false) {
     if (reset) mlState.items = items;
     else mlState.items = [...mlState.items, ...items];
 
+    // Enrich every loaded item with its category link (single extra query)
+    const catMap = await MediaService.getCategoryImagePathsMap();
+    mlState.items = mlState.items.map(item => ({
+      ...item,
+      _catLink: item.file_path ? (catMap.get(item.file_path) || null) : null
+    }));
+
     const count = await MediaService.getMediaCount({ type: mlState.type, purpose: mlState.purpose, search: mlState.search });
     mlState.total = count;
 
@@ -395,20 +402,30 @@ function renderCard(item) {
   const meta       = TYPE_META[item.media_type] || TYPE_META.image;
   const name       = item.file_name || item.media_url?.split('/').pop() || '—';
   const size       = MediaService.formatFileSize(item.file_size);
-  const linked     = item.questions ? 1 : 0;
   const isSelected = mlState.selected.has(item.id);
+  const linkedQ    = !!item.questions;
+  const catLink    = item._catLink || null;
+  const isLinked   = linkedQ || !!catLink;
 
-  let mediaEl = '';
-  if (item.media_type === 'image') {
-    mediaEl = `<img src="${escHtml(item.media_url)}" loading="lazy" onerror="this.parentElement.innerHTML='${icon('image','icon-xl').replace(/'/g,'\\\'')}'">`;
+  let mediaEl = item.media_type === 'image'
+    ? `<img src="${escHtml(item.media_url)}" loading="lazy" onerror="this.parentElement.innerHTML='${icon('image','icon-xl').replace(/'/g,'\\\'')}'">`
+    : icon(meta.icon, 'icon-2xl');
+
+  // Link badge — show what this asset is connected to
+  let linkBadge = '';
+  if (linkedQ && catLink) {
+    linkBadge = `<span class="ml-card-linked has-links" title="Linked to question &amp; category image">${icon('link','icon-xs')} Question + ${icon('image','icon-xs')} Cat</span>`;
+  } else if (linkedQ) {
+    linkBadge = `<span class="ml-card-linked has-links">${icon('link','icon-xs')} Question</span>`;
+  } else if (catLink) {
+    linkBadge = `<span class="ml-card-linked has-links" title="Category: ${escHtml(catLink.name)}">${icon('image','icon-xs')} ${escHtml(catLink.name)}</span>`;
   } else {
-    mediaEl = icon(meta.icon, 'icon-2xl');
+    linkBadge = `<span class="ml-card-linked">${icon('unlink','icon-xs')} Not linked</span>`;
   }
 
-  const isLinkedQ  = !!item.questions;
-  const deleteBtn  = canDelete()
-    ? isLinkedQ
-      ? `<button class="icon-btn" disabled style="opacity:.35;cursor:not-allowed;" title="Unlink from question first">${icon('trash-2','icon-sm')}</button>`
+  const deleteBtn = canDelete()
+    ? isLinked
+      ? `<button class="icon-btn" disabled style="opacity:.35;cursor:not-allowed;" title="Unlink all associations first">${icon('trash-2','icon-sm')}</button>`
       : `<button class="icon-btn" data-action="delete" data-id="${item.id}" data-fp="${escHtml(item.file_path||'')}" title="Delete">${icon('trash-2','icon-sm')}</button>`
     : '';
   const copyBtn = `<button class="icon-btn" data-action="copy" data-url="${escHtml(item.media_url)}" title="Copy URL">${icon('copy','icon-sm')}</button>`;
@@ -430,9 +447,7 @@ function renderCard(item) {
         <div class="ml-card-name" title="${escHtml(name)}">${escHtml(name)}</div>
         <div class="ml-card-meta">
           <span>${size}</span>
-          <span class="ml-card-linked ${linked ? 'has-links' : ''}">
-            ${icon('link','icon-xs')} ${linked} linked
-          </span>
+          ${linkBadge}
         </div>
       </div>
     </div>`;
@@ -443,17 +458,29 @@ function renderListRow(item) {
   const name       = item.file_name || item.media_url?.split('/').pop() || '—';
   const size       = MediaService.formatFileSize(item.file_size);
   const date       = fmtDate(item.created_at);
-  const linked     = item.questions ? 1 : 0;
   const isSelected = mlState.selected.has(item.id);
+  const linkedQ    = !!item.questions;
+  const catLink    = item._catLink || null;
+  const isLinked   = linkedQ || !!catLink;
+
+  let linkLabel = '';
+  if (linkedQ && catLink) {
+    linkLabel = `Question · ${catLink.name}`;
+  } else if (linkedQ) {
+    linkLabel = 'Question';
+  } else if (catLink) {
+    linkLabel = `Category: ${catLink.name}`;
+  } else {
+    linkLabel = 'Not linked';
+  }
 
   let thumbEl = item.media_type === 'image'
     ? `<img src="${escHtml(item.media_url)}" loading="lazy" onerror="this.style.display='none'">`
     : icon(meta.icon, 'icon-md');
 
-  const isLinkedQ2 = !!item.questions;
-  const deleteBtn  = canDelete()
-    ? isLinkedQ2
-      ? `<button class="icon-btn" disabled style="opacity:.35;cursor:not-allowed;" title="Unlink from question first">${icon('trash-2','icon-sm')}</button>`
+  const deleteBtn = canDelete()
+    ? isLinked
+      ? `<button class="icon-btn" disabled style="opacity:.35;cursor:not-allowed;" title="Unlink first before deleting">${icon('trash-2','icon-sm')}</button>`
       : `<button class="icon-btn" data-action="delete" data-id="${item.id}" data-fp="${escHtml(item.file_path||'')}" title="Delete">${icon('trash-2','icon-sm')}</button>`
     : '';
 
@@ -465,7 +492,7 @@ function renderListRow(item) {
       <div class="ml-list-thumb">${thumbEl}</div>
       <div class="ml-list-info">
         <div class="ml-list-name" title="${escHtml(name)}">${escHtml(name)}</div>
-        <div class="ml-list-meta">${date} · ${linked} linked question${linked!==1?'s':''}</div>
+        <div class="ml-list-meta">${date} · <span style="color:${isLinked?'var(--amber-600,#d97706)':'var(--text-muted)'}">${escHtml(linkLabel)}</span></div>
       </div>
       <div class="ml-list-type">
         <span class="badge badge-${item.media_type==='image'?'blue':item.media_type==='audio'?'purple':'amber'}">${escHtml(meta.label)}</span>
