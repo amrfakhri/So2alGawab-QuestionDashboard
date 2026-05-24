@@ -986,6 +986,12 @@ async function openDetailDrawer(id) {
   document.getElementById('mdDrawerBody').querySelectorAll('.md-btn-unlink-q').forEach(btn => {
     btn.addEventListener('click', async () => {
       const questionId = btn.dataset.qId;
+      const questionText = btn.closest('.md-question-card')?.querySelector('.md-question-text')?.textContent || 'this question';
+      const confirmed = await showConfirm(
+        'Unlink from Question',
+        `Remove the link between this file and "${questionText.slice(0, 80)}"?`
+      );
+      if (!confirmed) return;
       btn.disabled = true;
       try {
         await MediaService.unlinkFromQuestion(item.id, questionId);

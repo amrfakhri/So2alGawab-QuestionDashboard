@@ -137,17 +137,18 @@ const MediaService = {
   /* ---- Remove one specific question link (junction table + legacy column) ---- */
   async unlinkFromQuestion(mediaId, questionId) {
     const [junctionRes, legacyRes] = await Promise.all([
+      // Remove from junction table (new system)
       window._sb
         .from('question_media_links')
         .delete()
         .eq('media_id', mediaId)
         .eq('question_id', questionId),
-      // Also clear the legacy direct column if it points to the same question
+      // Clear legacy direct column — filter only by media row id, not question_id
+      // (avoids type-mismatch silently matching 0 rows)
       window._sb
         .from('question_media')
         .update({ question_id: null })
         .eq('id', mediaId)
-        .eq('question_id', questionId)
     ]);
     if (junctionRes.error) throw new Error(`Failed to unlink: ${junctionRes.error.message}`);
     if (legacyRes.error)   throw new Error(`Failed to unlink: ${legacyRes.error.message}`);
