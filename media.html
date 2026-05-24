@@ -990,7 +990,7 @@ async function openDetailDrawer(id) {
       btn.disabled = true;
       const linkRowId = btn.dataset.qId;
       try {
-        await MediaService.unlinkFromQuestion(linkRowId);
+        await MediaService.unlinkFromQuestion(linkRowId, id);
         toast('Unlinked from question');
         const idx = mlState.items.findIndex(i => i.id === id);
         if (idx >= 0) {

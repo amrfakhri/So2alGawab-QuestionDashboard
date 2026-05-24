@@ -134,13 +134,23 @@ const MediaService = {
     return data || null;
   },
 
-  /* ---- Unlink: delete the question_media row that links this file to a question ---- */
-  async unlinkFromQuestion(linkRowId) {
-    const { error } = await window._sb
-      .from('question_media')
-      .delete()
-      .eq('id', linkRowId);
-    if (error) throw new Error(`Failed to unlink: ${error.message}`);
+  /* ---- Unlink a question from a media item ---- */
+  async unlinkFromQuestion(linkRowId, sourceMediaId) {
+    if (linkRowId === sourceMediaId) {
+      // Source row — null the question_id, keep the row in the library
+      const { error } = await window._sb
+        .from('question_media')
+        .update({ question_id: null })
+        .eq('id', linkRowId);
+      if (error) throw new Error(`Failed to unlink: ${error.message}`);
+    } else {
+      // Copy row created by a second/third link — delete it entirely
+      const { error } = await window._sb
+        .from('question_media')
+        .delete()
+        .eq('id', linkRowId);
+      if (error) throw new Error(`Failed to unlink: ${error.message}`);
+    }
     return true;
   },
 
@@ -378,31 +388,39 @@ const MediaService = {
     return new Set((data || []).map(r => r.question_id).filter(Boolean));
   },
 
-  /* ---- Link a media item to a question by inserting a new row with the same URL ---- */
+  /* ---- Link a media item to a question ---- */
   async linkToQuestion(mediaId, questionId) {
-    // Fetch source row data
     const { data: src, error: fetchErr } = await window._sb
       .from('question_media')
-      .select('media_url, media_type, file_path, file_name, mime_type, file_size, media_purpose, sort_order')
+      .select('question_id, media_url, media_type, file_path, file_name, mime_type, file_size, media_purpose, sort_order')
       .eq('id', mediaId)
       .single();
     if (fetchErr) throw new Error(`Could not fetch media: ${fetchErr.message}`);
 
-    // Insert a new row for this question — same file, different question_id
-    const { error } = await window._sb
-      .from('question_media')
-      .insert({
-        question_id:   questionId,
-        media_url:     src.media_url,
-        media_type:    src.media_type,
-        file_path:     src.file_path    || null,
-        file_name:     src.file_name    || null,
-        mime_type:     src.mime_type    || null,
-        file_size:     src.file_size    || null,
-        media_purpose: src.media_purpose || 'question',
-        sort_order:    src.sort_order   || 0
-      });
-    if (error) throw new Error(`Failed to link: ${error.message}`);
+    if (!src.question_id) {
+      // Source row is unlinked — update it directly so no duplicate is created
+      const { error } = await window._sb
+        .from('question_media')
+        .update({ question_id: questionId })
+        .eq('id', mediaId);
+      if (error) throw new Error(`Failed to link: ${error.message}`);
+    } else {
+      // Already linked to a question — insert a new row for this additional link
+      const { error } = await window._sb
+        .from('question_media')
+        .insert({
+          question_id:   questionId,
+          media_url:     src.media_url,
+          media_type:    src.media_type,
+          file_path:     src.file_path    || null,
+          file_name:     src.file_name    || null,
+          mime_type:     src.mime_type    || null,
+          file_size:     src.file_size    || null,
+          media_purpose: src.media_purpose || 'question',
+          sort_order:    src.sort_order   || 0
+        });
+      if (error) throw new Error(`Failed to link: ${error.message}`);
+    }
     return true;
   },
 
