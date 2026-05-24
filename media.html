@@ -344,11 +344,16 @@ async function loadMedia(reset = false) {
     if (reset) mlState.items = items;
     else mlState.items = [...mlState.items, ...items];
 
-    // Enrich every loaded item with its category link (single extra query)
-    const catMap = await MediaService.getCategoryImagePathsMap();
+    // Enrich with category link + question link counts in parallel
+    const allIds = mlState.items.map(i => i.id);
+    const [catMap, linkCounts] = await Promise.all([
+      MediaService.getCategoryImagePathsMap(),
+      MediaService.getMediaLinkCounts(allIds)
+    ]);
     mlState.items = mlState.items.map(item => ({
       ...item,
-      _catLink: item.file_path ? (catMap.get(item.file_path) || null) : null
+      _catLink:       item.file_path ? (catMap.get(item.file_path) || null) : null,
+      _questionCount: linkCounts[item.id] || 0
     }));
 
     const count = await MediaService.getMediaCount({ type: mlState.type, purpose: mlState.purpose, search: mlState.search });
@@ -399,24 +404,23 @@ function renderGrid() {
 }
 
 function renderCard(item) {
-  const meta       = TYPE_META[item.media_type] || TYPE_META.image;
-  const name       = item.file_name || item.media_url?.split('/').pop() || '—';
-  const size       = MediaService.formatFileSize(item.file_size);
-  const isSelected = mlState.selected.has(item.id);
-  const linkedQ    = !!item.questions;
-  const catLink    = item._catLink || null;
-  const isLinked   = linkedQ || !!catLink;
+  const meta          = TYPE_META[item.media_type] || TYPE_META.image;
+  const name          = item.file_name || item.media_url?.split('/').pop() || '—';
+  const size          = MediaService.formatFileSize(item.file_size);
+  const isSelected    = mlState.selected.has(item.id);
+  const questionCount = item._questionCount || 0;
+  const catLink       = item._catLink || null;
+  const isLinked      = questionCount > 0 || !!catLink;
 
   let mediaEl = item.media_type === 'image'
     ? `<img src="${escHtml(item.media_url)}" loading="lazy" onerror="this.parentElement.innerHTML='${icon('image','icon-xl').replace(/'/g,'\\\'')}'">`
     : icon(meta.icon, 'icon-2xl');
 
-  // Link badge — show what this asset is connected to
   let linkBadge = '';
-  if (linkedQ && catLink) {
-    linkBadge = `<span class="ml-card-linked has-links" title="Linked to question &amp; category image">${icon('link','icon-xs')} Question + ${icon('image','icon-xs')} Cat</span>`;
-  } else if (linkedQ) {
-    linkBadge = `<span class="ml-card-linked has-links">${icon('link','icon-xs')} Question</span>`;
+  if (questionCount > 0 && catLink) {
+    linkBadge = `<span class="ml-card-linked has-links" title="Linked to ${questionCount} question(s) &amp; category image">${icon('link','icon-xs')} ${questionCount}Q + ${icon('image','icon-xs')} Cat</span>`;
+  } else if (questionCount > 0) {
+    linkBadge = `<span class="ml-card-linked has-links">${icon('link','icon-xs')} ${questionCount} Question${questionCount !== 1 ? 's' : ''}</span>`;
   } else if (catLink) {
     linkBadge = `<span class="ml-card-linked has-links" title="Category: ${escHtml(catLink.name)}">${icon('image','icon-xs')} ${escHtml(catLink.name)}</span>`;
   } else {
@@ -457,17 +461,17 @@ function renderListRow(item) {
   const meta       = TYPE_META[item.media_type] || TYPE_META.image;
   const name       = item.file_name || item.media_url?.split('/').pop() || '—';
   const size       = MediaService.formatFileSize(item.file_size);
-  const date       = fmtDate(item.created_at);
-  const isSelected = mlState.selected.has(item.id);
-  const linkedQ    = !!item.questions;
-  const catLink    = item._catLink || null;
-  const isLinked   = linkedQ || !!catLink;
+  const date          = fmtDate(item.created_at);
+  const isSelected    = mlState.selected.has(item.id);
+  const questionCount = item._questionCount || 0;
+  const catLink       = item._catLink || null;
+  const isLinked      = questionCount > 0 || !!catLink;
 
   let linkLabel = '';
-  if (linkedQ && catLink) {
-    linkLabel = `Question · ${catLink.name}`;
-  } else if (linkedQ) {
-    linkLabel = 'Question';
+  if (questionCount > 0 && catLink) {
+    linkLabel = `${questionCount} Question${questionCount !== 1 ? 's' : ''} · ${catLink.name}`;
+  } else if (questionCount > 0) {
+    linkLabel = `${questionCount} Question${questionCount !== 1 ? 's' : ''}`;
   } else if (catLink) {
     linkLabel = `Category: ${catLink.name}`;
   } else {
@@ -614,7 +618,7 @@ async function bulkDelete() {
   if (!ids.length) return;
 
   const items    = mlState.items.filter(i => ids.includes(i.id));
-  const linkedCt = items.filter(i => i.questions).length;
+  const linkedCt = items.filter(i => (i._questionCount || 0) > 0 || !!i._catLink).length;
   const msg      = linkedCt > 0
     ? `${ids.length} item${ids.length !== 1 ? 's' : ''} selected — ${linkedCt} are linked and will be skipped. Delete the rest?`
     : `Delete ${ids.length} item${ids.length !== 1 ? 's' : ''}? This cannot be undone.`;
@@ -666,28 +670,30 @@ async function loadCategoriesForPicker(selectEl) {
   }
 }
 
-async function initQuestionPicker(mediaItemId) {
-  const listEl  = document.getElementById('mdQList');
+async function initQuestionPicker(mediaItemId, alreadyLinkedIds = new Set()) {
+  const listEl   = document.getElementById('mdQList');
   const searchEl = document.getElementById('mdQSearch');
   const toggleEl = document.getElementById('mdQUnlinkedOnly');
   const countEl  = document.getElementById('mdQCount');
   const linkBtn  = document.getElementById('mdBtnLinkQ');
   if (!listEl) return;
 
-  let allQuestions   = [];
-  let linkedIds      = new Set();
-  let selectedQId    = null;
-  let searchVal      = '';
-  let unlinkedOnly   = false;
+  let allQuestions = [];
+  let hasMediaIds  = new Set(); // question IDs that already have ANY media linked
+  let selectedQId  = null;
+  let searchVal    = '';
+  let unlinkedOnly = false;
 
   function renderList() {
     const q = searchVal.toLowerCase();
+    // Exclude questions already linked to THIS media item
     const visible = allQuestions.filter(item => {
-      if (unlinkedOnly && linkedIds.has(item.id)) return false;
+      if (alreadyLinkedIds.has(item.id)) return false;
+      if (unlinkedOnly && hasMediaIds.has(item.id)) return false;
       if (q) {
-        const text = (item.question || '').toLowerCase();
-        const cat  = (item._category?.name || '').toLowerCase();
-        const list = (item._category?.lists?.title || item.list_id || '').toLowerCase();
+        const text  = (item.question || '').toLowerCase();
+        const cat   = (item._category?.name || '').toLowerCase();
+        const list  = (item._category?.lists?.title || item.list_id || '').toLowerCase();
         if (!text.includes(q) && !cat.includes(q) && !list.includes(q)) return false;
       }
       return true;
@@ -701,22 +707,21 @@ async function initQuestionPicker(mediaItemId) {
     }
 
     listEl.innerHTML = visible.map(q => {
-      const text     = q.question || '—';
-      const catName  = q._category?.name || '';
+      const text      = q.question || '—';
+      const catName   = q._category?.name || '';
       const listTitle = q._category?.lists?.title || q.list_id || '';
-      const isLinked = linkedIds.has(q.id);
-      const sel      = selectedQId === q.id ? ' selected' : '';
+      const hasMedia  = hasMediaIds.has(q.id);
+      const sel       = selectedQId === q.id ? ' selected' : '';
       return `<div class="md-qpicker-card${sel}" data-qid="${escHtml(q.id)}">
         <div class="md-qcard-text">${escHtml(text)}</div>
         <div class="md-qcard-meta">
           ${listTitle ? `<span>${icon('list','icon-xs')} ${escHtml(listTitle)}</span>` : ''}
           ${catName   ? `<span>${icon('tag','icon-xs')} ${escHtml(catName)}</span>` : ''}
-          ${isLinked  ? `<span style="color:var(--amber,#f59e0b)">${icon('link','icon-xs')} Has media</span>` : ''}
+          ${hasMedia  ? `<span style="color:var(--amber,#f59e0b)">${icon('paperclip','icon-xs')} Has media</span>` : ''}
         </div>
       </div>`;
     }).join('');
 
-    // Re-select highlighted card after re-render
     listEl.querySelectorAll('.md-qpicker-card').forEach(card => {
       card.addEventListener('click', () => {
         listEl.querySelectorAll('.md-qpicker-card').forEach(c => c.classList.remove('selected'));
@@ -727,9 +732,8 @@ async function initQuestionPicker(mediaItemId) {
     });
   }
 
-  // Load data
   try {
-    [allQuestions, linkedIds] = await Promise.all([
+    [allQuestions, hasMediaIds] = await Promise.all([
       MediaService.getQuestionsForPicker(),
       MediaService.getLinkedQuestionIds()
     ]);
@@ -740,23 +744,19 @@ async function initQuestionPicker(mediaItemId) {
     return;
   }
 
-  searchEl?.addEventListener('input', () => { searchVal = searchEl.value; renderList(); });
-  toggleEl?.addEventListener('change', () => { unlinkedOnly = toggleEl.checked; renderList(); });
+  searchEl?.addEventListener('input', () => { searchVal = searchEl.value; selectedQId = null; linkBtn.disabled = true; renderList(); });
+  toggleEl?.addEventListener('change', () => { unlinkedOnly = toggleEl.checked; selectedQId = null; linkBtn.disabled = true; renderList(); });
 
   linkBtn?.addEventListener('click', async () => {
     if (!selectedQId) return;
     linkBtn.disabled = true;
-    linkBtn.textContent = 'Linking…';
+    linkBtn.innerHTML = icon('loader','icon-xs') + ' Linking…';
     try {
       await MediaService.linkToQuestion(mediaItemId, selectedQId);
-      toast('Linked to question');
-      const selQ = allQuestions.find(q => q.id === selectedQId);
-      const idx  = mlState.items.findIndex(i => i.id === mediaItemId);
-      if (idx >= 0 && selQ) {
-        mlState.items[idx] = {
-          ...mlState.items[idx],
-          questions: { id: selQ.id, question: selQ.question, category_id: selQ.category_id, list_id: selQ.list_id }
-        };
+      toast('Question linked');
+      const idx = mlState.items.findIndex(i => i.id === mediaItemId);
+      if (idx >= 0) {
+        mlState.items[idx] = { ...mlState.items[idx], _questionCount: (mlState.items[idx]._questionCount || 0) + 1 };
       }
       renderGrid();
       openDetailDrawer(mediaItemId);
@@ -787,13 +787,17 @@ async function openDetailDrawer(id) {
     `<div style="padding:60px 0;text-align:center;"><div class="spinner" style="margin:0 auto;"></div></div>`;
   lucide.createIcons();
 
-  // Check if this file path is set as a category image
-  const linkedCategory = item.media_type === 'image' && item.file_path
-    ? await MediaService.getCategoryByFilePath(item.file_path).catch(() => null)
-    : null;
+  // Fetch category link + all question links in parallel
+  const [linkedCategory, linkedQuestions] = await Promise.all([
+    item.media_type === 'image' && item.file_path
+      ? MediaService.getCategoryByFilePath(item.file_path).catch(() => null)
+      : Promise.resolve(null),
+    item.media_purpose === 'question'
+      ? MediaService.getLinkedQuestionsForMedia(item.id).catch(() => [])
+      : Promise.resolve([])
+  ]);
 
-  const linkedQuestion = item.questions;
-  const isLinked       = !!linkedQuestion || !!linkedCategory;
+  const isLinked = linkedQuestions.length > 0 || !!linkedCategory;
 
   // Preview
   let previewEl = '';
@@ -816,25 +820,34 @@ async function openDetailDrawer(id) {
       : `<button class="btn btn-danger btn-sm" id="mdBtnDelete">${icon('trash-2','icon-sm')} Delete</button>`
     : '';
 
-  // Linked question section
-  const linkedQHtml = linkedQuestion
-    ? `<div class="md-question-card">
-         <div class="md-question-text">${escHtml(linkedQuestion.question || '—')}</div>
-         <div class="md-question-meta">
-           <span>${icon('list','icon-xs')} ${escHtml(linkedQuestion.list_id || '—')}</span>
-           <span>${icon('tag','icon-xs')} ${escHtml(linkedQuestion.category_id || '—')}</span>
+  // Linked questions list (multi)
+  const linkedQHtml = item.media_purpose === 'question'
+    ? `<div>
+         <div class="md-section-title">${icon('link','icon-xs')} Linked Questions
+           <span style="font-weight:400;margin-left:4px;">(${linkedQuestions.length})</span>
          </div>
-         ${canUpload()
-           ? `<button class="btn btn-ghost btn-sm" id="mdBtnUnlinkQ" style="margin-top:8px;">
-                ${icon('unlink','icon-xs')} Unlink from question
-              </button>`
-           : ''}
+         ${linkedQuestions.length
+           ? linkedQuestions.map(lq => `
+               <div class="md-question-card" style="margin-bottom:6px;" data-link-id="${escHtml(lq.linkId)}" data-q-id="${escHtml(lq.questionId)}">
+                 <div class="md-question-text">${escHtml(lq.question || '—')}</div>
+                 <div class="md-question-meta">
+                   ${lq.listId     ? `<span>${icon('list','icon-xs')} ${escHtml(lq.listId)}</span>` : ''}
+                   ${lq.categoryName ? `<span>${icon('tag','icon-xs')} ${escHtml(lq.categoryName)}</span>` : ''}
+                 </div>
+                 ${canUpload()
+                   ? `<button class="btn btn-ghost btn-sm md-btn-unlink-q" data-q-id="${escHtml(lq.questionId)}" style="margin-top:8px;">
+                        ${icon('unlink','icon-xs')} Unlink
+                      </button>`
+                   : ''}
+               </div>`).join('')
+           : `<div class="md-no-links">${icon('unlink','icon-sm')} Not linked to any question</div>`
+         }
        </div>`
-    : `<div class="md-no-links">${icon('unlink','icon-sm')} Not linked to any question</div>`;
+    : '';
 
   // Linked category section
   const linkedCatHtml = linkedCategory
-    ? `<div style="margin-top:20px;">
+    ? `<div>
          <div class="md-section-title">${icon('image','icon-xs')} Used as Category Image</div>
          <div class="md-question-card" style="margin-top:8px;">
            <div class="md-question-text">${escHtml(linkedCategory.name)}</div>
@@ -852,7 +865,7 @@ async function openDetailDrawer(id) {
 
   // "Set as category image" picker — only for game_ui images with a storage path, not already a category image
   const catPickerHtml = item.media_purpose === 'game_ui' && item.media_type === 'image' && item.file_path && canUpload() && !linkedCategory
-    ? `<div style="margin-top:20px;">
+    ? `<div>
          <div class="md-section-title">${icon('tag','icon-xs')} Set as Category Image</div>
          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
            <select id="mdCatSelect" style="flex:1;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text1);">
@@ -865,10 +878,10 @@ async function openDetailDrawer(id) {
        </div>`
     : '';
 
-  // "Link to question" picker — only for question-purpose media not yet linked
-  const questionPickerHtml = item.media_purpose === 'question' && canUpload() && !linkedQuestion
+  // "Link to question" picker — always shown for question-purpose media (can add multiple links)
+  const questionPickerHtml = item.media_purpose === 'question' && canUpload()
     ? `<div>
-         <div class="md-section-title">${icon('link','icon-xs')} Link to Question</div>
+         <div class="md-section-title">${icon('plus','icon-xs')} Add Question Link</div>
          <div class="md-qpicker-toolbar">
            <input type="text" id="mdQSearch" placeholder="Search questions…" autocomplete="off">
            <label class="md-qpicker-toggle">
@@ -890,7 +903,6 @@ async function openDetailDrawer(id) {
 
   const purposeLabel = item.media_purpose === 'game_ui' ? 'Game UI' : 'Question';
 
-  // Warning banner if linked
   const linkedBanner = isLinked
     ? `<div style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:8px;font-size:12px;color:var(--amber,#f59e0b);margin-bottom:4px;">
          ${icon('alert-triangle','icon-xs')} Linked — remove all associations below to enable deletion.
@@ -939,11 +951,7 @@ async function openDetailDrawer(id) {
       ${deleteBtnHtml}
     </div>
 
-    <div>
-      <div class="md-section-title">${icon('link','icon-xs')} Linked Question</div>
-      ${linkedQHtml}
-    </div>
-
+    ${linkedQHtml}
     ${linkedCatHtml}
     ${catPickerHtml}
     ${questionPickerHtml}
@@ -956,7 +964,7 @@ async function openDetailDrawer(id) {
     toast(ok ? 'URL copied to clipboard' : 'Copy failed — check permissions', ok ? 'success' : 'error');
   });
 
-  // Delete (only reachable when not linked)
+  // Delete
   document.getElementById('mdBtnDelete')?.addEventListener('click', async () => {
     const confirmed = await showConfirm('Delete Media', `Delete "${name}"? This cannot be undone.`);
     if (!confirmed) return;
@@ -974,19 +982,25 @@ async function openDetailDrawer(id) {
     }
   });
 
-  // Unlink from question
-  document.getElementById('mdBtnUnlinkQ')?.addEventListener('click', async () => {
-    try {
-      await MediaService.unlinkFromQuestion(item.id);
-      toast('Unlinked from question');
-      // Update state in-place so the card reflects the change
-      const idx = mlState.items.findIndex(i => i.id === id);
-      if (idx >= 0) mlState.items[idx] = { ...mlState.items[idx], questions: null };
-      renderGrid();
-      openDetailDrawer(id); // re-open with fresh link state
-    } catch(e) {
-      toast('Unlink failed: ' + e.message, 'error');
-    }
+  // Unlink from question — delegated, each card has its own button
+  document.getElementById('mdDrawerBody').querySelectorAll('.md-btn-unlink-q').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const questionId = btn.dataset.qId;
+      btn.disabled = true;
+      try {
+        await MediaService.unlinkFromQuestion(item.id, questionId);
+        toast('Unlinked from question');
+        const idx = mlState.items.findIndex(i => i.id === id);
+        if (idx >= 0) {
+          mlState.items[idx] = { ...mlState.items[idx], _questionCount: Math.max(0, (mlState.items[idx]._questionCount || 1) - 1) };
+        }
+        renderGrid();
+        openDetailDrawer(id);
+      } catch(e) {
+        toast('Unlink failed: ' + e.message, 'error');
+        btn.disabled = false;
+      }
+    });
   });
 
   // Unlink from category
@@ -994,7 +1008,7 @@ async function openDetailDrawer(id) {
     try {
       await MediaService.unlinkFromCategory(item.file_path);
       toast('Removed as category image');
-      openDetailDrawer(id); // re-open — category check will return null now
+      openDetailDrawer(id);
     } catch(e) {
       toast('Unlink failed: ' + e.message, 'error');
     }
@@ -1017,9 +1031,9 @@ async function openDetailDrawer(id) {
     });
   }
 
-  // Link to question picker — async init after DOM is ready
+  // Question link picker
   if (document.getElementById('mdQList')) {
-    initQuestionPicker(id);
+    initQuestionPicker(id, new Set(linkedQuestions.map(lq => lq.questionId)));
   }
 }
 

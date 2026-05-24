@@ -134,14 +134,48 @@ const MediaService = {
     return data || null;
   },
 
-  /* ---- Unlink media from its question (question_id → null) ---- */
-  async unlinkFromQuestion(mediaId) {
+  /* ---- Remove one specific question link ---- */
+  async unlinkFromQuestion(mediaId, questionId) {
     const { error } = await window._sb
-      .from('question_media')
-      .update({ question_id: null })
-      .eq('id', mediaId);
-    if (error) throw new Error(`Failed to unlink from question: ${error.message}`);
+      .from('question_media_links')
+      .delete()
+      .eq('media_id', mediaId)
+      .eq('question_id', questionId);
+    if (error) throw new Error(`Failed to unlink: ${error.message}`);
     return true;
+  },
+
+  /* ---- Fetch all questions linked to a media item ---- */
+  async getLinkedQuestionsForMedia(mediaId) {
+    const [linkRes, catRes] = await Promise.all([
+      window._sb
+        .from('question_media_links')
+        .select('id, question_id, questions(id, question, list_id, category_id)')
+        .eq('media_id', mediaId),
+      window._sb.from('categories').select('id, name')
+    ]);
+    if (linkRes.error) throw linkRes.error;
+    const catMap = new Map((catRes.data || []).map(c => [c.id, c.name]));
+    return (linkRes.data || []).map(r => ({
+      linkId:       r.id,
+      questionId:   r.question_id,
+      question:     r.questions?.question   || '',
+      listId:       r.questions?.list_id    || '',
+      categoryId:   r.questions?.category_id || '',
+      categoryName: catMap.get(r.questions?.category_id) || ''
+    }));
+  },
+
+  /* ---- Get link counts per media_id (for grid badges) ---- */
+  async getMediaLinkCounts(mediaIds) {
+    if (!mediaIds.length) return {};
+    const { data } = await window._sb
+      .from('question_media_links')
+      .select('media_id')
+      .in('media_id', mediaIds);
+    const counts = {};
+    (data || []).forEach(r => { counts[r.media_id] = (counts[r.media_id] || 0) + 1; });
+    return counts;
   },
 
   /* ---- Clear image_path from any category using this file path ---- */
@@ -156,23 +190,23 @@ const MediaService = {
 
   /* ---- Delete media record + its storage file (blocks if linked) ---- */
   async deleteMediaItem(id, filePath) {
-    // Live-check question link
-    const { data: rec } = await window._sb
-      .from('question_media')
-      .select('question_id, file_path')
-      .eq('id', id)
+    // Live-check question links (junction table)
+    const { data: links } = await window._sb
+      .from('question_media_links')
+      .select('id')
+      .eq('media_id', id)
+      .limit(1)
       .maybeSingle();
-
-    if (rec?.question_id) {
-      throw new Error('Cannot delete: this file is linked to a question. Unlink it first.');
+    if (links) {
+      throw new Error('Cannot delete: this file is linked to one or more questions. Unlink first.');
     }
 
     // Live-check category link
-    if (rec?.file_path) {
+    if (filePath) {
       const { data: cat } = await window._sb
         .from('categories')
         .select('name')
-        .eq('image_path', rec.file_path)
+        .eq('image_path', filePath)
         .limit(1)
         .maybeSingle();
       if (cat) {
@@ -195,8 +229,7 @@ const MediaService = {
       .select(`
         id, question_id, media_type, media_purpose, media_url,
         file_path, file_name, mime_type, file_size,
-        sort_order, created_at,
-        questions ( id, question, category_id, list_id )
+        sort_order, created_at
       `);
 
     if (type !== 'all')    query = query.eq('media_type', type);
@@ -287,9 +320,17 @@ const MediaService = {
 
   /* ---- Bulk delete items — skips any that are linked ---- */
   async bulkDeleteItems(items) {
-    // Check each item for links (question link from loaded data; category via DB)
+    // Batch-check question links from junction table
+    const ids = items.map(i => i.id);
+    const { data: linkRows } = await window._sb
+      .from('question_media_links')
+      .select('media_id')
+      .in('media_id', ids);
+    const linkedMediaIds = new Set((linkRows || []).map(r => r.media_id));
+
+    // Check category links per item
     const checks = await Promise.all(items.map(async item => {
-      if (item.questions) return { item, linked: true };
+      if (linkedMediaIds.has(item.id)) return { item, linked: true };
       if (item.file_path) {
         const { data: cat } = await window._sb
           .from('categories').select('id').eq('image_path', item.file_path).limit(1).maybeSingle();
@@ -338,9 +379,8 @@ const MediaService = {
   /* ---- Get set of question IDs that already have media linked ---- */
   async getLinkedQuestionIds() {
     const { data, error } = await window._sb
-      .from('question_media')
-      .select('question_id')
-      .not('question_id', 'is', null);
+      .from('question_media_links')
+      .select('question_id');
     if (error) throw error;
     return new Set((data || []).map(r => r.question_id).filter(Boolean));
   },
