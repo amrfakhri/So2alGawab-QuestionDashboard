@@ -694,7 +694,8 @@ async function loadQuestionsForPicker(selectEl) {
       selectEl.appendChild(og);
     });
   } catch(e) {
-    selectEl.innerHTML = '<option value="">Failed to load</option>';
+    console.error('[loadQuestionsForPicker]', e);
+    selectEl.innerHTML = `<option value="">Error: ${escHtml(e.message)}</option>`;
   }
 }
 
