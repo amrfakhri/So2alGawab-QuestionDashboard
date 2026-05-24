@@ -134,14 +134,23 @@ const MediaService = {
     return data || null;
   },
 
-  /* ---- Remove one specific question link ---- */
+  /* ---- Remove one specific question link (junction table + legacy column) ---- */
   async unlinkFromQuestion(mediaId, questionId) {
-    const { error } = await window._sb
-      .from('question_media_links')
-      .delete()
-      .eq('media_id', mediaId)
-      .eq('question_id', questionId);
-    if (error) throw new Error(`Failed to unlink: ${error.message}`);
+    const [junctionRes, legacyRes] = await Promise.all([
+      window._sb
+        .from('question_media_links')
+        .delete()
+        .eq('media_id', mediaId)
+        .eq('question_id', questionId),
+      // Also clear the legacy direct column if it points to the same question
+      window._sb
+        .from('question_media')
+        .update({ question_id: null })
+        .eq('id', mediaId)
+        .eq('question_id', questionId)
+    ]);
+    if (junctionRes.error) throw new Error(`Failed to unlink: ${junctionRes.error.message}`);
+    if (legacyRes.error)   throw new Error(`Failed to unlink: ${legacyRes.error.message}`);
     return true;
   },
 
