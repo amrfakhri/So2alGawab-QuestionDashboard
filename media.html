@@ -687,10 +687,11 @@ async function initQuestionPicker(mediaItemId, alreadyLinkedIds = new Set()) {
       if (alreadyLinkedIds.has(item.id)) return false;
       if (unlinkedOnly && hasMediaIds.has(item.id)) return false;
       if (q) {
-        const text  = (item.question || '').toLowerCase();
-        const cat   = (item._category?.name || '').toLowerCase();
-        const list  = (item._category?.lists?.title || item.list_id || '').toLowerCase();
-        if (!text.includes(q) && !cat.includes(q) && !list.includes(q)) return false;
+        const text   = (item.question || '').toLowerCase();
+        const answer = (item.correct_answer || '').toLowerCase();
+        const cat    = (item._category?.name || '').toLowerCase();
+        const list   = (item._category?.lists?.title || item.list_id || '').toLowerCase();
+        if (!text.includes(q) && !answer.includes(q) && !cat.includes(q) && !list.includes(q)) return false;
       }
       return true;
     });
@@ -704,12 +705,14 @@ async function initQuestionPicker(mediaItemId, alreadyLinkedIds = new Set()) {
 
     listEl.innerHTML = visible.map(q => {
       const text      = q.question || '—';
+      const answer    = q.correct_answer || '';
       const catName   = q._category?.name || '';
       const listTitle = q._category?.lists?.title || q.list_id || '';
       const hasMedia  = hasMediaIds.has(q.id);
       const sel       = selectedQId === q.id ? ' selected' : '';
       return `<div class="md-qpicker-card${sel}" data-qid="${escHtml(q.id)}">
         <div class="md-qcard-text">${escHtml(text)}</div>
+        ${answer ? `<div class="md-qcard-answer">${icon('check-circle','icon-xs')} ${escHtml(answer)}</div>` : ''}
         <div class="md-qcard-meta">
           ${listTitle ? `<span>${icon('list','icon-xs')} ${escHtml(listTitle)}</span>` : ''}
           ${catName   ? `<span>${icon('tag','icon-xs')} ${escHtml(catName)}</span>` : ''}
@@ -826,6 +829,7 @@ async function openDetailDrawer(id) {
            ? linkedQuestions.map(lq => `
                <div class="md-question-card" style="margin-bottom:6px;" data-link-id="${escHtml(lq.linkId)}" data-q-id="${escHtml(lq.questionId)}">
                  <div class="md-question-text">${escHtml(lq.question || '—')}</div>
+                 ${lq.answer ? `<div class="md-question-answer">${icon('check-circle','icon-xs')} ${escHtml(lq.answer)}</div>` : ''}
                  <div class="md-question-meta">
                    ${lq.listId     ? `<span>${icon('list','icon-xs')} ${escHtml(lq.listId)}</span>` : ''}
                    ${lq.categoryName ? `<span>${icon('tag','icon-xs')} ${escHtml(lq.categoryName)}</span>` : ''}

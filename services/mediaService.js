@@ -171,7 +171,7 @@ const MediaService = {
     const [rowsRes, catRes] = await Promise.all([
       window._sb
         .from('question_media')
-        .select('id, question_id, questions(id, question, list_id, category_id)')
+        .select('id, question_id, questions(id, question, correct_answer, list_id, category_id)')
         .eq(matchField, matchValue)
         .not('question_id', 'is', null),
       window._sb.from('categories').select('id, name')
@@ -180,12 +180,13 @@ const MediaService = {
 
     const catMap = new Map((catRes.data || []).map(c => [c.id, c.name]));
     return (rowsRes.data || []).map(r => ({
-      linkId:       r.id,
-      questionId:   r.question_id,
-      question:     r.questions?.question    || '',
-      listId:       r.questions?.list_id     || '',
-      categoryId:   r.questions?.category_id || '',
-      categoryName: catMap.get(r.questions?.category_id) || ''
+      linkId:        r.id,
+      questionId:    r.question_id,
+      question:      r.questions?.question       || '',
+      answer:        r.questions?.correct_answer || '',
+      listId:        r.questions?.list_id        || '',
+      categoryId:    r.questions?.category_id    || '',
+      categoryName:  catMap.get(r.questions?.category_id) || ''
     }));
   },
 
@@ -363,7 +364,7 @@ const MediaService = {
     const [qRes, catRes] = await Promise.all([
       window._sb
         .from('questions')
-        .select('id, question, list_id, category_id')
+        .select('id, question, correct_answer, list_id, category_id')
         .is('deleted_at', null)
         .order('list_id'),
       window._sb
