@@ -232,7 +232,7 @@ const MediaService = {
   },
 
   /* ---- Paginated media library query ---- */
-  async getMediaLibrary({ type = 'all', purpose = 'all', search = '', sort = 'newest', page = 1, pageSize = 48 } = {}) {
+  async getMediaLibrary({ type = 'all', purpose = 'all', search = '', sort = 'newest', page = 1, pageSize = 48, showUnlinked = false } = {}) {
     const sb = window._sb;
 
     let query = sb
@@ -246,6 +246,7 @@ const MediaService = {
 
     if (type !== 'all')    query = query.eq('media_type', type);
     if (purpose !== 'all') query = query.eq('media_purpose', purpose);
+    if (showUnlinked)      query = query.is('question_id', null);
 
     if (search) {
       query = query.or(
@@ -267,13 +268,14 @@ const MediaService = {
   },
 
   /* ---- Count total media items (for pagination) ---- */
-  async getMediaCount({ type = 'all', purpose = 'all', search = '' } = {}) {
+  async getMediaCount({ type = 'all', purpose = 'all', search = '', showUnlinked = false } = {}) {
     let query = window._sb
       .from('question_media')
       .select('id', { count: 'exact', head: true });
 
     if (type !== 'all')    query = query.eq('media_type', type);
     if (purpose !== 'all') query = query.eq('media_purpose', purpose);
+    if (showUnlinked)      query = query.is('question_id', null);
     if (search) query = query.or(`file_name.ilike.%${search}%,media_url.ilike.%${search}%`);
 
     const { count, error } = await query;

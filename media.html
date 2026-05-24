@@ -333,12 +333,13 @@ async function loadMedia(reset = false) {
 
   try {
     const items = await MediaService.getMediaLibrary({
-      type:     mlState.type,
-      purpose:  mlState.purpose,
-      search:   mlState.search,
-      sort:     mlState.sort,
-      page:     mlState.page,
-      pageSize: mlState.pageSize
+      type:        mlState.type,
+      purpose:     mlState.purpose,
+      search:      mlState.search,
+      sort:        mlState.sort,
+      page:        mlState.page,
+      pageSize:    mlState.pageSize,
+      showUnlinked: mlState.showUnlinked
     });
 
     if (reset) mlState.items = items;
@@ -352,7 +353,7 @@ async function loadMedia(reset = false) {
       _questionCount: item.questions ? 1 : 0
     }));
 
-    const count = await MediaService.getMediaCount({ type: mlState.type, purpose: mlState.purpose, search: mlState.search });
+    const count = await MediaService.getMediaCount({ type: mlState.type, purpose: mlState.purpose, search: mlState.search, showUnlinked: mlState.showUnlinked });
     mlState.total = count;
 
     renderGrid();
@@ -382,18 +383,22 @@ function renderGrid() {
   const grid = document.getElementById('mlGrid');
   grid.className = 'ml-grid' + (mlState.viewMode === 'list' ? ' list-mode' : '');
 
-  if (!mlState.items.length) {
+  const displayItems = mlState.showUnlinked
+    ? mlState.items.filter(i => !(i._questionCount > 0) && !i._catLink)
+    : mlState.items;
+
+  if (!displayItems.length) {
     grid.innerHTML = `
       <div class="ml-empty">
         ${icon('images','icon-3xl')}
         <h3>No media found</h3>
-        <p>${mlState.search ? 'Try a different search term.' : 'Upload files to get started.'}</p>
+        <p>${mlState.showUnlinked ? 'No unlinked media files.' : mlState.search ? 'Try a different search term.' : 'Upload files to get started.'}</p>
       </div>`;
     lucide.createIcons();
     return;
   }
 
-  grid.innerHTML = mlState.items.map(item =>
+  grid.innerHTML = displayItems.map(item =>
     mlState.viewMode === 'grid' ? renderCard(item) : renderListRow(item)
   ).join('');
   lucide.createIcons();
