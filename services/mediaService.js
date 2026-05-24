@@ -346,11 +346,11 @@ const MediaService = {
       throw new Error('All selected items are linked to questions or categories. Unlink them first.');
     }
 
-    const filePaths = deletable.map(i => i.file_path).filter(Boolean);
+    const filePaths   = deletable.map(i => i.file_path).filter(Boolean);
     if (filePaths.length) await this.cleanupOrphanFiles(filePaths);
 
-    const ids = deletable.map(i => i.id);
-    const { error } = await window._sb.from('question_media').delete().in('id', ids);
+    const deleteIds = deletable.map(i => i.id);
+    const { error } = await window._sb.from('question_media').delete().in('id', deleteIds);
     if (error) throw new Error(`Failed to delete: ${error.message}`);
 
     return { deleted: deletable.length, skipped };
