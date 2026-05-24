@@ -344,16 +344,12 @@ async function loadMedia(reset = false) {
     if (reset) mlState.items = items;
     else mlState.items = [...mlState.items, ...items];
 
-    // Enrich with category link + question link counts in parallel
-    const allIds = mlState.items.map(i => i.id);
-    const [catMap, linkCounts] = await Promise.all([
-      MediaService.getCategoryImagePathsMap(),
-      MediaService.getMediaLinkCounts(allIds)
-    ]);
+    // Enrich with category link (question link comes from the join in getMediaLibrary)
+    const catMap = await MediaService.getCategoryImagePathsMap();
     mlState.items = mlState.items.map(item => ({
       ...item,
       _catLink:       item.file_path ? (catMap.get(item.file_path) || null) : null,
-      _questionCount: linkCounts[item.id] || 0
+      _questionCount: item.questions ? 1 : 0
     }));
 
     const count = await MediaService.getMediaCount({ type: mlState.type, purpose: mlState.purpose, search: mlState.search });
@@ -618,7 +614,7 @@ async function bulkDelete() {
   if (!ids.length) return;
 
   const items    = mlState.items.filter(i => ids.includes(i.id));
-  const linkedCt = items.filter(i => (i._questionCount || 0) > 0 || !!i._catLink).length;
+  const linkedCt = items.filter(i => !!i.questions || !!i._catLink).length;
   const msg      = linkedCt > 0
     ? `${ids.length} item${ids.length !== 1 ? 's' : ''} selected — ${linkedCt} are linked and will be skipped. Delete the rest?`
     : `Delete ${ids.length} item${ids.length !== 1 ? 's' : ''}? This cannot be undone.`;
@@ -670,7 +666,8 @@ async function loadCategoriesForPicker(selectEl) {
   }
 }
 
-async function initQuestionPicker(mediaItemId, alreadyLinkedIds = new Set()) {
+async function initQuestionPicker(mediaItemId) {
+  const alreadyLinkedIds = new Set();
   const listEl   = document.getElementById('mdQList');
   const searchEl = document.getElementById('mdQSearch');
   const toggleEl = document.getElementById('mdQUnlinkedOnly');
@@ -878,8 +875,8 @@ async function openDetailDrawer(id) {
        </div>`
     : '';
 
-  // "Link to question" picker — always shown for question-purpose media (can add multiple links)
-  const questionPickerHtml = item.media_purpose === 'question' && canUpload()
+  // "Link to question" picker — shown only when not yet linked
+  const questionPickerHtml = item.media_purpose === 'question' && canUpload() && linkedQuestions.length === 0
     ? `<div>
          <div class="md-section-title">${icon('plus','icon-xs')} Add Question Link</div>
          <div class="md-qpicker-toolbar">
@@ -982,10 +979,9 @@ async function openDetailDrawer(id) {
     }
   });
 
-  // Unlink from question — delegated, each card has its own button
+  // Unlink from question
   document.getElementById('mdDrawerBody').querySelectorAll('.md-btn-unlink-q').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const questionId = btn.dataset.qId;
       const questionText = btn.closest('.md-question-card')?.querySelector('.md-question-text')?.textContent || 'this question';
       const confirmed = await showConfirm(
         'Unlink from Question',
@@ -994,11 +990,11 @@ async function openDetailDrawer(id) {
       if (!confirmed) return;
       btn.disabled = true;
       try {
-        await MediaService.unlinkFromQuestion(item.id, questionId);
+        await MediaService.unlinkFromQuestion(item.id);
         toast('Unlinked from question');
         const idx = mlState.items.findIndex(i => i.id === id);
         if (idx >= 0) {
-          mlState.items[idx] = { ...mlState.items[idx], _questionCount: Math.max(0, (mlState.items[idx]._questionCount || 1) - 1) };
+          mlState.items[idx] = { ...mlState.items[idx], questions: null, _questionCount: 0 };
         }
         renderGrid();
         openDetailDrawer(id);
@@ -1039,7 +1035,7 @@ async function openDetailDrawer(id) {
 
   // Question link picker
   if (document.getElementById('mdQList')) {
-    initQuestionPicker(id, new Set(linkedQuestions.map(lq => lq.questionId)));
+    initQuestionPicker(id);
   }
 }
 
