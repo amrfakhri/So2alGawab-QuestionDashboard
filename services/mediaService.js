@@ -134,39 +134,49 @@ const MediaService = {
     return data || null;
   },
 
-  /* ---- Unlink media from its question ---- */
-  async unlinkFromQuestion(mediaId) {
+  /* ---- Unlink: delete the question_media row that links this file to a question ---- */
+  async unlinkFromQuestion(linkRowId) {
     const { error } = await window._sb
       .from('question_media')
-      .update({ question_id: null })
-      .eq('id', mediaId);
+      .delete()
+      .eq('id', linkRowId);
     if (error) throw new Error(`Failed to unlink: ${error.message}`);
     return true;
   },
 
-  /* ---- Fetch the question linked to a media item ---- */
+  /* ---- Fetch all questions linked to a file (by matching media_url) ---- */
   async getLinkedQuestionsForMedia(mediaId) {
-    const [qmRes, catRes] = await Promise.all([
+    // Get this item's URL first
+    const { data: src, error: srcErr } = await window._sb
+      .from('question_media')
+      .select('media_url, file_path')
+      .eq('id', mediaId)
+      .single();
+    if (srcErr) throw srcErr;
+
+    // Find all rows sharing the same URL that have a question linked
+    const matchField = src.file_path ? 'file_path' : 'media_url';
+    const matchValue = src.file_path || src.media_url;
+
+    const [rowsRes, catRes] = await Promise.all([
       window._sb
         .from('question_media')
-        .select('question_id, questions(id, question, list_id, category_id)')
-        .eq('id', mediaId)
-        .not('question_id', 'is', null)
-        .maybeSingle(),
+        .select('id, question_id, questions(id, question, list_id, category_id)')
+        .eq(matchField, matchValue)
+        .not('question_id', 'is', null),
       window._sb.from('categories').select('id, name')
     ]);
-    if (qmRes.error) throw qmRes.error;
-    const q = qmRes.data?.questions;
-    if (!q) return [];
+    if (rowsRes.error) throw rowsRes.error;
+
     const catMap = new Map((catRes.data || []).map(c => [c.id, c.name]));
-    return [{
-      linkId:       mediaId,
-      questionId:   qmRes.data.question_id,
-      question:     q.question    || '',
-      listId:       q.list_id     || '',
-      categoryId:   q.category_id || '',
-      categoryName: catMap.get(q.category_id) || ''
-    }];
+    return (rowsRes.data || []).map(r => ({
+      linkId:       r.id,
+      questionId:   r.question_id,
+      question:     r.questions?.question    || '',
+      listId:       r.questions?.list_id     || '',
+      categoryId:   r.questions?.category_id || '',
+      categoryName: catMap.get(r.questions?.category_id) || ''
+    }));
   },
 
   /* ---- Clear image_path from any category using this file path ---- */
@@ -368,13 +378,31 @@ const MediaService = {
     return new Set((data || []).map(r => r.question_id).filter(Boolean));
   },
 
-  /* ---- Link a media item to a question ---- */
+  /* ---- Link a media item to a question by inserting a new row with the same URL ---- */
   async linkToQuestion(mediaId, questionId) {
+    // Fetch source row data
+    const { data: src, error: fetchErr } = await window._sb
+      .from('question_media')
+      .select('media_url, media_type, file_path, file_name, mime_type, file_size, media_purpose, sort_order')
+      .eq('id', mediaId)
+      .single();
+    if (fetchErr) throw new Error(`Could not fetch media: ${fetchErr.message}`);
+
+    // Insert a new row for this question — same file, different question_id
     const { error } = await window._sb
       .from('question_media')
-      .update({ question_id: questionId })
-      .eq('id', mediaId);
-    if (error) throw new Error(`Failed to link to question: ${error.message}`);
+      .insert({
+        question_id:   questionId,
+        media_url:     src.media_url,
+        media_type:    src.media_type,
+        file_path:     src.file_path    || null,
+        file_name:     src.file_name    || null,
+        mime_type:     src.mime_type    || null,
+        file_size:     src.file_size    || null,
+        media_purpose: src.media_purpose || 'question',
+        sort_order:    src.sort_order   || 0
+      });
+    if (error) throw new Error(`Failed to link: ${error.message}`);
     return true;
   },
 

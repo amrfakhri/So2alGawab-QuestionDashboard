@@ -666,8 +666,7 @@ async function loadCategoriesForPicker(selectEl) {
   }
 }
 
-async function initQuestionPicker(mediaItemId) {
-  const alreadyLinkedIds = new Set();
+async function initQuestionPicker(mediaItemId, alreadyLinkedIds = new Set()) {
   const listEl   = document.getElementById('mdQList');
   const searchEl = document.getElementById('mdQSearch');
   const toggleEl = document.getElementById('mdQUnlinkedOnly');
@@ -832,7 +831,7 @@ async function openDetailDrawer(id) {
                    ${lq.categoryName ? `<span>${icon('tag','icon-xs')} ${escHtml(lq.categoryName)}</span>` : ''}
                  </div>
                  ${canUpload()
-                   ? `<button class="btn btn-ghost btn-sm md-btn-unlink-q" data-q-id="${escHtml(lq.questionId)}" style="margin-top:8px;">
+                   ? `<button class="btn btn-ghost btn-sm md-btn-unlink-q" data-q-id="${escHtml(lq.linkId)}" style="margin-top:8px;">
                         ${icon('unlink','icon-xs')} Unlink
                       </button>`
                    : ''}
@@ -875,8 +874,8 @@ async function openDetailDrawer(id) {
        </div>`
     : '';
 
-  // "Link to question" picker — shown only when not yet linked
-  const questionPickerHtml = item.media_purpose === 'question' && canUpload() && linkedQuestions.length === 0
+  // "Link to question" picker — always shown for question-purpose media
+  const questionPickerHtml = item.media_purpose === 'question' && canUpload()
     ? `<div>
          <div class="md-section-title">${icon('plus','icon-xs')} Add Question Link</div>
          <div class="md-qpicker-toolbar">
@@ -989,12 +988,13 @@ async function openDetailDrawer(id) {
       );
       if (!confirmed) return;
       btn.disabled = true;
+      const linkRowId = btn.dataset.qId;
       try {
-        await MediaService.unlinkFromQuestion(item.id);
+        await MediaService.unlinkFromQuestion(linkRowId);
         toast('Unlinked from question');
         const idx = mlState.items.findIndex(i => i.id === id);
         if (idx >= 0) {
-          mlState.items[idx] = { ...mlState.items[idx], questions: null, _questionCount: 0 };
+          mlState.items[idx] = { ...mlState.items[idx], _questionCount: Math.max(0, (mlState.items[idx]._questionCount || 1) - 1) };
         }
         renderGrid();
         openDetailDrawer(id);
@@ -1033,9 +1033,9 @@ async function openDetailDrawer(id) {
     });
   }
 
-  // Question link picker
+  // Question link picker — pass already-linked question IDs to exclude them
   if (document.getElementById('mdQList')) {
-    initQuestionPicker(id);
+    initQuestionPicker(id, new Set(linkedQuestions.map(lq => lq.questionId)));
   }
 }
 
