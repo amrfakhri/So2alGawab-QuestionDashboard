@@ -323,7 +323,7 @@ async function runChecks(session) {
 
   /* ── Storage ── */
   try {
-    const supabase = window.SupabaseDB?._client ?? window._supabase;
+    const supabase = window._sb ?? window.SupabaseDB?._client ?? window._supabase;
     if (supabase) {
       const { data, error } = await supabase.storage.listBuckets();
       if (error) throw error;
