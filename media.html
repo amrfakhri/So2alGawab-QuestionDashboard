@@ -666,37 +666,106 @@ async function loadCategoriesForPicker(selectEl) {
   }
 }
 
-async function loadQuestionsForPicker(selectEl) {
-  selectEl.innerHTML = '<option value="">Loading…</option>';
-  try {
-    const qs = await MediaService.getQuestionsForPicker();
-    if (!qs.length) {
-      selectEl.innerHTML = '<option value="">No questions found</option>';
+async function initQuestionPicker(mediaItemId) {
+  const listEl  = document.getElementById('mdQList');
+  const searchEl = document.getElementById('mdQSearch');
+  const toggleEl = document.getElementById('mdQUnlinkedOnly');
+  const countEl  = document.getElementById('mdQCount');
+  const linkBtn  = document.getElementById('mdBtnLinkQ');
+  if (!listEl) return;
+
+  let allQuestions   = [];
+  let linkedIds      = new Set();
+  let selectedQId    = null;
+  let searchVal      = '';
+  let unlinkedOnly   = false;
+
+  function renderList() {
+    const q = searchVal.toLowerCase();
+    const visible = allQuestions.filter(item => {
+      if (unlinkedOnly && linkedIds.has(item.id)) return false;
+      if (q) {
+        const text = (item.question || '').toLowerCase();
+        const cat  = (item._category?.name || '').toLowerCase();
+        const list = (item._category?.lists?.title || item.list_id || '').toLowerCase();
+        if (!text.includes(q) && !cat.includes(q) && !list.includes(q)) return false;
+      }
+      return true;
+    });
+
+    countEl.textContent = `${visible.length} question${visible.length !== 1 ? 's' : ''}`;
+
+    if (!visible.length) {
+      listEl.innerHTML = `<div class="md-qpicker-empty">${icon('search','icon-sm')} No questions match</div>`;
       return;
     }
-    const byList = {};
-    qs.forEach(q => {
-      const listKey = q.list_id || 'Unknown';
-      if (!byList[listKey]) byList[listKey] = [];
-      byList[listKey].push(q);
-    });
-    selectEl.innerHTML = '<option value="">Select a question…</option>';
-    Object.entries(byList).forEach(([listId, listQs]) => {
-      const og = document.createElement('optgroup');
-      og.label = listId;
-      listQs.forEach(q => {
-        const opt = document.createElement('option');
-        opt.value = q.id;
-        const preview = (q.question || '—').slice(0, 60);
-        opt.textContent = preview.length < (q.question || '').length ? preview + '…' : preview;
-        og.appendChild(opt);
+
+    listEl.innerHTML = visible.map(q => {
+      const text     = q.question || '—';
+      const catName  = q._category?.name || '';
+      const listTitle = q._category?.lists?.title || q.list_id || '';
+      const isLinked = linkedIds.has(q.id);
+      const sel      = selectedQId === q.id ? ' selected' : '';
+      return `<div class="md-qpicker-card${sel}" data-qid="${escHtml(q.id)}">
+        <div class="md-qcard-text">${escHtml(text)}</div>
+        <div class="md-qcard-meta">
+          ${listTitle ? `<span>${icon('list','icon-xs')} ${escHtml(listTitle)}</span>` : ''}
+          ${catName   ? `<span>${icon('tag','icon-xs')} ${escHtml(catName)}</span>` : ''}
+          ${isLinked  ? `<span style="color:var(--amber,#f59e0b)">${icon('link','icon-xs')} Has media</span>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+    // Re-select highlighted card after re-render
+    listEl.querySelectorAll('.md-qpicker-card').forEach(card => {
+      card.addEventListener('click', () => {
+        listEl.querySelectorAll('.md-qpicker-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        selectedQId = card.dataset.qid;
+        linkBtn.disabled = false;
       });
-      selectEl.appendChild(og);
     });
-  } catch(e) {
-    console.error('[loadQuestionsForPicker]', e);
-    selectEl.innerHTML = `<option value="">Error: ${escHtml(e.message)}</option>`;
   }
+
+  // Load data
+  try {
+    [allQuestions, linkedIds] = await Promise.all([
+      MediaService.getQuestionsForPicker(),
+      MediaService.getLinkedQuestionIds()
+    ]);
+    renderList();
+  } catch(e) {
+    console.error('[initQuestionPicker]', e);
+    listEl.innerHTML = `<div class="md-qpicker-empty" style="color:var(--red,#ef4444)">${icon('alert-circle','icon-sm')} ${escHtml(e.message)}</div>`;
+    return;
+  }
+
+  searchEl?.addEventListener('input', () => { searchVal = searchEl.value; renderList(); });
+  toggleEl?.addEventListener('change', () => { unlinkedOnly = toggleEl.checked; renderList(); });
+
+  linkBtn?.addEventListener('click', async () => {
+    if (!selectedQId) return;
+    linkBtn.disabled = true;
+    linkBtn.textContent = 'Linking…';
+    try {
+      await MediaService.linkToQuestion(mediaItemId, selectedQId);
+      toast('Linked to question');
+      const selQ = allQuestions.find(q => q.id === selectedQId);
+      const idx  = mlState.items.findIndex(i => i.id === mediaItemId);
+      if (idx >= 0 && selQ) {
+        mlState.items[idx] = {
+          ...mlState.items[idx],
+          questions: { id: selQ.id, question: selQ.question, category_id: selQ.category_id, list_id: selQ.list_id }
+        };
+      }
+      renderGrid();
+      openDetailDrawer(mediaItemId);
+    } catch(e) {
+      toast('Failed: ' + e.message, 'error');
+      linkBtn.disabled = false;
+      linkBtn.innerHTML = icon('link','icon-xs') + ' Link selected';
+    }
+  });
 }
 
 /* ── Detail drawer ─────────────────────────────────────────────── */
@@ -798,14 +867,22 @@ async function openDetailDrawer(id) {
 
   // "Link to question" picker — only for question-purpose media not yet linked
   const questionPickerHtml = item.media_purpose === 'question' && canUpload() && !linkedQuestion
-    ? `<div style="margin-top:20px;">
+    ? `<div>
          <div class="md-section-title">${icon('link','icon-xs')} Link to Question</div>
-         <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-           <select id="mdQSelect" style="flex:1;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text1);">
-             <option value="">Loading…</option>
-           </select>
-           <button class="btn btn-primary btn-sm" id="mdBtnLinkQ">
-             ${icon('check','icon-sm')} Link
+         <div class="md-qpicker-toolbar">
+           <input type="text" id="mdQSearch" placeholder="Search questions…" autocomplete="off">
+           <label class="md-qpicker-toggle">
+             <input type="checkbox" id="mdQUnlinkedOnly">
+             <span>Unlinked only</span>
+           </label>
+         </div>
+         <div class="md-qpicker-list" id="mdQList">
+           <div class="md-qpicker-empty">${icon('loader','icon-sm')} Loading…</div>
+         </div>
+         <div class="md-qpicker-footer">
+           <span class="md-qpicker-count" id="mdQCount"></span>
+           <button class="btn btn-primary btn-sm" id="mdBtnLinkQ" disabled>
+             ${icon('link','icon-xs')} Link selected
            </button>
          </div>
        </div>`
@@ -940,31 +1017,9 @@ async function openDetailDrawer(id) {
     });
   }
 
-  // Link to question picker
-  const qSelect = document.getElementById('mdQSelect');
-  if (qSelect) {
-    loadQuestionsForPicker(qSelect);
-    document.getElementById('mdBtnLinkQ')?.addEventListener('click', async () => {
-      const questionId = qSelect.value;
-      if (!questionId) { toast('Select a question first', 'error'); return; }
-      try {
-        await MediaService.linkToQuestion(item.id, questionId);
-        toast('Linked to question');
-        // Update state in-place so card reflects the change
-        const idx = mlState.items.findIndex(i => i.id === id);
-        if (idx >= 0) {
-          const selQ = qSelect.options[qSelect.selectedIndex];
-          mlState.items[idx] = {
-            ...mlState.items[idx],
-            questions: { id: questionId, question: selQ.textContent, category_id: '', list_id: '' }
-          };
-        }
-        renderGrid();
-        openDetailDrawer(id);
-      } catch(e) {
-        toast('Failed: ' + e.message, 'error');
-      }
-    });
+  // Link to question picker — async init after DOM is ready
+  if (document.getElementById('mdQList')) {
+    initQuestionPicker(id);
   }
 }
 

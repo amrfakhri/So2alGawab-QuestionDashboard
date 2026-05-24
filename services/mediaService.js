@@ -315,16 +315,34 @@ const MediaService = {
     return { deleted: deletable.length, skipped };
   },
 
-  /* ---- Fetch questions for the link picker ---- */
+  /* ---- Fetch questions for the link picker (with category name) ---- */
   async getQuestionsForPicker() {
+    const [qRes, catRes] = await Promise.all([
+      window._sb
+        .from('questions')
+        .select('id, question, list_id, category_id')
+        .is('deleted_at', null)
+        .order('list_id'),
+      window._sb
+        .from('categories')
+        .select('id, name, list_id, lists(title)')
+    ]);
+    if (qRes.error) throw qRes.error;
+    const catMap = new Map((catRes.data || []).map(c => [c.id, c]));
+    return (qRes.data || []).map(q => ({
+      ...q,
+      _category: catMap.get(q.category_id) || null
+    }));
+  },
+
+  /* ---- Get set of question IDs that already have media linked ---- */
+  async getLinkedQuestionIds() {
     const { data, error } = await window._sb
-      .from('questions')
-      .select('id, question, list_id, category_id')
-      .is('deleted_at', null)
-      .order('list_id')
-      .order('created_at', { ascending: false });
+      .from('question_media')
+      .select('question_id')
+      .not('question_id', 'is', null);
     if (error) throw error;
-    return data || [];
+    return new Set((data || []).map(r => r.question_id).filter(Boolean));
   },
 
   /* ---- Link a media item to a question ---- */
