@@ -836,6 +836,21 @@ function getCatName(list, catId) {
   return cat ? cat.name : catId ? catId.slice(0,8)+'…' : 'Unknown';
 }
 
+/* Renders a category pill with image thumbnail + name.
+   size: 'sm' (table rows) | 'lg' (card badges) */
+function catPill(list, catId, size = 'sm') {
+  const cat  = (list.categories||[]).find(c => c.id === catId);
+  const name = cat ? cat.name : catId ? catId.slice(0,8)+'…' : 'Unknown';
+  const img  = cat?.imagePath;
+  const thumb = img
+    ? `<img src="${escHtml(img)}" alt="" loading="lazy" onerror="this.parentNode.innerHTML='<span class=\'q-cat-initial\'>${escHtml(name[0]||'?')}</span>'">`
+    : `<span class="q-cat-initial">${escHtml(name[0]||'?')}</span>`;
+  return `<span class="q-cat-pill${size==='lg'?' q-cat-pill-lg':''}">
+    <span class="q-cat-img-wrap">${thumb}</span>
+    <span class="q-cat-label">${escHtml(name)}</span>
+  </span>`;
+}
+
 function badgeForClass(cls) {
   const map = { CLASS_200:'badge-blue', CLASS_400:'badge-amber', CLASS_600:'badge-purple', CLASS_800:'badge-red', CLASS_1000:'badge-green' };
   return `<span class="badge ${map[cls]||'badge-gray'}">${cls||'—'}</span>`;
@@ -859,7 +874,7 @@ function renderQTable(qs, list) {
           <div class="q-text q-text-truncate" title="${escHtml(gq.question||'')}">${escHtml(gq.question||'—')}</div>
           <div class="q-answer">${escHtml(gq.correctAnswer||'')}</div>
         </td>
-        <td><span class="q-cat-name">${escHtml(getCatName(list,q.categoryId))}</span></td>
+        <td>${catPill(list, q.categoryId)}</td>
         <td>${badgeForClass(q.class)}</td>
         <td><span class="badge badge-blue">${q.points||0} pts</span></td>
         <td>${mediaCell}</td>
@@ -896,7 +911,7 @@ function renderQCard(q, list) {
     <div class="q-card ${sel?'selected':''}" data-q-id="${q.questionId}">
       <div class="q-card-media">${media}</div>
       <div class="q-card-body">
-        <div class="q-card-badges">${badgeForClass(q.class)}<span class="badge badge-blue">${q.points||0} pts</span><span class="badge badge-gray">${escHtml(getCatName(list,q.categoryId))}</span></div>
+        <div class="q-card-badges">${catPill(list, q.categoryId, 'lg')}${badgeForClass(q.class)}<span class="badge badge-blue">${q.points||0} pts</span></div>
         <div class="q-card-question">${escHtml(gq.question||'—')}</div>
         <div class="q-card-answer"><small>Correct Answer</small><span>${escHtml(gq.correctAnswer||'—')}</span></div>
         <div class="q-card-actions">

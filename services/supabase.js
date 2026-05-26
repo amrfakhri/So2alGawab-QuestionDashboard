@@ -160,9 +160,10 @@ const SupabaseDB = {
     ]);
 
     const categories = (catRes.data || []).map(c => ({
-      id:    c.id,
-      name:  c.name,
-      order: c.sort_order
+      id:        c.id,
+      name:      c.name,
+      order:     c.sort_order,
+      imagePath: c.image_path || null,
     }));
 
     if (!qRes.data || qRes.data.length === 0) {
@@ -404,7 +405,7 @@ const SupabaseDB = {
   async getCategories(listId) {
     const res = await _sb.from('categories').select('*').eq('list_id', listId).order('sort_order');
     _throwIfError(res, 'getCategories');
-    return (res.data || []).map(c => ({ id: c.id, name: c.name, order: c.sort_order }));
+    return (res.data || []).map(c => ({ id: c.id, name: c.name, order: c.sort_order, imagePath: c.image_path || null }));
   },
 
   /* ---- Move a single question to a different category / list ---- */
