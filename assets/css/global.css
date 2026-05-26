@@ -7,8 +7,8 @@
 :root {
   /* ── Backgrounds (cinematic dark, navy/violet undertone) ──────── */
   --bg:        rgb(5, 7, 15);
-  --panel:     rgb(10, 13, 31);
-  --surface:   rgb(16, 19, 38);
+  --panel:     #ffffff08;
+  --surface:   #ffffff08;
   --surface2:  rgb(22, 22, 28);
   --surface3:  rgb(30, 32, 48);
   --bg-glass:  rgba(58, 64, 84, 0.20);

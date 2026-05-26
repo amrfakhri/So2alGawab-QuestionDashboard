@@ -26,7 +26,7 @@ body.no-sidebar {
   top:    0;
   bottom: 0;
   width:  var(--sb-w);
-  background: linear-gradient(180deg, rgba(10, 13, 31, 0.60) 0%, rgba(5, 7, 15, 0.40) 100%);
+  background:var(--panel);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-right: 1px solid var(--border);
