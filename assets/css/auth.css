@@ -1,5 +1,6 @@
 /* ================================================================
    AUTH — index.html sign-in / sign-up page
+   Cinematic dark · gold CTA · IBM Plex Sans Arabic
    ================================================================ */
 
 /* ── Centered full-page layout ───────────────────────────────────── */
@@ -9,156 +10,181 @@ body {
   align-items: center;
   justify-content: center;
   padding: 24px;
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(245, 200, 75, 0.08) 0%, transparent 55%),
+    var(--bg);
 }
 
 /* ── Auth Card ───────────────────────────────────────────────────── */
 .auth-card {
   width: 100%;
   max-width: 400px;
-  background: #1e293b;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-xl);
   padding: 40px;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.60);
 }
 
 /* ── Logo / Brand ────────────────────────────────────────────────── */
 .logo         { text-align: center; margin-bottom: 32px; }
-.logo-icon    { display: flex; justify-content: center; margin-bottom: 12px; color: var(--blue, #2563eb); }
+.logo-icon    {
+  display:      flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.logo-icon-inner {
+  width:         48px;
+  height:        48px;
+  border-radius: var(--r-md);
+  background:    var(--grad-gold);
+  display:       grid;
+  place-items:   center;
+  color:         var(--fg-on-gold, rgb(10,13,31));
+  box-shadow:    var(--glow-gold-md);
+}
 .logo h1      { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-.logo p       { font-size: 14px; color: #64748b; }
+.logo h1 .accent { color: var(--gold-500); }
+.logo p       { font-size: 14px; color: var(--text3); }
 
 /* ── Form Elements ───────────────────────────────────────────────── */
 .form-group  { margin-bottom: 16px; }
 label {
-  display: block;
-  font-size: 13px;
-  font-weight: 500;
-  color: #94a3b8;
-  margin-bottom: 6px;
+  display:     block;
+  font-size:   13px;
+  font-weight: 600;
+  color:       var(--text2);
+  margin-bottom: 7px;
 }
 input {
-  width: 100%;
-  background: #0f172a;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px;
-  padding: 11px 14px;
-  color: #f1f5f9;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  transition: .15s;
+  width:      100%;
+  height:     44px;
+  background: var(--panel);
+  border:     1px solid var(--border);
+  border-radius: var(--r-md);
+  padding:    0 16px;
+  color:      var(--text);
+  font-family: var(--font);
+  font-size:  14px;
+  transition: border-color var(--t-fast, .15s), background var(--t-fast, .15s), box-shadow var(--t-fast, .15s);
 }
 input:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+  outline:      none;
+  border-color: var(--gold-700, rgb(201,155,47));
+  background:   var(--surface);
+  box-shadow:   0 0 0 3px rgba(245,200,75,0.10);
 }
-input::placeholder { color: #475569; }
+input::placeholder { color: var(--text4, rgb(122,128,148)); }
 
 /* ── Auth Button ─────────────────────────────────────────────────── */
 .btn-primary {
-  width: 100%;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  padding: 12px;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: .15s;
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
+  width:        100%;
+  background:   var(--grad-gold);
+  color:        var(--fg-on-gold, rgb(10,13,31));
+  border:       none;
+  border-radius: var(--r-pill);
+  padding:      13px;
+  font-family:  var(--font);
+  font-size:    14px;
+  font-weight:  700;
+  cursor:       pointer;
+  transition:   filter .15s, transform .12s cubic-bezier(.34,1.56,.64,1);
+  margin-top:   8px;
+  display:      flex;
+  align-items:  center;
   justify-content: center;
-  gap: 8px;
+  gap:          8px;
+  box-shadow:   var(--glow-gold-md), var(--shadow-inset);
 }
-.btn-primary:hover    { background: #1d4ed8; }
-.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primary:hover    { filter: brightness(1.07); transform: translateY(-1px); }
+.btn-primary:active   { transform: scale(0.98); }
+.btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; filter: none; }
 
 /* ── Alert ───────────────────────────────────────────────────────── */
 .alert {
-  border-radius: 10px;
-  padding: 12px 14px;
-  font-size: 13px;
+  border-radius: var(--r-sm);
+  padding:       12px 16px;
+  font-size:     13px;
   margin-bottom: 16px;
-  display: none;
+  display:       none;
 }
-.alert.error   { background: rgba(239,68,68,0.1);  border: 1px solid rgba(239,68,68,0.3);  color: #fca5a5; }
-.alert.success { background: rgba(34,197,94,0.1);  border: 1px solid rgba(34,197,94,0.3);  color: #86efac; }
+.alert.error   { background: var(--red-bg);   border: 1px solid rgba(255,92,122,0.30);  color: var(--red); }
+.alert.success { background: var(--green-bg); border: 1px solid var(--green-br);         color: var(--green); }
 
 /* ── Loading Spinner ─────────────────────────────────────────────── */
 .spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: white;
+  width:         16px;
+  height:        16px;
+  border:        2px solid rgba(10,13,31,0.30);
+  border-top-color: var(--fg-on-gold, rgb(10,13,31));
   border-radius: 50%;
-  animation: spin .6s linear infinite;
-  display: none;
+  animation:     spin .6s linear infinite;
+  display:       none;
 }
 
 /* ── Signup Note ─────────────────────────────────────────────────── */
 .signup-note {
-  margin-top: 20px;
-  text-align: center;
-  font-size: 12px;
-  color: #475569;
+  margin-top:  20px;
+  text-align:  center;
+  font-size:   12px;
+  color:       var(--text3);
   line-height: 1.6;
 }
 
 /* ── Set Password Screen ─────────────────────────────────────────── */
 .set-password-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(34,197,94,0.1);
-  border: 1px solid rgba(34,197,94,0.3);
-  color: #86efac;
-  border-radius: 99px;
-  padding: 4px 12px;
-  font-size: 12px;
-  font-weight: 600;
+  display:      inline-flex;
+  align-items:  center;
+  gap:          6px;
+  background:   var(--green-bg);
+  border:       1px solid var(--green-br);
+  color:        var(--green);
+  border-radius: var(--r-pill);
+  padding:      5px 14px;
+  font-size:    12px;
+  font-weight:  600;
   margin-bottom: 20px;
 }
 .password-rules {
-  font-size: 11px;
-  color: #475569;
+  font-size:  11px;
+  color:      var(--text3);
   margin-top: 6px;
   line-height: 1.5;
 }
 
 /* ── Pending Approval Overlay ────────────────────────────────────── */
 .pending-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: #0f172a;
-  align-items: center;
+  display:         none;
+  position:        fixed;
+  inset:           0;
+  background:      rgba(5, 7, 15, 0.97);
+  align-items:     center;
   justify-content: center;
-  padding: 24px;
+  padding:         24px;
 }
 .pending-card {
-  max-width: 400px;
-  width: 100%;
-  background: #1e293b;
-  border: 1px solid rgba(245,158,11,0.3);
-  border-radius: 20px;
-  padding: 40px;
-  text-align: center;
+  max-width:     400px;
+  width:         100%;
+  background:    var(--surface);
+  border:        1px solid rgba(245,200,75,0.25);
+  border-radius: var(--r-xl);
+  padding:       40px;
+  text-align:    center;
+  box-shadow:    var(--shadow-lg);
 }
-.pending-icon { display: flex; justify-content: center; margin-bottom: 16px; color: var(--amber, #f59e0b); }
-.pending-card h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: #f1f5f9; }
-.pending-card p  { font-size: 14px; color: #94a3b8; line-height: 1.6; margin-bottom: 24px; }
+.pending-icon { display: flex; justify-content: center; margin-bottom: 16px; color: var(--gold-500); }
+.pending-card h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.pending-card p  { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 24px; }
 .btn-sign-out {
-  background: rgba(239,68,68,0.12);
-  color: #f87171;
-  border: 1px solid rgba(239,68,68,0.3);
-  border-radius: 10px;
-  padding: 10px 20px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  background:    var(--red-bg);
+  color:         var(--red);
+  border:        1px solid rgba(255,92,122,0.30);
+  border-radius: var(--r-pill);
+  padding:       10px 22px;
+  font-size:     13px;
+  font-weight:   600;
+  cursor:        pointer;
+  font-family:   var(--font);
+  transition:    background .15s;
 }
+.btn-sign-out:hover { background: rgba(255,92,122,0.20); }

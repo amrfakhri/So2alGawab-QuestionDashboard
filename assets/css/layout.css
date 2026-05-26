@@ -4,8 +4,10 @@
 
 /* ── Shared Topbar ──────────────────────────────────────────────── */
 .topbar {
-  height: 56px;
-  background: var(--panel);
+  height: 58px;
+  background: rgba(10, 13, 31, 0.60);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -14,10 +16,9 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(12px);
 }
 .topbar-logo         { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-.topbar-logo .accent { color: var(--blue); }
+.topbar-logo .accent { color: var(--gold-500); }
 .topbar-sep          { color: var(--text3); font-size: 18px; }
 .topbar-title        { font-size: 15px; font-weight: 600; color: var(--text2); }
 .topbar-right        { display: flex; align-items: center; gap: 8px; margin-left: auto; }
@@ -38,8 +39,9 @@
 
 /* ── Lists Screen Topbar (database.html screen 1) ───────────────── */
 .ls-topbar {
-  height: 56px;
-  background: var(--panel);
+  height: 58px;
+  background: rgba(10, 13, 31, 0.60);
+  backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -48,7 +50,7 @@
   flex-shrink: 0;
 }
 .ls-logo         { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 7px; }
-.ls-logo .accent { color: var(--blue); }
+.ls-logo .accent { color: var(--gold-500); }
 .ls-topbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 
 /* ── Editor Topbar (database.html screen 2) ─────────────────────── */
@@ -66,42 +68,44 @@
 }
 .breadcrumb         { display: flex; align-items: center; gap: 6px; font-size: 13px; flex-shrink: 0; }
 .bc-home            { color: var(--text2); cursor: pointer; transition: color .15s; }
-.bc-home:hover      { color: var(--blue); }
+.bc-home:hover      { color: var(--gold-500); }
 .bc-sep             { color: var(--text3); font-size: 11px; }
 .bc-current         { font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ed-divider         { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
 .topbar-actions     { display: flex; gap: 6px; margin-left: auto; flex-shrink: 0; }
 
 /* ── Page Layout (users.html) ────────────────────────────────────── */
-.page { max-width: 1200px; margin: 0 auto; padding: 32px 28px; }
+.page { max-width: 1320px; margin: 0 auto; padding: 48px 48px 80px; }
 .page-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 40px;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 24px;
 }
-.page-header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-.page-header p  { color: var(--text2); font-size: 13px; }
+.page-header h1 {
+  font-size: 30px; font-weight: 700; margin-bottom: 5px;
+  display: flex; align-items: center; gap: 12px;
+  letter-spacing: -0.02em; line-height: 1.1;
+}
+.page-header h1 .page-icon {
+  width: 36px; height: 36px;
+  border-radius: var(--r-sm);
+  background: var(--gold-tint);
+  color: var(--gold-500);
+  border: 1px solid var(--line-gold);
+  display: grid; place-items: center;
+}
+.page-header p  { color: var(--text3); font-size: 15px; max-width: 640px; }
 
 /* ── Stats Row (users.html) ──────────────────────────────────────── */
 .stats-row {
   display: flex;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
   flex-wrap: wrap;
 }
-.stat-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 20px;
-  flex: 1;
-  min-width: 130px;
-}
-.stat-card .val { font-size: 26px; font-weight: 700; line-height: 1; }
-.stat-card .lbl { font-size: 12px; color: var(--text2); margin-top: 4px; }
 
 /* ── App Screens (database.html) ─────────────────────────────────── */
 .screen        { display: none; height: 100vh; overflow: hidden; flex-direction: column; }

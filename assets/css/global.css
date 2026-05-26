@@ -1,79 +1,199 @@
 /* ================================================================
    GLOBAL — Design Tokens · Reset · Base Typography · Animations
+   Cinematic dark theme — gold-led brand · IBM Plex Sans Arabic
    ================================================================ */
 
 /* ── Design Tokens ──────────────────────────────────────────────── */
 :root {
-  /* Backgrounds */
-  --bg:        #0f172a;
-  --panel:     #080f1e;
-  --surface:   #1e293b;
-  --surface2:  #263348;
-  --surface3:  #2d3f5e;
+  /* ── Backgrounds (cinematic dark, navy/violet undertone) ──────── */
+  --bg:        rgb(5, 7, 15);
+  --panel:     rgb(10, 13, 31);
+  --surface:   rgb(16, 19, 38);
+  --surface2:  rgb(22, 22, 28);
+  --surface3:  rgb(30, 32, 48);
+  --bg-glass:  rgba(58, 64, 84, 0.20);
 
-  /* Borders */
-  --border:    rgba(255,255,255,0.08);
-  --border2:   rgba(255,255,255,0.14);
+  /* ── Borders ─────────────────────────────────────────────────── */
+  --border:    rgba(255, 255, 255, 0.08);
+  --border2:   rgba(255, 255, 255, 0.13);
 
-  /* Text */
-  --text:      #f1f5f9;
-  --text2:     #94a3b8;
-  --text3:     #64748b;
+  /* ── Text ────────────────────────────────────────────────────── */
+  --text:      rgb(255, 255, 255);
+  --text2:     rgb(235, 235, 245);
+  --text3:     rgb(168, 174, 193);
+  --text4:     rgb(122, 128, 148);
 
-  /* Brand colors */
-  --blue:      #2563eb;
-  --blue-h:    #1d4ed8;
-  --blue-bg:   rgba(37,99,235,0.1);
-  --blue-br:   rgba(37,99,235,0.3);
-  --blue-s:    rgba(37,99,235,0.12);
-  --green:     #22c55e;
-  --green-bg:  rgba(34,197,94,0.1);
-  --green-br:  rgba(34,197,94,0.3);
-  --amber:     #f59e0b;
-  --amber-bg:  rgba(245,158,11,0.1);
-  --red:       #ef4444;
-  --red-bg:    rgba(239,68,68,0.1);
-  --purple:    #a855f7;
-  --gold:      #fbbf24;
-  --indigo:    #6366f1;
+  /* ── Gold (primary accent / CTA) ─────────────────────────────── */
+  --gold:          rgb(245, 200, 75);
+  --gold-500:      rgb(245, 200, 75);
+  --gold-600:      rgb(217, 169, 46);
+  --gold-700:      rgb(201, 155, 47);
+  --gold-100:      rgb(254, 230, 133);
+  --gold-tint:     rgba(245, 200, 75, 0.10);
+  --gold-bg:       rgba(245, 200, 75, 0.10);
+  --gold-br:       rgba(245, 200, 75, 0.35);
+  --line-gold:     rgba(245, 200, 75, 0.40);
+  --gold-glow:     rgba(245, 200, 75, 0.40);
+  --fg-on-gold:    rgb(10, 13, 31);
 
-  /* Typography */
-  --font:      'Inter', sans-serif;
-  --font-ar:   'Cairo', sans-serif;
+  /* ── Gradients ───────────────────────────────────────────────── */
+  --grad-gold:     linear-gradient(180deg, rgb(246, 211, 102) 0%, rgb(217, 169, 46) 100%);
+  --grad-gold-soft: linear-gradient(180deg, rgba(245,200,75,0.16) 0%, rgba(245,200,75,0.04) 100%);
+  --grad-spotlight: radial-gradient(120% 80% at 50% 0%, rgba(245, 200, 75, 0.14) 0%, transparent 60%);
+  --grad-glass:    linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
 
-  /* Border radii */
-  --radius:    10px;
-  --radius-sm: 7px;
-  --r-xl:      16px;
+  /* ── Glows ───────────────────────────────────────────────────── */
+  --glow-gold-sm:  0 0 16px rgba(245, 200, 75, 0.30);
+  --glow-gold-md:  0 0 32px rgba(245, 200, 75, 0.40);
+  --shadow-inset:  inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
-  /* Shadows */
-  --shadow:    0 2px 12px rgba(0,0,0,0.35);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.55);
+  /* ── Blue (team / secondary accent) ──────────────────────────── */
+  --blue:      rgb(91, 141, 239);
+  --blue-deep: rgb(63, 115, 217);
+  --blue-h:    rgb(63, 115, 217);
+  --blue-bg:   rgba(91, 141, 239, 0.12);
+  --blue-br:   rgba(91, 141, 239, 0.30);
+  --blue-s:    rgba(91, 141, 239, 0.12);
+
+  /* ── Status colors ───────────────────────────────────────────── */
+  --green:     rgb(34, 197, 94);
+  --green-bg:  rgba(34, 197, 94, 0.12);
+  --green-br:  rgba(34, 197, 94, 0.30);
+  --amber:     rgb(245, 158, 11);
+  --amber-bg:  rgba(245, 158, 11, 0.12);
+  --red:       rgb(255, 92, 122);
+  --red-bg:    rgba(255, 92, 122, 0.12);
+  --purple:    rgb(167, 139, 250);
+  --indigo:    rgb(99, 102, 241);
+  --violet:    rgb(167, 139, 250);
+
+  /* ── Typography ──────────────────────────────────────────────── */
+  --font:      'IBM Plex Sans Arabic', 'Cairo', system-ui, -apple-system, sans-serif;
+  --font-ar:   'IBM Plex Sans Arabic', 'Cairo', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, 'JetBrains Mono', Menlo, monospace;
+
+  /* ── Border radii ────────────────────────────────────────────── */
+  --radius:    12px;
+  --radius-sm: 8px;
+  --r-xs:      8px;
+  --r-sm:      12px;
+  --r-md:      16px;
+  --r-lg:      20px;
+  --r-xl:      24px;
+  --r-pill:    9999px;
+
+  /* ── Shadows ─────────────────────────────────────────────────── */
+  --shadow:          0 4px 16px rgba(0, 0, 0, 0.50);
+  --shadow-lg:       0 8px 32px rgba(0, 0, 0, 0.70);
+  --shadow-card:     0 4px 12px rgba(0, 0, 0, 0.40);
+  --shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.70);
+  --shadow-inset:    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  /* ── Spacing scale (4/8 base) ────────────────────────────────── */
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  20px;
+  --s-6:  24px;
+  --s-7:  32px;
+  --s-8:  40px;
+  --s-9:  48px;
+  --s-10: 64px;
+  --s-11: 80px;
+
+  /* ── Lammah variable aliases ────────────────────────────────── */
+  --bg-0:  var(--bg);
+  --bg-1:  var(--panel);
+  --bg-2:  var(--surface);
+  --bg-3:  var(--surface2);
+  --fg-1:  var(--text);
+  --fg-2:  var(--text2);
+  --fg-3:  var(--text3);
+  --fg-4:  var(--text4, rgb(122, 128, 148));
+  --line-1: var(--border);
+  --line-2: var(--border2);
+  --line-3: rgba(255, 255, 255, 0.04);
+
+  /* ── Team colors ────────────────────────────────────────────── */
+  --team-gold:      rgb(245, 200, 75);
+  --team-blue:      rgb(91, 141, 239);
+  --team-blue-deep: rgb(63, 115, 217);
+  --team-tint-gold: rgba(245, 200, 75, 0.10);
+  --team-tint-blue: rgba(91, 141, 239, 0.10);
+
+  /* ── Status semantic ─────────────────────────────────────────── */
+  --success:      rgb(34, 197, 94);
+  --success-soft: rgb(61, 214, 140);
+  --success-bg:   rgba(34, 197, 94, 0.20);
+  --danger:       rgb(255, 92, 122);
+  --danger-soft:  rgb(255, 107, 87);
+  --danger-bg:    rgba(255, 92, 122, 0.20);
+  --violet-deep:  rgb(165, 110, 255);
+
+  /* ── Category illustration backgrounds ──────────────────────── */
+  --cat-coral:   rgb(255, 92, 122);
+  --cat-green:   rgb(188, 229, 145);
+  --cat-blue:    rgb(91, 141, 239);
+  --cat-rose:    rgb(234, 211, 205);
+  --cat-orange:  rgb(220, 103, 77);
+  --cat-mustard: rgb(255, 198, 55);
+  --cat-navy:    rgb(0, 55, 84);
+  --cat-peach:   rgb(255, 220, 185);
+
+  /* ── Additional glows ────────────────────────────────────────── */
+  --glow-gold-lg: 0 8px 48px rgba(245, 200, 75, 0.50);
+  --glow-blue:    0 0 24px rgba(91, 141, 239, 0.40);
+  --glow-danger:  0 0 24px rgba(255, 92, 122, 0.40);
+
+  /* ── Type scale ──────────────────────────────────────────────── */
+  --t-display-size:   44px;  --t-display-weight: 700;  --t-display-line:  1.05;
+  --t-h1-size:        32px;  --t-h1-weight:      700;  --t-h1-line:       1.15;
+  --t-h2-size:        26px;  --t-h2-weight:      700;  --t-h2-line:       1.20;
+  --t-h3-size:        22px;  --t-h3-weight:      700;  --t-h3-line:       1.25;
+  --t-h4-size:        18px;  --t-h4-weight:      700;  --t-h4-line:       1.30;
+  --t-body-size:      16px;  --t-body-weight:    400;  --t-body-line:     1.50;
+  --t-label-size:     14px;  --t-label-weight:   600;  --t-label-line:    1.30;
+  --t-caption-size:   13px;  --t-caption-weight: 400;  --t-caption-line:  1.40;
+  --t-overline-size:  11px;  --t-overline-weight: 600; --t-overline-line: 1.20;
+  --t-overline-track: 0.02em;
+
+  /* ── Motion ──────────────────────────────────────────────────── */
+  --ease-out:    cubic-bezier(0.16, 1, 0.30, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --t-fast:  120ms;
+  --t-med:   220ms;
+  --t-slow:  360ms;
 }
 
-/* ── Database editor — darker theme override ────────────────────── */
+/* ── Darker override for DB / media pages ───────────────────────── */
 body.db-page {
-  --bg:        #0c0f17;
-  --panel:     #070a12;
-  --surface:   #111827;
-  --surface2:  #1a2236;
-  --surface3:  #222d42;
-  --text:      #eef1f7;
-  --text2:     #8892a4;
-  --text3:     #4e5b6e;
-  --blue:      #3b82f6;
-  --blue-h:    #2563eb;
-  --blue-bg:   rgba(59,130,246,0.1);
-  --blue-br:   rgba(59,130,246,0.28);
-  --blue-s:    rgba(59,130,246,0.12);
-  --border:    rgba(255,255,255,0.07);
-  --border2:   rgba(255,255,255,0.13);
+  --bg:        rgb(5, 7, 15);
+  --panel:     rgb(8, 10, 22);
+  --surface:   rgb(13, 16, 32);
+  --surface2:  rgb(18, 20, 38);
+  --surface3:  rgb(24, 26, 44);
+  --border:    rgba(255, 255, 255, 0.07);
+  --border2:   rgba(255, 255, 255, 0.12);
+  --text:      rgb(238, 241, 247);
+  --text2:     rgb(200, 208, 224);
+  --text3:     rgb(120, 134, 158);
 }
 
 /* ── Reset ──────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { height: 100%; }
-body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+body {
+  font-family: var(--font);
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(245, 200, 75, 0.06) 0%, transparent 55%),
+    var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
 button { font-family: var(--font); cursor: pointer; border: none; outline: none; }
 input, select, textarea { font-family: var(--font); outline: none; }
 a { color: inherit; text-decoration: none; }
@@ -84,12 +204,12 @@ input[type="file"] { display: none; }
 /* ── Scrollbar ──────────────────────────────────────────────────── */
 ::-webkit-scrollbar         { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track   { background: transparent; }
-::-webkit-scrollbar-thumb   { background: var(--surface3); border-radius: 99px; }
+::-webkit-scrollbar-thumb   { background: var(--surface3); border-radius: var(--r-pill); }
 
 /* ── Focus ──────────────────────────────────────────────────────── */
 button:focus-visible, input:focus-visible,
 select:focus-visible, textarea:focus-visible {
-  outline: 2px solid var(--blue);
+  outline: 2px solid var(--gold-500);
   outline-offset: 2px;
 }
 
@@ -98,17 +218,16 @@ select:focus-visible, textarea:focus-visible {
 .text-required { color: var(--red); }
 .text-error    { color: var(--red); }
 .text-green    { color: var(--green); }
-.text-indigo   { color: #a5b4fc; }
+.text-indigo   { color: var(--purple); }
+.text-gold     { color: var(--gold-500); }
 
 /* ── Lucide Icon System ──────────────────────────────────────────── */
-/* Lucide replaces <i data-lucide="..."> with <svg class="lucide ..."> */
 .lucide {
   display: inline-block;
   flex-shrink: 0;
-  vertical-align: -0.125em; /* align optically with text baseline */
+  vertical-align: -0.125em;
   stroke: currentColor;
   fill: none;
-  /* default 16 px — override with .icon-* modifier classes */
   width: 16px;
   height: 16px;
 }
@@ -122,7 +241,22 @@ select:focus-visible, textarea:focus-visible {
 .icon-2xl { width: 36px; height: 36px; }
 .icon-3xl { width: 48px; height: 48px; }
 
+/* ── Typography utilities (Lammah design system) ─────────────────── */
+.ds-display  { font-size: var(--t-display-size);  font-weight: var(--t-display-weight);  line-height: var(--t-display-line);  letter-spacing: -0.01em; }
+.ds-h1       { font-size: var(--t-h1-size);       font-weight: var(--t-h1-weight);       line-height: var(--t-h1-line);       letter-spacing: -0.01em; }
+.ds-h2       { font-size: var(--t-h2-size);       font-weight: var(--t-h2-weight);       line-height: var(--t-h2-line); }
+.ds-h3       { font-size: var(--t-h3-size);       font-weight: var(--t-h3-weight);       line-height: var(--t-h3-line); }
+.ds-h4       { font-size: var(--t-h4-size);       font-weight: var(--t-h4-weight);       line-height: var(--t-h4-line); }
+.ds-body     { font-size: var(--t-body-size);     font-weight: var(--t-body-weight);     line-height: var(--t-body-line); }
+.ds-label    { font-size: var(--t-label-size);    font-weight: var(--t-label-weight);    line-height: var(--t-label-line); }
+.ds-caption  { font-size: var(--t-caption-size);  font-weight: var(--t-caption-weight);  line-height: var(--t-caption-line);  color: var(--text3); }
+.ds-overline { font-size: var(--t-overline-size); font-weight: var(--t-overline-weight); line-height: var(--t-overline-line); letter-spacing: var(--t-overline-track); text-transform: uppercase; color: var(--text3); }
+.ds-mono     { font-family: var(--font-mono); }
+
 /* ── Animations ─────────────────────────────────────────────────── */
 @keyframes spin    { to { transform: rotate(360deg); } }
 @keyframes pulse   { 0%,100%{opacity:1;} 50%{opacity:.4;} }
 @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } }
+@keyframes pulseDot { 50% { opacity: 0.35; } }
+@keyframes dropIn  { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }

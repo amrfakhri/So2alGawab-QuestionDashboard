@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>So2alGawab — Media Library</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/css/global.css">
 <link rel="stylesheet" href="./assets/css/layout.css">
 <link rel="stylesheet" href="./assets/css/components.css">
@@ -31,11 +31,11 @@
 .ml-card.ml-selected .ml-card-check { opacity: 1; }
 .ml-card-check input[type="checkbox"] {
   width: 17px; height: 17px; cursor: pointer;
-  accent-color: var(--blue, #3b82f6);
+  accent-color: var(--gold-500, #f5c84b);
   border-radius: 4px;
 }
 .ml-card.ml-selected {
-  outline: 2px solid var(--blue, #3b82f6);
+  outline: 2px solid var(--gold-500, #f5c84b);
   outline-offset: -2px;
 }
 .ml-card.ml-selected .ml-card-media { opacity: .85; }
@@ -44,9 +44,9 @@
 }
 .ml-list-check input[type="checkbox"] {
   width: 15px; height: 15px; cursor: pointer;
-  accent-color: var(--blue, #3b82f6);
+  accent-color: var(--gold-500, #f5c84b);
 }
-.ml-list-row.ml-selected { background: rgba(59,130,246,.07); }
+.ml-list-row.ml-selected { background: rgba(245,200,75,.07); }
 </style>
 </head>
 <body class="db-page ml-page">
@@ -174,9 +174,9 @@
   <div id="mlResultMeta" style="font-size:11px;color:var(--text3);margin-bottom:12px;"></div>
 
   <!-- Bulk action bar (visible when ≥1 item selected) -->
-  <div id="mlBulkBar" style="display:none;align-items:center;gap:8px;padding:10px 14px;background:var(--surface-raised,#f0f4ff);border:1.5px solid var(--blue,#3b82f6);border-radius:10px;margin-bottom:12px;flex-wrap:wrap;">
+  <div id="mlBulkBar" style="display:none;align-items:center;gap:8px;padding:10px 14px;background:var(--gold-tint,rgba(245,200,75,0.10));border:1.5px solid var(--gold-500,#f5c84b);border-radius:10px;margin-bottom:12px;flex-wrap:wrap;">
     <label style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;">
-      <input type="checkbox" id="mlSelectAll" style="width:15px;height:15px;cursor:pointer;accent-color:var(--blue,#3b82f6);">
+      <input type="checkbox" id="mlSelectAll" style="width:15px;height:15px;cursor:pointer;accent-color:var(--gold-500,#f5c84b);">
       <span id="mlSelCount" style="font-size:13px;font-weight:600;color:var(--text1);">0 selected</span>
     </label>
     <div style="flex:1;min-width:8px;"></div>
@@ -309,7 +309,7 @@ function showConfirm(title, msg) {
 
 /* ── Media type helpers ────────────────────────────────────────── */
 const TYPE_META = {
-  image: { icon: 'image',  color: 'var(--blue)',  label: 'IMAGE' },
+  image: { icon: 'image',  color: 'var(--gold-500)',  label: 'IMAGE' },
   audio: { icon: 'music',  color: 'var(--purple)', label: 'AUDIO' },
   video: { icon: 'video',  color: 'var(--amber)', label: 'VIDEO' }
 };

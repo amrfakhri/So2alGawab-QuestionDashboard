@@ -1,22 +1,299 @@
 <!DOCTYPE html>
-<html lang="en" dir="rtl">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Game Questions Viewer</title>
+<title>Overview — So2alGawab</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/css/global.css">
 <link rel="stylesheet" href="./assets/css/layout.css">
-<link rel="stylesheet" href="./assets/css/dashboard.css">
+<link rel="stylesheet" href="./assets/css/components.css">
 <link rel="stylesheet" href="./assets/css/sidebar.css">
 <link rel="stylesheet" href="./assets/css/responsive.css">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="./services/supabase.js"></script>
 <script src="./services/auth.js"></script>
 <script src="./services/sidebar.js"></script>
+
+<style>
+/* ── Page-level layout ────────────────────────────────────── */
+.main-content {
+  min-height: 100vh;
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(245, 200, 75, 0.06) 0%, transparent 55%),
+    var(--bg);
+}
+.overview-page {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 48px 48px 80px;
+}
+
+/* ── Page header ──────────────────────────────────────────── */
+.page-hdr {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+.page-hdr-left { display: flex; flex-direction: column; gap: 8px; }
+.page-hdr-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.page-hdr-icon {
+  width: 36px; height: 36px;
+  border-radius: var(--r-sm);
+  background: var(--gold-tint);
+  color: var(--gold-500);
+  border: 1px solid var(--line-gold);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.page-hdr-subtitle { color: var(--text3); font-size: 15px; max-width: 640px; }
+.page-hdr-actions  { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* ── KPI grid ─────────────────────────────────────────────── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 0;
+}
+.kpi-card {
+  position: relative;
+  padding: 24px;
+  border-radius: var(--r-lg);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 50%);
+  pointer-events: none;
+}
+.kpi-icon {
+  width: 40px; height: 40px;
+  border-radius: var(--r-sm);
+  display: grid; place-items: center;
+  margin-bottom: 16px;
+  position: relative; z-index: 1;
+}
+.kpi-icon.gold   { background: var(--gold-tint); color: var(--gold-500); border: 1px solid var(--line-gold); }
+.kpi-icon.blue   { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-br); }
+.kpi-icon.violet { background: rgba(167,139,250,0.16); color: var(--purple); border: 1px solid rgba(167,139,250,0.25); }
+.kpi-icon.green  { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-br); }
+.kpi-icon.coral  { background: var(--red-bg); color: var(--red); border: 1px solid rgba(255,92,122,0.25); }
+.kpi-value {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  position: relative; z-index: 1;
+}
+.kpi-label { color: var(--text3); font-size: 13px; margin-top: 8px; position: relative; z-index: 1; }
+.kpi-trend {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 600;
+  margin-top: 12px;
+  color: var(--success-soft, rgb(61,214,140));
+  position: relative; z-index: 1;
+}
+.kpi-trend.neutral { color: var(--text3); }
+
+/* ── Section helpers ──────────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+.section-title {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 18px; font-weight: 700;
+}
+.hr { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
+
+/* ── Live pulse indicator ─────────────────────────────────── */
+.live-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  flex-shrink: 0;
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+/* ── Category bar rows ────────────────────────────────────── */
+.cat-rows-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 8px 0;
+  box-shadow: var(--shadow-card);
+}
+.cat-row {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line-3, rgba(255,255,255,0.04));
+}
+.cat-row:last-child { border-bottom: 0; }
+.cat-mini {
+  width: 36px; height: 36px;
+  border-radius: var(--r-sm);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  font-size: 18px;
+}
+.cat-mini img { width: 86%; height: 86%; object-fit: contain; transform: rotate(-10deg); }
+.cat-row .cat-name { flex: 1; font-weight: 600; font-size: 14px; }
+.cat-row .bar-wrap {
+  flex: 2; height: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+.cat-row .bar { height: 100%; background: var(--grad-gold); border-radius: var(--r-pill); }
+.cat-row .cat-count {
+  font-size: 13px;
+  color: var(--text2);
+  min-width: 36px;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Activity feed ────────────────────────────────────────── */
+.activity-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 12px;
+  box-shadow: var(--shadow-card);
+}
+.activity-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  transition: background var(--t-fast, .15s);
+}
+.activity-row:hover { background: rgba(255,255,255,0.02); }
+.activity-bullet {
+  width: 32px; height: 32px;
+  border-radius: var(--r-sm);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.activity-text { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.activity-text strong { color: var(--text); font-weight: 600; }
+.activity-time { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* ── Two-column layout ────────────────────────────────────── */
+.col2 {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+}
+
+/* ── Recent list cards ────────────────────────────────────── */
+.recent-lists-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.list-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color var(--t-fast, .15s), transform var(--t-med, .2s) var(--ease-out, ease), box-shadow var(--t-med, .2s);
+}
+.list-card:hover {
+  border-color: var(--border2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,0,0,.55);
+}
+.list-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 20px 14px;
+}
+.list-thumb {
+  width: 48px; height: 48px;
+  border-radius: var(--r-sm);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  font-size: 22px;
+}
+.list-thumb img { width: 86%; height: 86%; object-fit: contain; transform: rotate(-12deg); }
+.list-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  direction: rtl;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-card-meta { font-size: 11px; color: var(--text3); margin-top: 3px; }
+.list-stats {
+  display: flex;
+  gap: 20px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+}
+.list-stat-num  { font-size: 22px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; }
+.list-stat-lbl  { font-size: 11px; color: var(--text3); margin-top: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+
+/* ── Skeleton loader ──────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: var(--r-sm);
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ── Empty / error states ─────────────────────────────────── */
+.ov-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text3);
+  font-size: 13px;
+}
+
+@media (max-width: 1100px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .recent-lists-grid { grid-template-columns: repeat(2, 1fr); }
+  .col2 { grid-template-columns: 1fr; }
+  .overview-page { padding: 32px 24px 64px; }
+}
+@media (max-width: 640px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+  .recent-lists-grid { grid-template-columns: 1fr 1fr; }
+  .page-hdr { flex-direction: column; }
+}
+</style>
 </head>
 <body>
 
@@ -26,211 +303,516 @@
   <button class="sb-hamburger" id="sbToggle" type="button">
     <i data-lucide="menu" class="icon-md"></i>
   </button>
-  <span class="sb-mobile-title" id="sbMobileTitle">Overview</span>
+  <span class="sb-mobile-title">Overview</span>
 </div>
 
-<div class="container">
+<div class="main-content">
+  <div class="overview-page">
 
-    <div class="hero">
-        <h1><i data-lucide="gamepad-2" class="icon-xl"></i> Game Questions Dashboard</h1>
-        <p>Automatically loads gamedata1.json and lets you upload another JSON file anytime.</p>
-
-        <div class="upload-box">
-            <h2>Load Game Questions</h2>
-            <p>Select a question list from Supabase, or upload a local JSON file to preview.</p>
-            <div class="actions">
-                <select id="listSelector" class="list-selector">
-                    <option value="">— Select a List —</option>
-                </select>
-                <button class="button" id="loadSupabaseBtn">
-                    <i data-lucide="database" class="icon-sm"></i> Load List
-                </button>
-                <label class="button" for="fileInput">
-                    <i data-lucide="folder-open" class="icon-sm"></i> Upload JSON
-                </label>
-                <input type="file" id="fileInput" accept=".json">
-                <a class="button button-purple" href="./database.html">
-                    <i data-lucide="layout-dashboard" class="icon-sm"></i> Database
-                </a>
-            </div>
-            <div class="file-name" id="fileName">Connecting to Supabase…</div>
+    <!-- Page Header -->
+    <div class="page-hdr">
+      <div class="page-hdr-left">
+        <div class="page-hdr-title">
+          <div class="page-hdr-icon">
+            <i data-lucide="layout-dashboard" class="icon-md"></i>
+          </div>
+          Overview
         </div>
+        <p class="page-hdr-subtitle">At-a-glance health of your So2alGawab content — lists, questions, media, and live database status.</p>
+      </div>
+      <div class="page-hdr-actions">
+        <a href="./database.html" class="btn btn-ghost">
+          <i data-lucide="database" class="icon-sm"></i>
+          Database
+        </a>
+        <a href="./database.html" class="btn btn-primary">
+          <i data-lucide="plus" class="icon-sm"></i>
+          New Question List
+        </a>
+      </div>
     </div>
 
-    <div id="app">
-        <div class="empty">
-            Waiting for JSON upload...
-        </div>
+    <!-- KPI Grid -->
+    <div class="kpi-grid" id="kpiGrid">
+      <!-- skeleton -->
+      <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+      <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+      <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+      <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
     </div>
 
-</div>
+    <hr class="hr" />
+
+    <!-- Live DB Stats -->
+    <section style="margin-bottom:0">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="live-dot"></span>
+          Live Database Stats
+        </div>
+        <span style="font-size:12px;color:var(--text3)" id="dbRefreshLabel">Refreshes every 30 s</span>
+      </div>
+      <div class="kpi-grid" id="liveGrid">
+        <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+        <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+        <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+        <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+      </div>
+    </section>
+
+    <!-- Live Game Activity -->
+    <section>
+      <div class="section-header">
+        <div class="section-title">
+          <span class="live-dot"></span>
+          Live Game Activity
+        </div>
+        <span style="font-size:12px;color:var(--text3)">Refreshes every 30 s</span>
+      </div>
+      <div class="kpi-grid" id="sessionsGrid">
+        <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+        <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+        <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+        <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+      </div>
+    </section>
+
+    <hr class="hr" />
+
+    <!-- Two-column: categories + activity -->
+    <div class="col2">
+      <section>
+        <div class="section-header">
+          <div class="section-title">
+            <i data-lucide="trophy" class="icon-md" style="color:var(--gold-500)"></i>
+            Top categories by questions
+          </div>
+          <a href="./database.html" class="btn btn-sm btn-ghost">
+            View all
+            <i data-lucide="arrow-left" class="icon-sm"></i>
+          </a>
+        </div>
+        <div class="cat-rows-card" id="catRows">
+          <div class="ov-empty">Loading…</div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-header">
+          <div class="section-title">
+            <i data-lucide="activity" class="icon-md" style="color:var(--purple)"></i>
+            Recent activity
+          </div>
+        </div>
+        <div class="activity-card" id="activityFeed">
+          <div class="ov-empty">Loading…</div>
+        </div>
+      </section>
+    </div>
+
+    <hr class="hr" />
+
+    <!-- Recent lists strip -->
+    <section>
+      <div class="section-header">
+        <div class="section-title">
+          <i data-lucide="clock" class="icon-md" style="color:var(--text3)"></i>
+          Recently updated lists
+        </div>
+        <a href="./database.html" class="btn btn-sm btn-ghost">
+          Open Database
+          <i data-lucide="arrow-left" class="icon-sm"></i>
+        </a>
+      </div>
+      <div class="recent-lists-grid" id="recentLists">
+        <div class="list-card"><div class="skeleton" style="height:140px"></div></div>
+        <div class="list-card"><div class="skeleton" style="height:140px"></div></div>
+        <div class="list-card"><div class="skeleton" style="height:140px"></div></div>
+        <div class="list-card"><div class="skeleton" style="height:140px"></div></div>
+      </div>
+    </section>
+
+  </div><!-- /overview-page -->
+</div><!-- /main-content -->
+
+<!-- Toast -->
+<div class="toast-container" id="toastContainer"></div>
 
 <script>
+'use strict';
 
-const fileInput       = document.getElementById('fileInput');
-const fileName        = document.getElementById('fileName');
-const listSelector    = document.getElementById('listSelector');
-const loadSupabaseBtn = document.getElementById('loadSupabaseBtn');
+/* ── Helpers ──────────────────────────────────────────────── */
+const formatDate = v => {
+  if (!v) return '—';
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(v));
+};
 
-/* ---- Bootstrap: check auth then connect to Supabase ---- */
-async function initDashboard() {
-    const session = await Auth.requireAuth();
-    if (!session) return; // redirecting to login
+const formatBytes = bytes => {
+  if (!bytes) return '0 B';
+  if (bytes < 1024)      return `${bytes} B`;
+  if (bytes < 1024**2)   return `${(bytes/1024).toFixed(1)} KB`;
+  if (bytes < 1024**3)   return `${(bytes/1024**2).toFixed(1)} MB`;
+  return `${(bytes/1024**3).toFixed(2)} GB`;
+};
 
-    Sidebar.init('overview');
-    const role = await Auth.getRole();
-    Sidebar.setUser(session.user, role);
+const inferCategoryKey = text => {
+  const v = String(text || '').toLowerCase();
+  if (/اغاني|songs?/.test(v))                                           return 'songs';
+  if (/افلام|مسلسلات|movie|film|series|suits|potter|dragon|breaking|squid|got/.test(v)) return 'movies-series';
+  if (/كورة|رياض|football|sport|player/.test(v))                        return 'football';
+  if (/سيارات|cars?/.test(v))                                            return 'cars';
+  if (/تكنولو|tech/.test(v))                                             return 'tech';
+  if (/جغرف|جغراف|خرائط|geo|map/.test(v))                               return 'geography';
+  if (/انمي|anime/.test(v))                                              return 'anime';
+  if (/اسلام|إسلام|قرآن|انبياء/.test(v))                                return 'islamic';
+  if (/game|جيمينج|gaming/.test(v))                                      return 'video-games';
+  if (/world.?cup|كاس|كأس/.test(v))                                      return 'world-cup';
+  return 'general-info';
+};
 
-    try {
-        const ok = await window.SupabaseDB.ping();
-        if (!ok) {
-            fileName.innerHTML = '<i data-lucide="triangle-alert" class="icon-sm"></i> Could not reach Supabase. Upload a local JSON file to preview.';
-            lucide.createIcons();
-            return;
-        }
+const CAT_BG = {
+  'general-info':  'var(--cat-mustard)',
+  'songs':         'var(--cat-coral)',
+  'movies-series': 'var(--cat-blue)',
+  'tech':          'var(--cat-navy)',
+  'football':      'var(--cat-green)',
+  'cars':          'var(--cat-orange)',
+  'geography':     'var(--cat-peach)',
+  'anime':         'var(--cat-rose)',
+  'islamic':       'var(--cat-green)',
+  'video-games':   'var(--cat-blue)',
+  'world-cup':     'var(--cat-mustard)',
+  'got':           'var(--cat-navy)',
+  'beauty':        'var(--cat-rose)',
+  'flags':         'var(--cat-coral)',
+  'breaking-bad':  'var(--cat-mustard)',
+  'squid-game':    'var(--cat-coral)',
+};
 
-        const lists = await window.SupabaseDB.getLists();
+const CAT_EMOJI = {
+  'songs':         '🎵',
+  'movies-series': '🎬',
+  'football':      '⚽',
+  'cars':          '🚗',
+  'tech':          '💻',
+  'geography':     '🌍',
+  'anime':         '🎭',
+  'islamic':       '🌙',
+  'video-games':   '🎮',
+  'world-cup':     '🏆',
+  'general-info':  '💡',
+};
 
-        if (!lists.length) {
-            fileName.innerHTML = 'No question lists found. Create one in the <a href="./database.html" style="color:#60a5fa;">Database</a>.';
-            return;
-        }
-
-        lists.forEach(list => {
-            const opt = document.createElement('option');
-            opt.value       = list.id;
-            opt.textContent = `${list.title} (${list.questions.length} questions)`;
-            listSelector.appendChild(opt);
-        });
-
-        // Auto-load the most recent list
-        listSelector.value = lists[0].id;
-        await loadList(lists[0].id, lists[0].title);
-
-    } catch (err) {
-        console.error(err);
-        fileName.innerHTML = '<i data-lucide="triangle-alert" class="icon-sm"></i> Supabase error: ' + err.message;
-        lucide.createIcons();
-    }
+function showToast(msg, type = 'success') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" class="icon-sm"></i> ${msg}`;
+  c.appendChild(t);
+  lucide.createIcons({ nodes: [t] });
+  setTimeout(() => t.remove(), 3500);
 }
 
-/* ---- Load a specific list from Supabase ---- */
-async function loadList(listId, listTitle) {
-    if (!listId) return;
-    fileName.innerHTML = 'Loading…';
-    try {
-        const list = await window.SupabaseDB.getList(listId);
-        if (!list) throw new Error('List not found');
+/* ── Load all dashboard data (ported from Lammah data.jsx) ── */
+async function loadOverviewData() {
+  const started = performance.now();
 
-        const catMap = {};
-        (list.categories || []).forEach(c => { catMap[c.id] = c.name; });
+  const [listsRes, questionsRes, categoriesRes, mediaRes, usersRes, sessionRes] = await Promise.all([
+    window._sb.from('lists').select('id, title, created_at, updated_at').order('updated_at', { ascending: false }),
+    window._sb.from('questions').select('id, list_id, category_id, created_at, updated_at').is('deleted_at', null),
+    window._sb.from('categories').select('id, list_id, name, sort_order').order('sort_order'),
+    window._sb.from('question_media').select('id, question_id, media_type, file_size, created_at').order('created_at', { ascending: false }),
+    window._sb.from('user_roles').select('user_id, role, email, created_at').order('created_at', { ascending: false }),
+    window._sb.auth.getSession(),
+  ]);
 
-        fileName.innerHTML = `<i data-lucide="check-circle" class="icon-sm"></i> Loaded: <strong>${list.title}</strong> — ${list.questions.length} questions`;
-        lucide.createIcons();
-        render(list.questions, catMap);
-    } catch (err) {
-        console.error(err);
-        fileName.innerHTML = `<i data-lucide="x-circle" class="icon-sm"></i> Failed to load list: ` + err.message;
-        lucide.createIcons();
-    }
+  if (listsRes.error)     throw new Error('lists: '         + listsRes.error.message);
+  if (questionsRes.error) throw new Error('questions: '     + questionsRes.error.message);
+  if (categoriesRes.error) throw new Error('categories: '  + categoriesRes.error.message);
+
+  const lists      = listsRes.data      || [];
+  const questions  = questionsRes.data  || [];
+  const categories = categoriesRes.data || [];
+  const media      = mediaRes.data      || [];
+  const users      = usersRes.data      || [];
+  const responseMs = Math.round(performance.now() - started);
+
+  /* ── DASHBOARD_STATS ── */
+  const stats = {
+    questions : questions.length,
+    lists     : lists.length,
+    media     : media.length,
+    editors   : users.filter(u => ['super_admin','admin','editor'].includes(u.role)).length,
+    mediaSize : formatBytes(media.reduce((s,r) => s + Number(r.file_size || 0), 0)),
+    responseMs,
+  };
+
+  /* ── QUESTION_LISTS (4 most recent) ── */
+  const qByList  = {};
+  const catByList = {};
+  questions.forEach(q  => { qByList[q.list_id]   = (qByList[q.list_id]   || 0) + 1; });
+  categories.forEach(c => { catByList[c.list_id] = (catByList[c.list_id] || 0) + 1; });
+
+  const recentLists = lists.slice(0, 4).map(l => ({
+    id        : l.id,
+    nameAr    : l.title || 'Untitled list',
+    category  : inferCategoryKey(l.title),
+    updated   : formatDate(l.updated_at),
+    questions : qByList[l.id]   || 0,
+    categories: catByList[l.id] || 0,
+  }));
+
+  /* ── CATEGORY_USAGE (top 6 by question count) ── */
+  const catUsage = categories
+    .map(c => ({
+      id     : c.id,
+      nameAr : c.name,
+      catKey : inferCategoryKey(c.name),
+      count  : questions.filter(q => q.category_id === c.id).length,
+      pct    : 0,
+    }))
+    .sort((a,b) => b.count - a.count)
+    .slice(0, 6);
+  const maxCount = Math.max(...catUsage.map(c => c.count), 1);
+  catUsage.forEach(c => { c.pct = Math.max(8, Math.round((c.count / maxCount) * 100)); });
+
+  /* ── ACTIVITY (recent list edits + media uploads) ── */
+  const activity = [
+    ...lists.slice(0, 3).map(l => ({
+      who   : 'Database',
+      what  : 'updated list',
+      target: l.title || 'Untitled list',
+      when  : formatDate(l.updated_at),
+      type  : 'edit',
+    })),
+    ...media.slice(0, 2).map(m => ({
+      who   : 'Storage',
+      what  : 'uploaded',
+      target: String(m.id).slice(0, 8) + '…',
+      when  : formatDate(m.created_at),
+      type  : 'upload',
+    })),
+  ].slice(0, 5);
+
+  /* ── LIVE STATS (7-day window, derived from loaded data) ── */
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const newQuestions = questions.filter(q => new Date(q.created_at) > sevenDaysAgo).length;
+  const newLists     = lists.filter(l => new Date(l.updated_at) > sevenDaysAgo).length;
+  const newMedia     = media.filter(m => new Date(m.created_at) > sevenDaysAgo).length;
+  const liveStats    = { newQuestions, newLists, newMedia, responseMs };
+
+  return { stats, recentLists, catUsage, activity, liveStats };
 }
 
-/* ---- Button: load selected list ---- */
-loadSupabaseBtn.addEventListener('click', () => {
-    const id = listSelector.value;
-    if (id) loadList(id);
-});
+/* ── Load live game-session data ──────────────────────────── */
+async function loadActiveSessions() {
+  const fiveMinAgo    = new Date(Date.now() -  5 * 60 * 1000).toISOString();
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-/* ---- File upload: local JSON preview (kept for convenience) ---- */
-fileInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-        const text = await file.text();
-        const json = JSON.parse(text);
-        fileName.innerHTML = `<i data-lucide="folder-open" class="icon-sm"></i> Loaded local file: ${file.name}`;
-        lucide.createIcons();
-        render(json.data || [], {});
-    } catch (err) {
-        fileName.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> Invalid JSON file';
-        lucide.createIcons();
+  const [liveRes, peakRes, avgRes] = await Promise.all([
+    window._sb.from('game_sessions')
+      .select('id, active_players_count')
+      .gt('active_players_count', 0)
+      .gt('updated_at', fiveMinAgo),
+    window._sb.from('game_sessions')
+      .select('peak_players_count')
+      .order('peak_players_count', { ascending: false })
+      .limit(1),
+    window._sb.from('game_sessions')
+      .select('peak_players_count')
+      .gt('created_at', thirtyDaysAgo)
+      .gt('peak_players_count', 0),
+  ]);
+
+  const live         = liveRes.data || [];
+  const liveCount    = live.length;
+  const totalDevices = live.reduce((s, r) => s + Number(r.active_players_count || 0), 0);
+  const peakAllTime  = peakRes.data?.[0]?.peak_players_count ?? 0;
+  const avgArr       = avgRes.data || [];
+  const avgDevices   = avgArr.length
+    ? (avgArr.reduce((s, r) => s + Number(r.peak_players_count || 0), 0) / avgArr.length).toFixed(1)
+    : '—';
+
+  return { liveCount, totalDevices, peakAllTime, avgDevices };
+}
+
+/* ── Render functions ─────────────────────────────────────── */
+function renderKPI(stats) {
+  const KPI = [
+    { label: 'Total Questions', value: stats.questions.toLocaleString(), trend: 'Live from Supabase', icon: 'help-circle', color: 'gold' },
+    { label: 'Question Lists',  value: stats.lists.toLocaleString(),     trend: 'public.lists',       icon: 'layers',      color: 'blue' },
+    { label: 'Media Files',     value: stats.media.toLocaleString(),     trend: stats.mediaSize,      icon: 'image',       color: 'violet' },
+    { label: 'Active Editors',  value: stats.editors.toLocaleString(),   trend: 'user_roles',         icon: 'users',       color: 'green' },
+  ];
+  document.getElementById('kpiGrid').innerHTML = KPI.map(k => `
+    <div class="kpi-card">
+      <div class="kpi-icon ${k.color}"><i data-lucide="${k.icon}" class="icon-md"></i></div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-trend neutral"><i data-lucide="arrow-up" class="icon-xs"></i>${k.trend}</div>
+    </div>
+  `).join('');
+}
+
+function renderLiveStats(live) {
+  const LIVE = [
+    { label: 'New Questions', value: live.newQuestions, sub: 'Added in the last 7 days',  icon: 'help-circle', color: 'gold' },
+    { label: 'Lists Updated', value: live.newLists,     sub: 'Updated in the last 7 days', icon: 'layers',     color: 'blue' },
+    { label: 'Media Uploaded',value: live.newMedia,     sub: 'Uploaded in the last 7 days',icon: 'upload',     color: 'violet' },
+    { label: 'DB Response',   value: live.responseMs + ' ms', sub: 'Last query round-trip', icon: 'zap',       color: 'green' },
+  ];
+  document.getElementById('liveGrid').innerHTML = LIVE.map(k => `
+    <div class="kpi-card">
+      <div class="kpi-icon ${k.color}"><i data-lucide="${k.icon}" class="icon-md"></i></div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-trend neutral"><i data-lucide="arrow-up" class="icon-xs"></i>${k.sub}</div>
+    </div>
+  `).join('');
+}
+
+function renderCategories(catUsage) {
+  if (!catUsage.length) {
+    document.getElementById('catRows').innerHTML = '<div class="ov-empty">No categories yet.</div>';
+    return;
+  }
+  document.getElementById('catRows').innerHTML = catUsage.map(c => `
+    <div class="cat-row">
+      <div class="cat-mini" style="background:${CAT_BG[c.catKey] || 'var(--surface)'}">
+        ${CAT_EMOJI[c.catKey] || '❓'}
+      </div>
+      <div class="cat-name">${c.nameAr}</div>
+      <div class="bar-wrap"><div class="bar" style="width:${c.pct}%"></div></div>
+      <div class="cat-count">${c.count}</div>
+    </div>
+  `).join('');
+}
+
+function renderActivity(activity) {
+  if (!activity.length) {
+    document.getElementById('activityFeed').innerHTML = '<div class="ov-empty">No recent activity.</div>';
+    return;
+  }
+  const TONES = {
+    edit  : { bg: 'rgba(255,255,255,0.05)', c: 'var(--text3)',    icon: 'pencil' },
+    upload: { bg: 'var(--blue-bg)',          c: 'var(--blue)',     icon: 'upload' },
+    add   : { bg: 'var(--green-bg)',         c: 'var(--green)',    icon: 'plus' },
+  };
+  document.getElementById('activityFeed').innerHTML = activity.map(a => {
+    const t = TONES[a.type] || TONES.edit;
+    return `
+      <div class="activity-row">
+        <div class="activity-bullet" style="background:${t.bg};color:${t.c}">
+          <i data-lucide="${t.icon}" class="icon-sm"></i>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="activity-text"><strong>${a.who}</strong> ${a.what} <strong>${a.target}</strong></div>
+          <div class="activity-time">${a.when}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderRecentLists(lists) {
+  if (!lists.length) {
+    document.getElementById('recentLists').innerHTML =
+      '<div class="list-card" style="padding:40px;text-align:center;color:var(--text3)">No lists yet.</div>';
+    return;
+  }
+  document.getElementById('recentLists').innerHTML = lists.map(list => `
+    <div class="list-card" onclick="location.href='./database.html'">
+      <div class="list-card-head">
+        <div class="list-thumb" style="background:${CAT_BG[list.category] || 'var(--surface)'}">
+          ${CAT_EMOJI[list.category] || '📋'}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="list-card-title">${list.nameAr}</div>
+          <div class="list-card-meta">Updated ${list.updated}</div>
+        </div>
+      </div>
+      <div class="list-stats">
+        <div>
+          <div class="list-stat-num">${list.questions}</div>
+          <div class="list-stat-lbl">Questions</div>
+        </div>
+        <div>
+          <div class="list-stat-num">${list.categories}</div>
+          <div class="list-stat-lbl">Categories</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderActiveSessions({ liveCount, totalDevices, peakAllTime, avgDevices }) {
+  const cards = [
+    { label: 'Live Sessions',           value: liveCount,    sub: 'Active in the last 5 min',   icon: 'wifi',        color: 'green',  live: true },
+    { label: 'Connected Devices',       value: totalDevices, sub: 'Viewers + presenter devices', icon: 'monitor',     color: 'blue' },
+    { label: 'Peak Devices (All Time)', value: peakAllTime,  sub: 'Highest ever per session',    icon: 'trending-up', color: 'gold' },
+    { label: 'Avg Devices / Session',   value: avgDevices,   sub: 'Last 30 days',                icon: 'bar-chart-2', color: 'violet' },
+  ];
+  document.getElementById('sessionsGrid').innerHTML = cards.map(k => `
+    <div class="kpi-card">
+      <div class="kpi-icon ${k.color}"><i data-lucide="${k.icon}" class="icon-md"></i></div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-trend ${k.live ? '' : 'neutral'}" style="gap:6px;align-items:center">
+        ${k.live ? '<span class="live-dot" style="width:6px;height:6px;flex-shrink:0"></span>' : '<i data-lucide="minus" class="icon-xs"></i>'}
+        ${k.sub}
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ── Bootstrap ─────────────────────────────────────────────── */
+async function init() {
+  const session = await Auth.requireAuth();
+  if (!session) return;
+
+  Sidebar.init('overview');
+  const role = await Auth.getRole();
+  Sidebar.setUser(session.user, role);
+
+  lucide.createIcons();
+
+  async function refresh() {
+    const [overviewResult, sessionsResult] = await Promise.allSettled([
+      loadOverviewData(),
+      loadActiveSessions(),
+    ]);
+
+    if (overviewResult.status === 'fulfilled') {
+      const { stats, recentLists, catUsage, activity, liveStats } = overviewResult.value;
+      renderKPI(stats);
+      renderLiveStats(liveStats);
+      renderCategories(catUsage);
+      renderActivity(activity);
+      renderRecentLists(recentLists);
+      document.getElementById('dbRefreshLabel').textContent =
+        'Last updated ' + new Date().toLocaleTimeString();
+    } else {
+      console.error('[Overview]', overviewResult.reason);
+      showToast('Failed to load data: ' + overviewResult.reason.message, 'error');
     }
-});
 
-/* ---- Render questions grouped by category ---- */
-function render(items, catMap) {
-    const grouped = {};
-    items.forEach(item => {
-        const cat = item.categoryId || 'Unknown';
-        (grouped[cat] = grouped[cat] || []).push(item);
-    });
-
-    const app = document.getElementById('app');
-    app.innerHTML = '';
-
-    const catIds = Object.keys(grouped);
-    if (!catIds.length) {
-        app.innerHTML = '<div class="empty">No questions found.</div>';
-        return;
+    if (sessionsResult.status === 'fulfilled') {
+      renderActiveSessions(sessionsResult.value);
+    } else {
+      console.warn('[Overview] game_sessions unavailable:', sessionsResult.reason?.message);
+      renderActiveSessions({ liveCount: 0, totalDevices: 0, peakAllTime: 0, avgDevices: '—' });
     }
-
-    catIds.forEach(catId => {
-        const section = document.createElement('section');
-        section.className = 'category';
-        const title = catMap[catId] || catId;
-        section.innerHTML = `
-            <div class="category-title">${title}</div>
-            <div class="grid">
-                ${grouped[catId].map(item => createCard(item)).join('')}
-            </div>
-        `;
-        app.appendChild(section);
-    });
 
     lucide.createIcons();
+  }
+
+  await refresh();
+
+  // Auto-refresh every 30 s
+  setInterval(refresh, 30000);
 }
 
-function createCard(item) {
-    const q = item.GamesQuestion || {};
-
-    let media = '';
-    if (q.image && q.image[0]) {
-        media = `<img src="${q.image[0]}" alt="">`;
-    } else if (q.video && q.video[0]) {
-        media = `<video controls><source src="${q.video[0]}" type="video/mp4"></video>`;
-    }
-
-    const audio = (q.audio && q.audio[0])
-        ? `<audio controls><source src="${q.audio[0]}"></audio>`
-        : '';
-
-    return `
-        <div class="card">
-            ${media}
-            <div class="content">
-                <div class="badges">
-                    <div class="badge"><i data-lucide="star" class="icon-xs"></i> ${item.points || 0} Points</div>
-                    <div class="badge">${item.buttonClick || ''}</div>
-                    <div class="badge">${q.questionTypeView || ''}</div>
-                </div>
-                <div class="question">${q.question || ''}</div>
-                <div class="answer">
-                    <small>Correct Answer</small>
-                    ${q.correctAnswer || ''}
-                </div>
-                ${audio}
-                <div class="meta">
-                    <div>Class: ${q.class || '-'}</div>
-                    <div>Layout: ${q.layoutTemplate || '-'}</div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-initDashboard().then(() => lucide.createIcons());
-
+init();
 </script>
-
 </body>
 </html>

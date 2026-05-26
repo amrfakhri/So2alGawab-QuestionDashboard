@@ -198,7 +198,7 @@ const Auth = {
           ">
             <span style="
               width:28px;height:28px;border-radius:50%;
-              background:var(--blue,#2563eb);
+              background:var(--gold-500,#f5c84b);color:var(--fg-on-gold,rgb(10,13,31));
               display:flex;align-items:center;justify-content:center;
               font-size:12px;font-weight:700;flex-shrink:0;
             ">${user.email[0].toUpperCase()}</span>
