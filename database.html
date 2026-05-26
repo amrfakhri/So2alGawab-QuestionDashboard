@@ -769,10 +769,14 @@ function renderCategoriesBar() {
         <button class="cat-tab ${isActive?'active':''}" data-cat-id="${cat.id}" draggable="true" title="${escHtml(cat.name)}">
           ${escHtml(cat.name)}
           <span class="cat-count">${count}</span>
-          <span class="cat-actions">
-            <span class="icon-btn" data-action="rename-cat" data-id="${cat.id}" title="Rename">${icon('pencil', 'icon-sm')}</span>
-            <span class="icon-btn" data-action="move-cat" data-id="${cat.id}" title="Move to list">${icon('arrow-right-left', 'icon-sm')}</span>
-            <span class="icon-btn danger" data-action="delete-cat" data-id="${cat.id}" title="Delete">${icon('x', 'icon-sm')}</span>
+          <span class="cat-more-wrap">
+            <span class="cat-more-btn" data-action="open-cat-menu" data-id="${cat.id}" title="More actions">${icon('more-horizontal', 'icon-xs')}</span>
+            <div class="cat-ctx-menu" data-menu-id="${cat.id}">
+              <button class="cat-ctx-item" data-action="rename-cat" data-id="${cat.id}">${icon('pencil', 'icon-sm')} Rename</button>
+              <button class="cat-ctx-item" data-action="move-cat"   data-id="${cat.id}">${icon('arrow-right-left', 'icon-sm')} Move to list</button>
+              <div class="cat-ctx-sep"></div>
+              <button class="cat-ctx-item danger" data-action="delete-cat" data-id="${cat.id}">${icon('trash-2', 'icon-sm')} Delete</button>
+            </div>
           </span>
         </button>
       `;
@@ -1655,6 +1659,14 @@ async function exportListById(listId) {
    EVENT HANDLERS
 ===================================================== */
 async function handleAction(action, dataset) {
+  if (action === 'open-cat-menu') {
+    const id = dataset.id;
+    document.querySelectorAll('.cat-ctx-menu').forEach(m => {
+      if (m.dataset.menuId !== id) m.classList.remove('open');
+    });
+    document.querySelector(`.cat-ctx-menu[data-menu-id="${id}"]`)?.classList.toggle('open');
+    return;
+  }
   if (action === 'open-list')  { openListEditor(dataset.id); return; }
   if (action === 'rename-list'){ openNewListModal(dataset.id); return; }
   if (action === 'export-list'){ exportListById(dataset.id); return; }
@@ -1720,6 +1732,10 @@ async function handleAction(action, dataset) {
 }
 
 document.addEventListener('click', async e => {
+  if (!e.target.closest('.cat-more-wrap')) {
+    document.querySelectorAll('.cat-ctx-menu.open').forEach(m => m.classList.remove('open'));
+  }
+
   const target = e.target.closest('[data-action]');
   if (target) { await handleAction(target.dataset.action, target.dataset); return; }
 

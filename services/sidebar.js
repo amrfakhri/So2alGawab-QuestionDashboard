@@ -91,6 +91,9 @@ const Sidebar = {
           <div class="sb-menu-role-wrap">
             <span class="sb-role" id="sbMenuRole"></span>
           </div>
+          <a class="sb-menu-item" href="./profile.html">
+            <i data-lucide="user-circle" class="icon-sm"></i> My Profile
+          </a>
           <div class="sb-menu-sep"></div>
           <button class="sb-menu-item danger" id="sbSignOut" type="button">
             <i data-lucide="log-out" class="icon-sm"></i> Sign Out

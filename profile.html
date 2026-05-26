@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Profile — So2alGawab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/global.css">
+<link rel="stylesheet" href="./assets/css/layout.css">
+<link rel="stylesheet" href="./assets/css/components.css">
+<link rel="stylesheet" href="./assets/css/forms.css">
+<link rel="stylesheet" href="./assets/css/sidebar.css">
+<link rel="stylesheet" href="./assets/css/responsive.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="./services/supabase.js"></script>
+<script src="./services/auth.js"></script>
+<script src="./services/sidebar.js"></script>
+
+<style>
+/* ── Profile layout ───────────────────────────────────────── */
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 20px;
+  max-width: 860px;
+}
+@media (max-width: 900px) { .profile-grid { grid-template-columns: 1fr; } }
+
+/* ── Profile card ─────────────────────────────────────────── */
+.prof-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%), var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 28px;
+  box-shadow: var(--shadow-card);
+}
+.prof-card-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text3);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Identity row ─────────────────────────────────────────── */
+.prof-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.prof-avatar {
+  width:  60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--grad-gold);
+  color: var(--fg-on-gold);
+  font-size: 22px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--glow-gold-sm);
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+.prof-name  { font-size: 16px; font-weight: 700; color: var(--text); }
+.prof-email { font-size: 12px; color: var(--text3); margin-top: 3px; word-break: break-all; }
+
+/* ── Detail rows ──────────────────────────────────────────── */
+.prof-rows { display: flex; flex-direction: column; }
+.prof-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+}
+.prof-row:last-child { border-bottom: none; }
+.prof-row-lbl { font-size: 13px; color: var(--text3); font-weight: 500; }
+.prof-row-val { font-size: 13px; color: var(--text2); text-align: right; }
+
+/* ── Security card ────────────────────────────────────────── */
+.sec-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.sec-row:first-child { padding-top: 0; }
+.sec-row:last-child  { border-bottom: none; padding-bottom: 0; }
+.sec-row-lbl { font-size: 14px; font-weight: 600; color: var(--text); }
+.sec-row-sub { font-size: 12px; color: var(--text3); margin-top: 3px; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="appSidebar"></aside>
+<div class="sb-overlay" id="sbOverlay"></div>
+<div class="sb-mobile-bar">
+  <button class="sb-hamburger" id="sbToggle" type="button">
+    <i data-lucide="menu" class="icon-md"></i>
+  </button>
+  <span class="sb-mobile-title">My Profile</span>
+</div>
+
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h1>
+        <i data-lucide="user-circle" class="icon-xl page-icon"></i>
+        My Profile
+      </h1>
+      <p>Manage your account details and security settings.</p>
+    </div>
+    <a href="./dashboard.html" class="btn btn-ghost">
+      <i data-lucide="arrow-left" class="icon-sm"></i>
+      Dashboard
+    </a>
+  </div>
+
+  <div class="profile-grid">
+
+    <!-- Account card -->
+    <div class="prof-card">
+      <div class="prof-card-label">Account</div>
+
+      <div class="prof-identity">
+        <div class="prof-avatar" id="profAvatar">?</div>
+        <div>
+          <div class="prof-name"  id="profName">Loading…</div>
+          <div class="prof-email" id="profEmail"></div>
+        </div>
+      </div>
+
+      <div class="prof-rows">
+        <div class="prof-row">
+          <span class="prof-row-lbl">Role</span>
+          <span class="sb-role" id="profRole"></span>
+        </div>
+        <div class="prof-row">
+          <span class="prof-row-lbl">Email</span>
+          <span class="prof-row-val" id="profDetailEmail">—</span>
+        </div>
+        <div class="prof-row">
+          <span class="prof-row-lbl">Member since</span>
+          <span class="prof-row-val" id="profSince">—</span>
+        </div>
+        <div class="prof-row">
+          <span class="prof-row-lbl">Last sign-in</span>
+          <span class="prof-row-val" id="profLastSignin">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security card -->
+    <div class="prof-card">
+      <div class="prof-card-label">Security</div>
+
+      <div class="sec-row">
+        <div>
+          <div class="sec-row-lbl">Password</div>
+          <div class="sec-row-sub">Update your account password</div>
+        </div>
+        <a href="./change-password.html" class="btn btn-ghost btn-sm">
+          <i data-lucide="key" class="icon-sm"></i>
+          Change
+        </a>
+      </div>
+
+      <div class="sec-row">
+        <div>
+          <div class="sec-row-lbl">Sign out</div>
+          <div class="sec-row-sub">Sign out of this device</div>
+        </div>
+        <button class="btn btn-sm" id="signOutBtn"
+          style="background:var(--red-bg);color:var(--red);border-color:rgba(255,92,122,.25)">
+          <i data-lucide="log-out" class="icon-sm"></i>
+          Sign Out
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /profile-grid -->
+</div><!-- /page -->
+
+<script>
+'use strict';
+
+const fmt = v => v
+  ? new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(v))
+  : '—';
+
+async function init() {
+  const session = await Auth.requireAuth();
+  if (!session) return;
+
+  Sidebar.init('profile');
+  const role = await Auth.getRole();
+  Sidebar.setUser(session.user, role);
+  lucide.createIcons();
+
+  const user     = session.user;
+  const email    = user.email || '';
+  const name     = user.user_metadata?.full_name || email.split('@')[0] || 'User';
+  const initials = email ? email[0].toUpperCase() : '?';
+
+  /* Avatar */
+  const avatarEl = document.getElementById('profAvatar');
+  avatarEl.textContent = initials;
+  const avatarBg = {
+    super_admin: 'var(--gold-500)',
+    admin:       'var(--amber)',
+    editor:      'var(--blue)',
+    viewer:      'var(--text3)',
+  };
+  if (avatarBg[role]) {
+    avatarEl.style.background = avatarBg[role];
+    avatarEl.style.color = (role === 'super_admin' || role === 'admin')
+      ? 'var(--fg-on-gold)'
+      : '#fff';
+    avatarEl.style.boxShadow = 'none';
+  }
+
+  /* Text fields */
+  document.getElementById('profName').textContent         = name;
+  document.getElementById('profEmail').textContent        = email;
+  document.getElementById('profDetailEmail').textContent  = email;
+  document.getElementById('profSince').textContent        = fmt(user.created_at);
+  document.getElementById('profLastSignin').textContent   = fmt(user.last_sign_in_at);
+
+  /* Role badge */
+  const roleEl = document.getElementById('profRole');
+  roleEl.className  = 'sb-role ' + (role || '').replace('_', '-');
+  roleEl.textContent = (role || '').replace('_', ' ').toUpperCase();
+
+  /* Sign out */
+  document.getElementById('signOutBtn').addEventListener('click', () => Auth.signOut());
+}
+
+init();
+</script>
+</body>
+</html>
