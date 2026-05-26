@@ -1,4 +1,4 @@
-# So2alGawab Question Dashboard — Feature Reference
+# Lammah Question Dashboard — Feature Reference
 
 Migration checklist for rebuilding this dashboard. Every feature, UI behaviour, and data operation is listed here.
 
@@ -335,7 +335,7 @@ Access: super_admin only.
 
 ## Sidebar (all pages except login)
 
-- Logo (So2alGawab icon + text, links to dashboard)
+- Logo (Game icon + text, links to dashboard)
 - Nav items: Overview, Database, Media Library, [separator], Users (admin+ only), Supabase Status
 - Active page indicator
 - Supabase connection badge: Connecting / Connected / Offline
