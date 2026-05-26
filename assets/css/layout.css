@@ -55,13 +55,14 @@
 
 /* ── Editor Topbar (database.html screen 2) ─────────────────────── */
 .editor-topbar {
+  padding: 40px;
   height: 52px;
   min-height: 52px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  /* padding: 0 16px; */
   gap: 10px;
   flex-shrink: 0;
   overflow-x: auto;
@@ -72,7 +73,7 @@
 .bc-sep             { color: var(--text3); font-size: 11px; }
 .bc-current         { font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ed-divider         { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
-.topbar-actions     { display: flex; gap: 6px; margin-left: auto; flex-shrink: 0; }
+.topbar-actions     { display: flex; gap: 16px; margin-left: auto; flex-shrink: 0; }
 
 /* ── Page Layout (users.html) ────────────────────────────────────── */
 .page { max-width: 1320px; margin: 0 auto; padding: 48px 48px 80px; }
@@ -123,7 +124,7 @@
   margin-bottom: 24px;
   flex-wrap: wrap;
 }
-.ls-actions-right { display: flex; gap: 8px; margin-left: auto; }
+.ls-actions-right { display: flex; gap: 16px; margin-left: auto; }
 
 /* ── Editor Content Areas (database.html) ────────────────────────── */
 .content-area      { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -133,7 +134,7 @@
 
 /* ── Categories Bar ──────────────────────────────────────────────── */
 .categories-bar {
-  padding: 0 16px;
+  padding: 20px 40px 20px 40px;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
   display: flex;

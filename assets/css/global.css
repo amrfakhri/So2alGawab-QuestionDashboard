@@ -168,7 +168,7 @@
 }
 
 /* ── Darker override for DB / media pages ───────────────────────── */
-body.db-page {
+/* body.db-page {
   --bg:        rgb(5, 7, 15);
   --panel:     rgb(8, 10, 22);
   --surface:   rgba(255, 255, 255, 0.08);
@@ -179,7 +179,7 @@ body.db-page {
   --text:      rgb(238, 241, 247);
   --text2:     rgb(200, 208, 224);
   --text3:     rgb(120, 134, 158);
-}
+} */
 
 /* ── Reset ──────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
