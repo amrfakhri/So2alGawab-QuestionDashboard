@@ -545,6 +545,14 @@
 
 <div class="toast-container" id="toastContainer"></div>
 
+<!-- Global category contextual menu (portal — position:fixed via JS) -->
+<div class="cat-ctx-menu" id="catCtxMenu">
+  <button class="cat-ctx-item" id="catMenuRename"></button>
+  <button class="cat-ctx-item" id="catMenuMove"></button>
+  <div class="cat-ctx-sep"></div>
+  <button class="cat-ctx-item danger" id="catMenuDelete"></button>
+</div>
+
 <script>
 'use strict';
 
@@ -771,12 +779,6 @@ function renderCategoriesBar() {
           <span class="cat-count">${count}</span>
           <span class="cat-more-wrap">
             <span class="cat-more-btn" data-action="open-cat-menu" data-id="${cat.id}" title="More actions">${icon('more-horizontal', 'icon-xs')}</span>
-            <div class="cat-ctx-menu" data-menu-id="${cat.id}">
-              <button class="cat-ctx-item" data-action="rename-cat" data-id="${cat.id}">${icon('pencil', 'icon-sm')} Rename</button>
-              <button class="cat-ctx-item" data-action="move-cat"   data-id="${cat.id}">${icon('arrow-right-left', 'icon-sm')} Move to list</button>
-              <div class="cat-ctx-sep"></div>
-              <button class="cat-ctx-item danger" data-action="delete-cat" data-id="${cat.id}">${icon('trash-2', 'icon-sm')} Delete</button>
-            </div>
           </span>
         </button>
       `;
@@ -1660,11 +1662,29 @@ async function exportListById(listId) {
 ===================================================== */
 async function handleAction(action, dataset) {
   if (action === 'open-cat-menu') {
-    const id = dataset.id;
-    document.querySelectorAll('.cat-ctx-menu').forEach(m => {
-      if (m.dataset.menuId !== id) m.classList.remove('open');
-    });
-    document.querySelector(`.cat-ctx-menu[data-menu-id="${id}"]`)?.classList.toggle('open');
+    const id  = dataset.id;
+    const btn = document.querySelector(`.cat-more-btn[data-id="${id}"]`);
+    const menu = document.getElementById('catCtxMenu');
+    if (!btn || !menu) return;
+
+    const rect = btn.getBoundingClientRect();
+    const menuW = 168;
+    const left  = Math.min(rect.left, window.innerWidth - menuW - 8);
+    menu.style.top  = (rect.bottom + 6) + 'px';
+    menu.style.left = left + 'px';
+    menu.dataset.catId = id;
+
+    // Populate item labels + icons
+    menu.querySelector('#catMenuRename').innerHTML =
+      `${icon('pencil', 'icon-sm')} Rename`;
+    menu.querySelector('#catMenuMove').innerHTML =
+      `${icon('arrow-right-left', 'icon-sm')} Move to list`;
+    menu.querySelector('#catMenuDelete').innerHTML =
+      `${icon('trash-2', 'icon-sm')} Delete`;
+    lucide.createIcons({ nodes: [menu] });
+
+    const wasOpen = menu.classList.contains('open');
+    menu.classList.toggle('open', !wasOpen);
     return;
   }
   if (action === 'open-list')  { openListEditor(dataset.id); return; }
@@ -1732,8 +1752,8 @@ async function handleAction(action, dataset) {
 }
 
 document.addEventListener('click', async e => {
-  if (!e.target.closest('.cat-more-wrap')) {
-    document.querySelectorAll('.cat-ctx-menu.open').forEach(m => m.classList.remove('open'));
+  if (!e.target.closest('#catCtxMenu') && !e.target.closest('.cat-more-wrap')) {
+    document.getElementById('catCtxMenu')?.classList.remove('open');
   }
 
   const target = e.target.closest('[data-action]');
@@ -2133,6 +2153,26 @@ async function init() {
   await DB.ping();
   loadListsScreen();
 }
+
+/* Wire global category context menu buttons */
+(function wireCatCtxMenu() {
+  const menu = document.getElementById('catCtxMenu');
+  if (!menu) return;
+  const close = () => menu.classList.remove('open');
+
+  document.getElementById('catMenuRename').addEventListener('click', () => {
+    const id = menu.dataset.catId; close();
+    handleAction('rename-cat', { id });
+  });
+  document.getElementById('catMenuMove').addEventListener('click', () => {
+    const id = menu.dataset.catId; close();
+    handleAction('move-cat', { id });
+  });
+  document.getElementById('catMenuDelete').addEventListener('click', () => {
+    const id = menu.dataset.catId; close();
+    handleAction('delete-cat', { id });
+  });
+})();
 
 init().then(() => lucide.createIcons());
 </script>

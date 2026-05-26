@@ -489,19 +489,10 @@ const CAT_BG = {
   'squid-game':    'var(--cat-coral)',
 };
 
-const CAT_EMOJI = {
-  'songs':         '🎵',
-  'movies-series': '🎬',
-  'football':      '⚽',
-  'cars':          '🚗',
-  'tech':          '💻',
-  'geography':     '🌍',
-  'anime':         '🎭',
-  'islamic':       '🌙',
-  'video-games':   '🎮',
-  'world-cup':     '🏆',
-  'general-info':  '💡',
-};
+/* Renders a category thumbnail — uses the DB image_path URL when present */
+const catImg = url => url
+  ? `<img src="${url}" alt="" loading="lazy" />`
+  : `<span style="font-size:18px;opacity:.5">◈</span>`;
 
 function showToast(msg, type = 'success') {
   const c = document.getElementById('toastContainer');
@@ -520,7 +511,7 @@ async function loadOverviewData() {
   const [listsRes, questionsRes, categoriesRes, mediaRes, usersRes, sessionRes] = await Promise.all([
     window._sb.from('lists').select('id, title, created_at, updated_at').order('updated_at', { ascending: false }),
     window._sb.from('questions').select('id, list_id, category_id, created_at, updated_at').is('deleted_at', null),
-    window._sb.from('categories').select('id, list_id, name, sort_order').order('sort_order'),
+    window._sb.from('categories').select('id, list_id, name, sort_order, image_path').order('sort_order'),
     window._sb.from('question_media').select('id, question_id, media_type, file_size, created_at').order('created_at', { ascending: false }),
     window._sb.from('user_roles').select('user_id, role, email, created_at').order('created_at', { ascending: false }),
     window._sb.auth.getSession(),
@@ -557,6 +548,7 @@ async function loadOverviewData() {
     id        : l.id,
     nameAr    : l.title || 'Untitled list',
     category  : inferCategoryKey(l.title),
+    imagePath : listImageMap[l.id] || null,
     updated   : formatDate(l.updated_at),
     questions : qByList[l.id]   || 0,
     categories: catByList[l.id] || 0,
@@ -565,16 +557,23 @@ async function loadOverviewData() {
   /* ── CATEGORY_USAGE (top 6 by question count) ── */
   const catUsage = categories
     .map(c => ({
-      id     : c.id,
-      nameAr : c.name,
-      catKey : inferCategoryKey(c.name),
-      count  : questions.filter(q => q.category_id === c.id).length,
-      pct    : 0,
+      id        : c.id,
+      nameAr    : c.name,
+      catKey    : inferCategoryKey(c.name),
+      imagePath : c.image_path || null,
+      count     : questions.filter(q => q.category_id === c.id).length,
+      pct       : 0,
     }))
     .sort((a,b) => b.count - a.count)
     .slice(0, 6);
   const maxCount = Math.max(...catUsage.map(c => c.count), 1);
   catUsage.forEach(c => { c.pct = Math.max(8, Math.round((c.count / maxCount) * 100)); });
+
+  /* Per-list: first category image (for recent-lists cards) */
+  const listImageMap = {};
+  categories.forEach(c => {
+    if (c.image_path && !listImageMap[c.list_id]) listImageMap[c.list_id] = c.image_path;
+  });
 
   /* ── ACTIVITY (recent list edits + media uploads) ── */
   const activity = [
@@ -679,7 +678,7 @@ function renderCategories(catUsage) {
   document.getElementById('catRows').innerHTML = catUsage.map(c => `
     <div class="cat-row">
       <div class="cat-mini" style="background:${CAT_BG[c.catKey] || 'var(--surface)'}">
-        ${CAT_EMOJI[c.catKey] || '❓'}
+        ${catImg(c.imagePath)}
       </div>
       <div class="cat-name">${c.nameAr}</div>
       <div class="bar-wrap"><div class="bar" style="width:${c.pct}%"></div></div>
@@ -724,7 +723,7 @@ function renderRecentLists(lists) {
     <div class="list-card" onclick="location.href='./database.html'">
       <div class="list-card-head">
         <div class="list-thumb" style="background:${CAT_BG[list.category] || 'var(--surface)'}">
-          ${CAT_EMOJI[list.category] || '📋'}
+          ${catImg(list.imagePath)}
         </div>
         <div style="flex:1;min-width:0">
           <div class="list-card-title">${list.nameAr}</div>
