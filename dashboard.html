@@ -544,6 +544,13 @@ async function loadOverviewData() {
   questions.forEach(q  => { qByList[q.list_id]   = (qByList[q.list_id]   || 0) + 1; });
   categories.forEach(c => { catByList[c.list_id] = (catByList[c.list_id] || 0) + 1; });
 
+ /* Per-list: first category image (for recent-lists cards) */
+ const listImageMap = {};
+  categories.forEach(c => {
+    if (c.image_path && !listImageMap[c.list_id]) listImageMap[c.list_id] = c.image_path;
+  });
+
+
   const recentLists = lists.slice(0, 4).map(l => ({
     id        : l.id,
     nameAr    : l.title || 'Untitled list',
@@ -569,12 +576,7 @@ async function loadOverviewData() {
   const maxCount = Math.max(...catUsage.map(c => c.count), 1);
   catUsage.forEach(c => { c.pct = Math.max(8, Math.round((c.count / maxCount) * 100)); });
 
-  /* Per-list: first category image (for recent-lists cards) */
-  const listImageMap = {};
-  categories.forEach(c => {
-    if (c.image_path && !listImageMap[c.list_id]) listImageMap[c.list_id] = c.image_path;
-  });
-
+ 
   /* ── ACTIVITY (recent list edits + media uploads) ── */
   const activity = [
     ...lists.slice(0, 3).map(l => ({
