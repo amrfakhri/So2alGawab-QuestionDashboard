@@ -201,7 +201,7 @@ const Auth = {
               background:var(--gold-500,#f5c84b);color:var(--fg-on-gold,rgb(10,13,31));
               display:flex;align-items:center;justify-content:center;
               font-size:12px;font-weight:700;flex-shrink:0;
-            ">${user.email[0].toUpperCase()}</span>
+            ">${getInitials(user.user_metadata?.full_name, user.email)}</span>
             <span style="font-size:12px;color:#cbd5e1;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${user.email}</span>
             <span style="
               background:${roleColor.bg};color:${roleColor.color};
@@ -229,3 +229,14 @@ const Auth = {
 };
 
 window.Auth = Auth;
+
+/* ---- Shared initials helper: "Amr Fakhri" → "AF", "Amr" → "A" ---- */
+function getInitials(name, email) {
+  const n = (name || '').trim();
+  if (n) {
+    const parts = n.split(/\s+/);
+    return parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0][0].toUpperCase();
+  }
+  return email ? email[0].toUpperCase() : '?';
+}
+window.getInitials = getInitials;

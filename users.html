@@ -291,7 +291,7 @@ function renderTable(users) {
 
   tbody.innerHTML = users.map(u => {
     const name    = u.full_name?.trim() || '—';
-    const initial = (u.full_name?.trim() || u.email)[0].toUpperCase();
+    const initial = getInitials(u.full_name?.trim(), u.email);
     const isMe    = u.id === currentUser?.id;
     const status  = getUserStatus(u);
     const avatarColor = roleAvatarColor(u.role);

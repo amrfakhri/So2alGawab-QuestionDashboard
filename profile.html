@@ -54,6 +54,14 @@
   gap: 16px;
   margin-bottom: 24px;
 }
+
+/* Avatar wrapper — holds the circle + upload overlay */
+.prof-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+}
 .prof-avatar {
   width:  60px;
   height: 60px;
@@ -65,11 +73,46 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  overflow: hidden;
   box-shadow: var(--glow-gold-sm);
   text-transform: uppercase;
   letter-spacing: .02em;
 }
+.prof-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Camera overlay — appears on hover */
+.prof-avatar-btn {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--t-fast);
+  cursor: pointer;
+  border: none;
+}
+.prof-avatar-wrap:hover .prof-avatar-btn { opacity: 1; }
+
+/* Upload status */
+.prof-upload-status {
+  font-size: 11px;
+  margin-top: 6px;
+  min-height: 16px;
+  display: none;
+}
+.prof-upload-status.uploading { display: block; color: var(--text3); }
+.prof-upload-status.error     { display: block; color: var(--red); }
+.prof-upload-status.success   { display: block; color: var(--green); }
+
 .prof-name  { font-size: 16px; font-weight: 700; color: var(--text); }
 .prof-email { font-size: 12px; color: var(--text3); margin-top: 3px; word-break: break-all; }
 
@@ -136,10 +179,17 @@
       <div class="prof-card-label">Account</div>
 
       <div class="prof-identity">
-        <div class="prof-avatar" id="profAvatar">?</div>
+        <div class="prof-avatar-wrap">
+          <div class="prof-avatar" id="profAvatar">?</div>
+          <button class="prof-avatar-btn" id="profAvatarBtn" title="Upload photo" type="button">
+            <i data-lucide="camera" class="icon-sm"></i>
+          </button>
+          <input type="file" id="profAvatarInput" accept="image/*">
+        </div>
         <div>
           <div class="prof-name"  id="profName">Loading…</div>
           <div class="prof-email" id="profEmail"></div>
+          <div class="prof-upload-status" id="profUploadStatus"></div>
         </div>
       </div>
 
@@ -201,6 +251,33 @@ const fmt = v => v
   ? new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(v))
   : '—';
 
+function setUploadStatus(msg, type) {
+  const el = document.getElementById('profUploadStatus');
+  el.className = 'prof-upload-status ' + type;
+  el.textContent = msg;
+}
+
+function renderAvatar(avatarEl, avatarUrl, initials, role) {
+  const avatarBg = {
+    super_admin: 'var(--gold-500)',
+    admin:       'var(--amber)',
+    editor:      'var(--blue)',
+    viewer:      'var(--text3)',
+  };
+  if (avatarUrl) {
+    avatarEl.innerHTML = `<img src="${avatarUrl}" alt="">`;
+    avatarEl.style.background = 'transparent';
+    avatarEl.style.boxShadow  = 'none';
+  } else {
+    avatarEl.textContent = initials;
+    if (avatarBg[role]) {
+      avatarEl.style.background = avatarBg[role];
+      avatarEl.style.color = (role === 'super_admin' || role === 'admin') ? 'var(--fg-on-gold)' : '#fff';
+      avatarEl.style.boxShadow = 'none';
+    }
+  }
+}
+
 async function init() {
   const session = await Auth.requireAuth();
   if (!session) return;
@@ -210,27 +287,15 @@ async function init() {
   Sidebar.setUser(session.user, role);
   lucide.createIcons();
 
-  const user     = session.user;
-  const email    = user.email || '';
-  const name     = user.user_metadata?.full_name || email.split('@')[0] || 'User';
-  const initials = email ? email[0].toUpperCase() : '?';
+  const user      = session.user;
+  const email     = user.email || '';
+  const name      = user.user_metadata?.full_name || email.split('@')[0] || 'User';
+  const initials  = getInitials(name, email);
+  const avatarUrl = user.user_metadata?.avatar_url || null;
 
   /* Avatar */
   const avatarEl = document.getElementById('profAvatar');
-  avatarEl.textContent = initials;
-  const avatarBg = {
-    super_admin: 'var(--gold-500)',
-    admin:       'var(--amber)',
-    editor:      'var(--blue)',
-    viewer:      'var(--text3)',
-  };
-  if (avatarBg[role]) {
-    avatarEl.style.background = avatarBg[role];
-    avatarEl.style.color = (role === 'super_admin' || role === 'admin')
-      ? 'var(--fg-on-gold)'
-      : '#fff';
-    avatarEl.style.boxShadow = 'none';
-  }
+  renderAvatar(avatarEl, avatarUrl, initials, role);
 
   /* Text fields */
   document.getElementById('profName').textContent         = name;
@@ -246,6 +311,50 @@ async function init() {
 
   /* Sign out */
   document.getElementById('signOutBtn').addEventListener('click', () => Auth.signOut());
+
+  /* ── Avatar upload ────────────────────────────────────── */
+  const avatarInput = document.getElementById('profAvatarInput');
+
+  document.getElementById('profAvatarBtn').addEventListener('click', () => avatarInput.click());
+
+  avatarInput.addEventListener('change', async e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadStatus('Uploading…', 'uploading');
+
+    const ext  = file.name.split('.').pop().toLowerCase();
+    const path = `avatars/${user.id}/avatar.${ext}`;
+
+    const { error: upErr } = await window._sb.storage
+      .from('question-media')
+      .upload(path, file, { upsert: true, contentType: file.type });
+
+    if (upErr) {
+      setUploadStatus('Upload failed: ' + upErr.message, 'error');
+      avatarInput.value = '';
+      return;
+    }
+
+    const { data: urlData } = window._sb.storage.from('question-media').getPublicUrl(path);
+    /* Cache-bust so the browser doesn't show a stale version */
+    const newUrl = urlData.publicUrl + '?t=' + Date.now();
+
+    const { error: updateErr } = await window._sb.auth.updateUser({ data: { avatar_url: newUrl } });
+    if (updateErr) {
+      setUploadStatus('Saved photo but failed to link: ' + updateErr.message, 'error');
+      return;
+    }
+
+    renderAvatar(avatarEl, newUrl, initials, role);
+    /* Refresh sidebar avatar too */
+    const updatedSession = await Auth.getSession();
+    if (updatedSession) Sidebar.setUser(updatedSession.user, role);
+
+    setUploadStatus('Photo updated!', 'success');
+    setTimeout(() => setUploadStatus('', ''), 3000);
+    avatarInput.value = '';
+  });
 }
 
 init();

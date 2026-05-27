@@ -140,22 +140,26 @@ const Sidebar = {
   setUser(user, role) {
     if (!user) return;
 
-    const email    = user.email || '';
-    const initials = email ? email[0].toUpperCase() : '?';
-    const name     = user.user_metadata?.full_name || email.split('@')[0] || 'User';
+    const email      = user.email || '';
+    const name       = user.user_metadata?.full_name || email.split('@')[0] || 'User';
+    const avatarUrl  = user.user_metadata?.avatar_url;
+    const initials   = typeof getInitials === 'function' ? getInitials(name, email) : email[0]?.toUpperCase() || '?';
 
-    /* Avatar initial */
+    /* Avatar — image if available, otherwise role-coloured initials */
     const avatarEl = document.getElementById('sbAvatar');
     if (avatarEl) {
-      avatarEl.textContent = initials;
-      /* Colour avatar by role */
-      const avatarColors = {
-        super_admin: '#fbbf24',
-        admin:       '#f97316',
-        editor:      '#3b82f6',
-        viewer:      '#64748b'
-      };
-      if (avatarColors[role]) avatarEl.style.background = avatarColors[role];
+      if (avatarUrl) {
+        avatarEl.innerHTML = `<img src="${avatarUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
+      } else {
+        avatarEl.textContent = initials;
+        const avatarColors = {
+          super_admin: '#fbbf24',
+          admin:       '#f97316',
+          editor:      '#3b82f6',
+          viewer:      '#64748b'
+        };
+        if (avatarColors[role]) avatarEl.style.background = avatarColors[role];
+      }
     }
 
     /* Name + email in sidebar button */
