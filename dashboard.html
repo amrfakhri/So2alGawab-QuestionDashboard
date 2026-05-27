@@ -491,9 +491,11 @@ const CAT_BG = {
 };
 
 /* Renders a category thumbnail — uses the DB image_path URL when present */
-const catImg = url => url
-  ? `<img src="${url}" alt="" loading="lazy" />`
-  : `<span style="font-size:18px;opacity:.5">◈</span>`;
+const catImg = url => {
+  if (!url) return `<span style="font-size:18px;opacity:.5">◈</span>`;
+  const src = url.startsWith('http') ? url : `${window.SUPABASE_URL}/storage/v1/object/public/question-media/${url}`;
+  return `<img src="${src}" alt="" loading="lazy" onerror="this.style.display='none'" />`;
+};
 
 function showToast(msg, type = 'success') {
   const c = document.getElementById('toastContainer');

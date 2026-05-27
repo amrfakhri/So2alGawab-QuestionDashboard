@@ -842,8 +842,9 @@ function catPill(list, catId, size = 'sm') {
   const cat  = (list.categories||[]).find(c => c.id === catId);
   const name = cat ? cat.name : catId ? catId.slice(0,8)+'…' : 'Unknown';
   const img  = cat?.imagePath;
-  const thumb = img
-    ? `<img src="${escHtml(img)}" alt="" loading="lazy" onerror="this.parentNode.innerHTML='<span class=\'q-cat-initial\'>${escHtml(name[0]||'?')}</span>'">`
+  const imgSrc = img ? (img.startsWith('http') ? img : `${window.SUPABASE_URL}/storage/v1/object/public/question-media/${img}`) : null;
+  const thumb = imgSrc
+    ? `<img src="${escHtml(imgSrc)}" alt="" loading="lazy" onerror="this.parentNode.innerHTML='<span class=\'q-cat-initial\'>${escHtml(name[0]||'?')}</span>'">`
     : `<span class="q-cat-initial">${escHtml(name[0]||'?')}</span>`;
   return `<span class="q-cat-pill${size==='lg'?' q-cat-pill-lg':''}">
     <span class="q-cat-img-wrap">${thumb}</span>
