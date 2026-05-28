@@ -122,16 +122,14 @@ const MediaService = {
     }
   },
 
-  /* ---- Return the category whose image_path matches this file path (or null) ---- */
+  /* ---- Return all categories whose image_path matches this file path ---- */
   async getCategoryByFilePath(filePath) {
-    if (!filePath) return null;
+    if (!filePath) return [];
     const { data } = await window._sb
       .from('categories')
       .select('id, name, list_id, lists ( title )')
-      .eq('image_path', filePath)
-      .limit(1)
-      .maybeSingle();
-    return data || null;
+      .eq('image_path', filePath);
+    return data || [];
   },
 
   /* ---- Unlink a question from a media item ---- */
@@ -197,6 +195,16 @@ const MediaService = {
       .update({ image_path: null })
       .eq('image_path', filePath);
     if (error) throw new Error(`Failed to unlink from category: ${error.message}`);
+    return true;
+  },
+
+  /* ---- Remove image from a single specific category by its ID ---- */
+  async unlinkCategoryById(categoryId) {
+    const { error } = await window._sb
+      .from('categories')
+      .update({ image_path: null })
+      .eq('id', categoryId);
+    if (error) throw new Error(`Failed to remove category image: ${error.message}`);
     return true;
   },
 
@@ -437,14 +445,18 @@ const MediaService = {
     return true;
   },
 
-  /* ---- Map of file_path → category for every category that has an image set ---- */
+  /* ---- Map of file_path → Category[] for every category that has an image set ---- */
   async getCategoryImagePathsMap() {
     const { data } = await window._sb
       .from('categories')
       .select('id, name, image_path, lists ( title )')
       .not('image_path', 'is', null);
     const map = new Map();
-    (data || []).forEach(c => { if (c.image_path) map.set(c.image_path, c); });
+    (data || []).forEach(c => {
+      if (!c.image_path) return;
+      if (!map.has(c.image_path)) map.set(c.image_path, []);
+      map.get(c.image_path).push(c);
+    });
     return map;
   },
 

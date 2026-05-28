@@ -444,6 +444,7 @@
 }
 .modal-overlay.open .modal { transform: scale(1); }
 .modal-sm { max-width: 440px; }
+.modal-lg { max-width: 760px; }
 
 .modal-head {
   padding:       20px 24px;

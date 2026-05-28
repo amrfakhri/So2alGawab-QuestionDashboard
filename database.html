@@ -117,6 +117,10 @@
         <div class="bulk-actions" id="bulkActions" style="display:none;">
           <button class="btn btn-danger" id="btnBulkDelete"><i data-lucide="trash-2" class="icon-sm"></i> Delete Selected</button>
         </div>
+        <div class="cat-view-toggle" title="Toggle categories view">
+          <button class="cat-view-btn" id="catViewTabs" title="Tabs view"><i data-lucide="layout-panel-top" class="icon-sm"></i></button>
+          <button class="cat-view-btn active" id="catViewSidenav" title="Side panel view"><i data-lucide="panel-right" class="icon-sm"></i></button>
+        </div>
         <div class="view-toggle">
           <button class="view-btn active" id="viewTable" title="Table view"><i data-lucide="list" class="icon-sm"></i></button>
           <button class="view-btn" id="viewGrid" title="Grid view"><i data-lucide="layout-grid" class="icon-sm"></i></button>
@@ -548,9 +552,50 @@
 <!-- Global category contextual menu (portal — position:fixed via JS) -->
 <div class="cat-ctx-menu" id="catCtxMenu">
   <button class="cat-ctx-item" id="catMenuRename"></button>
+  <button class="cat-ctx-item" id="catMenuSetImage"></button>
   <button class="cat-ctx-item" id="catMenuMove"></button>
   <div class="cat-ctx-sep"></div>
   <button class="cat-ctx-item danger" id="catMenuDelete"></button>
+</div>
+
+<!-- CATEGORY IMAGE PICKER MODAL -->
+<div class="modal-overlay" id="catImgPickerModal">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <i data-lucide="image" class="icon-xl"></i>
+      <h3 id="catImgPickerTitle">Set Category Image</h3>
+      <button class="icon-btn" id="btnCloseCatImgPicker"><i data-lucide="x" class="icon-sm"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:var(--s-1);margin-bottom:var(--s-3);">
+        <button class="ml-type-btn active" id="catImgTabGameUi" data-purpose="game_ui">
+          <i data-lucide="layout" class="icon-xs"></i> Game UI
+        </button>
+        <button class="ml-type-btn" id="catImgTabQuestion" data-purpose="question">
+          <i data-lucide="help-circle" class="icon-xs"></i> Question Images
+        </button>
+      </div>
+      <div class="cat-img-picker-toolbar">
+        <div class="cat-img-search-wrap">
+          <i data-lucide="search" class="icon-sm"></i>
+          <input class="cat-img-search" id="catImgSearch" type="text" placeholder="Search images…" autocomplete="off">
+        </div>
+        <span class="cat-img-count" id="catImgCount"></span>
+      </div>
+      <div class="cat-img-grid" id="catImgGrid">
+        <div class="cat-img-loading">
+          <div class="spinner spinner-lg"></div>
+          <p>Loading images…</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="btnCancelCatImg">Cancel</button>
+      <button class="btn btn-primary" id="btnConfirmCatImg" disabled>
+        <i data-lucide="check" class="icon-sm"></i> Set Image
+      </button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -634,6 +679,7 @@ let appState = {
   filterClass: 'all',
   filterStatus: 'all',
   viewMode: 'table',
+  catViewMode: localStorage.getItem('catViewMode') || 'tabs',
   selectedIds: new Set(),
   editingQuestionId: null,
   listsSearch: '',
@@ -756,14 +802,38 @@ async function persistList() {
 }
 
 /* =====================================================
-   RENDER: CATEGORIES BAR
+   RENDER: CATEGORIES BAR / SIDENAV
 ===================================================== */
 function renderCategoriesBar() {
-  const list = appState.activeListData;
-  const bar  = document.getElementById('categoriesBar');
-  if (!list) { bar.innerHTML = ''; return; }
+  const list    = appState.activeListData;
+  const bar     = document.getElementById('categoriesBar');
+  const screen  = document.getElementById('editorScreen');
+  const isSide  = appState.catViewMode === 'sidenav';
 
-  const cats = [...(list.categories || [])].sort((a,b) => a.order - b.order);
+  // Sync toggle button states
+  document.getElementById('catViewTabs')?.classList.toggle('active', !isSide);
+  document.getElementById('catViewSidenav')?.classList.toggle('active', isSide);
+
+  // Layout modifier on the screen element
+  screen?.classList.toggle('editor-screen-sidenav', isSide);
+
+  if (!list) {
+    bar.innerHTML = '';
+    document.getElementById('catSideNav')?.remove();
+    return;
+  }
+
+  if (isSide) {
+    bar.innerHTML = '';
+    renderCategoriesSideNav(list);
+  } else {
+    document.getElementById('catSideNav')?.remove();
+    renderCategoriesTabsBar(list, bar);
+  }
+}
+
+function renderCategoriesTabsBar(list, bar) {
+  const cats      = [...(list.categories || [])].sort((a,b) => a.order - b.order);
   const allActive = appState.activeCategoryId === 'all';
 
   bar.innerHTML = `
@@ -771,7 +841,7 @@ function renderCategoriesBar() {
       All <span class="cat-count">${list.questions.length}</span>
     </button>
     ${cats.map(cat => {
-      const count = list.questions.filter(q => q.categoryId === cat.id).length;
+      const count    = list.questions.filter(q => q.categoryId === cat.id).length;
       const isActive = appState.activeCategoryId === cat.id;
       return `
         <button class="cat-tab ${isActive?'active':''}" data-cat-id="${cat.id}" draggable="true" title="${escHtml(cat.name)}">
@@ -787,6 +857,64 @@ function renderCategoriesBar() {
   `;
   setupCatDrag();
   lucide.createIcons();
+}
+
+function renderCategoriesSideNav(list) {
+  const contentArea = document.querySelector('#editorScreen .content-area');
+  if (!contentArea) return;
+
+  let nav = document.getElementById('catSideNav');
+  if (!nav) {
+    nav = document.createElement('div');
+    nav.className = 'cat-sidenav';
+    nav.id = 'catSideNav';
+    contentArea.appendChild(nav);
+  }
+
+  const cats      = [...(list.categories || [])].sort((a,b) => a.order - b.order);
+  const allActive = appState.activeCategoryId === 'all';
+
+  const catItems = cats.map(cat => {
+    const count    = list.questions.filter(q => q.categoryId === cat.id).length;
+    const isActive = appState.activeCategoryId === cat.id;
+    const img      = cat.imagePath;
+    const imgSrc   = img ? (img.startsWith('http') ? img : `${window.SUPABASE_URL}/storage/v1/object/public/question-media/${img}`) : null;
+    const thumb    = imgSrc
+      ? `<img src="${escHtml(imgSrc)}" alt="" loading="lazy" onerror="this.parentNode.innerHTML='<span class=\\'cat-sidenav-initial\\'>${escHtml((cat.name||'?')[0])}</span>'">`
+      : `<span class="cat-sidenav-initial">${escHtml((cat.name||'?')[0])}</span>`;
+
+    return `
+      <button class="cat-sidenav-item${isActive?' active':''}" data-cat-id="${cat.id}">
+        <span class="cat-sidenav-thumb">${thumb}</span>
+        <span class="cat-sidenav-info">
+          <span class="cat-sidenav-name">${escHtml(cat.name)}</span>
+          <span class="cat-sidenav-qcount">${count} question${count !== 1 ? 's' : ''}</span>
+        </span>
+        <span class="cat-sidenav-more">
+          <span class="cat-sidenav-more-btn cat-more-btn" data-action="open-cat-menu" data-id="${cat.id}" title="More actions">${icon('more-horizontal', 'icon-xs')}</span>
+        </span>
+      </button>`;
+  }).join('');
+
+  nav.innerHTML = `
+    <div class="cat-sidenav-head">
+      <span class="cat-sidenav-label">Categories</span>
+    </div>
+    <div class="cat-sidenav-list">
+      <button class="cat-sidenav-item${allActive?' active':''}" data-cat-id="all">
+        <span class="cat-sidenav-thumb" style="background:var(--surface3);">${icon('layers','icon-xs')}</span>
+        <span class="cat-sidenav-info">
+          <span class="cat-sidenav-name" style="direction:ltr;">All</span>
+          <span class="cat-sidenav-qcount">${list.questions.length} question${list.questions.length !== 1 ? 's' : ''}</span>
+        </span>
+      </button>
+      ${catItems}
+    </div>
+    <div class="cat-sidenav-footer">
+      <button class="btn-add-cat-sidenav" id="btnAddCatSidenav">${icon('plus','icon-sm')} Add Category</button>
+    </div>
+  `;
+  lucide.createIcons({ nodes: [nav] });
 }
 
 /* =====================================================
@@ -1674,6 +1802,106 @@ async function exportListById(listId) {
 }
 
 /* =====================================================
+   CATEGORY IMAGE PICKER
+===================================================== */
+let _catImgPicker = { catId: null, selectedFilePath: null, purpose: 'game_ui', itemsByPurpose: {} };
+
+async function openCatImgPicker(catId) {
+  const list = appState.activeListData;
+  const cat  = list?.categories.find(c => c.id === catId);
+  if (!cat) return;
+
+  _catImgPicker = { catId, selectedFilePath: null, purpose: 'game_ui', itemsByPurpose: {} };
+
+  const modal      = document.getElementById('catImgPickerModal');
+  const title      = document.getElementById('catImgPickerTitle');
+  const searchEl   = document.getElementById('catImgSearch');
+  const confirmBtn = document.getElementById('btnConfirmCatImg');
+
+  title.textContent        = cat.imagePath ? `Replace Image — ${cat.name}` : `Set Image — ${cat.name}`;
+  searchEl.value           = '';
+  confirmBtn.disabled      = true;
+  confirmBtn.innerHTML     = `${icon('check','icon-sm')} Set Image`;
+
+  // Sync tab active states to default (game_ui)
+  document.getElementById('catImgTabGameUi')?.classList.add('active');
+  document.getElementById('catImgTabQuestion')?.classList.remove('active');
+
+  modal.classList.add('open');
+  await loadCatImgTab('game_ui');
+}
+
+async function loadCatImgTab(purpose) {
+  _catImgPicker.purpose = purpose;
+  document.getElementById('catImgSearch').value = '';
+
+  // Use cached items for this tab if already fetched
+  if (_catImgPicker.itemsByPurpose[purpose]) {
+    renderCatImgGrid();
+    return;
+  }
+
+  const grid = document.getElementById('catImgGrid');
+  grid.innerHTML = `<div class="cat-img-loading"><div class="spinner spinner-lg"></div><p>Loading images…</p></div>`;
+  lucide.createIcons({ nodes: [grid] });
+
+  try {
+    const items = await MediaService.getMediaLibrary({ type: 'image', purpose, page: 1, pageSize: 120, sort: 'newest' });
+    _catImgPicker.itemsByPurpose[purpose] = items;
+    renderCatImgGrid();
+  } catch(e) {
+    grid.innerHTML = `<div class="cat-img-empty">${icon('alert-circle','icon-sm')} Failed to load images</div>`;
+    lucide.createIcons({ nodes: [grid] });
+  }
+}
+
+function renderCatImgGrid() {
+  const { itemsByPurpose, purpose, selectedFilePath } = _catImgPicker;
+  const allItems = itemsByPurpose[purpose] || [];
+  const search   = (document.getElementById('catImgSearch')?.value || '').toLowerCase();
+  const grid     = document.getElementById('catImgGrid');
+  const countEl  = document.getElementById('catImgCount');
+
+  const filtered = search
+    ? allItems.filter(i => (i.file_name || '').toLowerCase().includes(search))
+    : allItems;
+
+  countEl.textContent = `${filtered.length} image${filtered.length !== 1 ? 's' : ''}`;
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="cat-img-empty">${icon('image','icon-lg')} No images found</div>`;
+    lucide.createIcons({ nodes: [grid] });
+    return;
+  }
+
+  grid.innerHTML = filtered.map(item => {
+    const name = item.file_name || item.media_url?.split('/').pop() || '—';
+    const fp   = item.file_path || item.media_url || '';
+    const sel  = fp === selectedFilePath;
+    return `<div class="cat-img-card${sel ? ' selected' : ''}" data-fp="${escHtml(fp)}">
+      <img src="${escHtml(item.media_url)}" loading="lazy" alt="" onerror="this.remove()">
+      <div class="cat-img-card-check">${icon('check','icon-xs')}</div>
+      <div class="cat-img-card-name">${escHtml(name)}</div>
+    </div>`;
+  }).join('');
+  lucide.createIcons({ nodes: [grid] });
+
+  grid.querySelectorAll('.cat-img-card').forEach(card => {
+    card.addEventListener('click', () => {
+      _catImgPicker.selectedFilePath = card.dataset.fp;
+      grid.querySelectorAll('.cat-img-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      document.getElementById('btnConfirmCatImg').disabled = false;
+    });
+  });
+}
+
+function closeCatImgPicker() {
+  document.getElementById('catImgPickerModal')?.classList.remove('open');
+  _catImgPicker = { catId: null, selectedFilePath: null, purpose: 'game_ui', itemsByPurpose: {} };
+}
+
+/* =====================================================
    EVENT HANDLERS
 ===================================================== */
 async function handleAction(action, dataset) {
@@ -1693,6 +1921,21 @@ async function handleAction(action, dataset) {
     // Populate item labels + icons
     menu.querySelector('#catMenuRename').innerHTML =
       `${icon('pencil', 'icon-sm')} Rename`;
+
+    const listCats = appState.activeListData?.categories || [];
+    const menuCat  = listCats.find(c => c.id === id);
+    const hasImg   = !!menuCat?.imagePath;
+    if (hasImg) {
+      const imgSrc = menuCat.imagePath.startsWith('http')
+        ? menuCat.imagePath
+        : `${window.SUPABASE_URL}/storage/v1/object/public/question-media/${menuCat.imagePath}`;
+      menu.querySelector('#catMenuSetImage').innerHTML =
+        `<span class="cat-ctx-img-preview"><img src="${escHtml(imgSrc)}" alt=""></span> Replace Image`;
+    } else {
+      menu.querySelector('#catMenuSetImage').innerHTML =
+        `${icon('image', 'icon-sm')} Set Image`;
+    }
+
     menu.querySelector('#catMenuMove').innerHTML =
       `${icon('arrow-right-left', 'icon-sm')} Move to list`;
     menu.querySelector('#catMenuDelete').innerHTML =
@@ -1733,6 +1976,9 @@ async function handleAction(action, dataset) {
     if (name?.trim()) { cat.name = name.trim(); await persistList(); renderCategoriesBar(); renderQuestions(); }
     return;
   }
+  if (action === 'set-cat-image') {
+    openCatImgPicker(dataset.id); return;
+  }
   if (action === 'delete-cat') {
     const confirmed = await showConfirm('Delete Category', 'Delete this category? Questions will remain but lose their category association.');
     if (!confirmed) return;
@@ -1768,7 +2014,7 @@ async function handleAction(action, dataset) {
 }
 
 document.addEventListener('click', async e => {
-  if (!e.target.closest('#catCtxMenu') && !e.target.closest('.cat-more-wrap')) {
+  if (!e.target.closest('#catCtxMenu') && !e.target.closest('.cat-more-wrap') && !e.target.closest('.cat-sidenav-more')) {
     document.getElementById('catCtxMenu')?.classList.remove('open');
   }
 
@@ -1781,7 +2027,13 @@ document.addEventListener('click', async e => {
     appState.selectedIds.clear();
     renderCategoriesBar(); renderQuestions(); return;
   }
-  if (e.target.closest('#btnAddCat')) {
+  const catSideItem = e.target.closest('.cat-sidenav-item[data-cat-id]');
+  if (catSideItem && !e.target.closest('.cat-sidenav-more')) {
+    appState.activeCategoryId = catSideItem.dataset.catId;
+    appState.selectedIds.clear();
+    renderCategoriesBar(); renderQuestions(); return;
+  }
+  if (e.target.closest('#btnAddCat') || e.target.closest('#btnAddCatSidenav')) {
     const name = prompt('Category name:');
     if (!name?.trim()) return;
     const cat = { id: fakeObjectId(), name: name.trim(), order: appState.activeListData.categories.length };
@@ -2069,6 +2321,17 @@ function wireButtons() {
   document.getElementById('filterStatus').addEventListener('change', function() { appState.filterStatus = this.value; renderQuestions(); });
   document.getElementById('viewTable').onclick = () => { appState.viewMode = 'table'; document.getElementById('viewTable').classList.add('active'); document.getElementById('viewGrid').classList.remove('active'); renderQuestions(); };
   document.getElementById('viewGrid').onclick  = () => { appState.viewMode = 'grid';  document.getElementById('viewGrid').classList.add('active'); document.getElementById('viewTable').classList.remove('active'); renderQuestions(); };
+
+  document.getElementById('catViewTabs').onclick = () => {
+    appState.catViewMode = 'tabs';
+    localStorage.setItem('catViewMode', 'tabs');
+    renderCategoriesBar();
+  };
+  document.getElementById('catViewSidenav').onclick = () => {
+    appState.catViewMode = 'sidenav';
+    localStorage.setItem('catViewMode', 'sidenav');
+    renderCategoriesBar();
+  };
   document.getElementById('btnAddQuestion').onclick = () => {
     const list = appState.activeListData;
     if (!list?.categories?.length) { if (confirm('No categories yet. Add a category first?')) { const name = prompt('Category name:'); if (name?.trim()) { const cat = { id:fakeObjectId(), name:name.trim(), order:0 }; list.categories.push(cat); persistList(); renderCategoriesBar(); } } return; }
@@ -2180,6 +2443,10 @@ async function init() {
     const id = menu.dataset.catId; close();
     handleAction('rename-cat', { id });
   });
+  document.getElementById('catMenuSetImage').addEventListener('click', () => {
+    const id = menu.dataset.catId; close();
+    handleAction('set-cat-image', { id });
+  });
   document.getElementById('catMenuMove').addEventListener('click', () => {
     const id = menu.dataset.catId; close();
     handleAction('move-cat', { id });
@@ -2187,6 +2454,53 @@ async function init() {
   document.getElementById('catMenuDelete').addEventListener('click', () => {
     const id = menu.dataset.catId; close();
     handleAction('delete-cat', { id });
+  });
+})();
+
+/* Wire category image picker modal */
+(function wireCatImgPicker() {
+  document.getElementById('btnCancelCatImg')?.addEventListener('click', closeCatImgPicker);
+  document.getElementById('btnCloseCatImgPicker')?.addEventListener('click', closeCatImgPicker);
+  document.getElementById('catImgPickerModal')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('catImgPickerModal')) closeCatImgPicker();
+  });
+  document.getElementById('catImgSearch')?.addEventListener('input', renderCatImgGrid);
+
+  ['catImgTabGameUi', 'catImgTabQuestion'].forEach(btnId => {
+    document.getElementById(btnId)?.addEventListener('click', async () => {
+      const purpose = document.getElementById(btnId).dataset.purpose;
+      if (purpose === _catImgPicker.purpose) return;
+      document.getElementById('catImgTabGameUi').classList.toggle('active', purpose === 'game_ui');
+      document.getElementById('catImgTabQuestion').classList.toggle('active', purpose === 'question');
+      await loadCatImgTab(purpose);
+    });
+  });
+
+  document.getElementById('btnConfirmCatImg')?.addEventListener('click', async () => {
+    const { catId, selectedFilePath } = _catImgPicker;
+    const list = appState.activeListData;
+    const cat  = list?.categories.find(c => c.id === catId);
+    if (!cat || !selectedFilePath) return;
+
+    const btn = document.getElementById('btnConfirmCatImg');
+    btn.disabled = true;
+    btn.innerHTML = `${icon('loader','icon-sm')} Saving…`;
+    lucide.createIcons({ nodes: [btn] });
+
+    try {
+      cat.imagePath = selectedFilePath;
+      await MediaService.setCategoryImage(catId, selectedFilePath);
+      await persistList();
+      closeCatImgPicker();
+      renderCategoriesBar();
+      renderQuestions();
+      toast(`Image set for "${cat.name}"`);
+    } catch(e) {
+      toast('Failed: ' + e.message, 'error');
+      btn.disabled = false;
+      btn.innerHTML = `${icon('check','icon-sm')} Set Image`;
+      lucide.createIcons({ nodes: [btn] });
+    }
   });
 })();
 

@@ -144,7 +144,7 @@ body.db-page {
   padding:    4px;
   box-shadow: var(--shadow-floating);
   z-index:    2000;
-  min-width:  164px;
+  min-width:  180px;
   opacity:    0;
   pointer-events: none;
   transform:  translateY(-4px) scale(0.97);
@@ -181,6 +181,25 @@ body.db-page {
 .cat-ctx-item.danger:hover { background: var(--red-bg); }
 .cat-ctx-item.danger i     { color: var(--red); }
 .cat-ctx-sep { height: 1px; background: var(--border); margin: 3px 0; }
+
+/* Thumbnail inside the "Replace Image" context menu item */
+.cat-ctx-img-preview {
+  width:         20px;
+  height:        20px;
+  border-radius: var(--r-xs);
+  overflow:      hidden;
+  flex-shrink:   0;
+  background:    var(--surface2);
+  border:        1px solid var(--border2);
+  display:       grid;
+  place-items:   center;
+}
+.cat-ctx-img-preview img {
+  width:      100%;
+  height:     100%;
+  object-fit: cover;
+  display:    block;
+}
 
 .btn-add-cat {
   display: inline-flex;
@@ -376,3 +395,294 @@ body.db-page {
 .preview-answer span  { font-family: var(--font-ar); direction: rtl; display: block; font-size: 14px; }
 .preview-audio      { width: 100%; margin-top: 12px; }
 .preview-meta       { margin-top: 12px; color: var(--text3); font-size: 12px; display: flex; gap: 12px; }
+
+/* ── Category Image Picker Modal ─────────────────────────────────── */
+.cat-img-picker-toolbar {
+  display:         flex;
+  align-items:     center;
+  gap:             var(--s-3);
+  margin-bottom:   var(--s-4);
+}
+.cat-img-search-wrap {
+  display:         flex;
+  align-items:     center;
+  gap:             var(--s-2);
+  flex:            1;
+  background:      var(--surface2);
+  border:          1px solid var(--border);
+  border-radius:   var(--r-sm);
+  padding:         0 var(--s-3);
+  transition:      border-color var(--t-fast);
+}
+.cat-img-search-wrap:focus-within { border-color: var(--border2); }
+.cat-img-search-wrap i            { color: var(--text3); flex-shrink: 0; }
+.cat-img-search {
+  flex:            1;
+  background:      none;
+  border:          none;
+  outline:         none;
+  color:           var(--text);
+  font-size:       13px;
+  font-family:     var(--font);
+  padding:         var(--s-2) 0;
+}
+.cat-img-search::placeholder { color: var(--text4); }
+
+.cat-img-count {
+  font-size:   11px;
+  color:       var(--text3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cat-img-grid {
+  display:               grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap:                   var(--s-3);
+  max-height:            420px;
+  overflow-y:            auto;
+  padding:               var(--s-1);
+}
+.cat-img-loading {
+  grid-column: 1 / -1;
+  display:     flex;
+  flex-direction: column;
+  align-items: center;
+  gap:         var(--s-3);
+  padding:     var(--s-9) 0;
+  color:       var(--text3);
+  font-size:   13px;
+}
+.cat-img-empty {
+  grid-column: 1 / -1;
+  text-align:  center;
+  padding:     var(--s-9) 0;
+  color:       var(--text3);
+  font-size:   13px;
+}
+
+.cat-img-card {
+  position:      relative;
+  aspect-ratio:  1;
+  border-radius: var(--r-sm);
+  overflow:      hidden;
+  cursor:        pointer;
+  border:        2px solid transparent;
+  background:    var(--surface2);
+  transition:    border-color var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast);
+}
+.cat-img-card:hover    { border-color: var(--border2); transform: scale(1.03); }
+.cat-img-card.selected { border-color: var(--gold-500); box-shadow: 0 0 0 1px var(--gold-500), var(--glow-gold-sm); }
+.cat-img-card img {
+  width:      100%;
+  height:     100%;
+  object-fit: cover;
+  display:    block;
+}
+.cat-img-card-check {
+  position:     absolute;
+  top:          var(--s-1);
+  right:        var(--s-1);
+  width:        20px;
+  height:       20px;
+  border-radius: 50%;
+  background:   var(--gold-500);
+  color:        var(--fg-on-gold);
+  display:      grid;
+  place-items:  center;
+  opacity:      0;
+  transform:    scale(0.7);
+  transition:   opacity var(--t-fast), transform var(--t-fast);
+}
+.cat-img-card.selected .cat-img-card-check { opacity: 1; transform: scale(1); }
+.cat-img-card-name {
+  position:     absolute;
+  inset:        auto 0 0;
+  background:   linear-gradient(transparent, rgba(0,0,0,0.70));
+  padding:      var(--s-3) var(--s-2) var(--s-2);
+  font-size:    10px;
+  color:        var(--text);
+  white-space:  nowrap;
+  overflow:     hidden;
+  text-overflow: ellipsis;
+  opacity:      0;
+  transition:   opacity var(--t-fast);
+}
+.cat-img-card:hover .cat-img-card-name { opacity: 1; }
+
+/* ── Category view toggle button (tabs ↔ sidenav) ────────────────── */
+.cat-view-toggle {
+  display:       flex;
+  align-items:   center;
+  gap:           2px;
+  background:    var(--surface2);
+  border:        1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding:       3px;
+  flex-shrink:   0;
+}
+.cat-view-btn {
+  width:         28px;
+  height:        28px;
+  border-radius: var(--r-xs);
+  border:        none;
+  background:    none;
+  color:         var(--text3);
+  cursor:        pointer;
+  display:       grid;
+  place-items:   center;
+  transition:    background var(--t-fast), color var(--t-fast);
+}
+.cat-view-btn:hover  { background: var(--surface3); color: var(--text2); }
+.cat-view-btn.active { background: var(--gold-tint); color: var(--gold-500); }
+
+/* ── Category Sidenav ────────────────────────────────────────────── */
+.cat-sidenav {
+  width:        300px;
+  min-width:    220px;
+  border-left:  1px solid var(--border);
+  background:   var(--panel);
+  display:      flex;
+  flex-direction: column;
+  overflow:     hidden;
+  flex-shrink:  0;
+}
+.cat-sidenav-head {
+  padding:       var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--border);
+  display:       flex;
+  align-items:   center;
+  justify-content: space-between;
+  flex-shrink:   0;
+}
+.cat-sidenav-label {
+  font-size:   10px;
+  font-weight: 700;
+  color:       var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.cat-sidenav-list {
+  flex:         1;
+  overflow-y:   auto;
+  padding:      var(--s-2);
+  display:      flex;
+  flex-direction: column;
+  gap:          2px;
+}
+.cat-sidenav-list::-webkit-scrollbar       { width: 4px; }
+.cat-sidenav-list::-webkit-scrollbar-track { background: transparent; }
+.cat-sidenav-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+
+.cat-sidenav-item {
+  display:       flex;
+  align-items:   center;
+  gap:           var(--s-2);
+  padding:       var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  cursor:        pointer;
+  border:        1px solid transparent;
+  background:    none;
+  width:         100%;
+  text-align:    left;
+  transition:    background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+  position:      relative;
+}
+.cat-sidenav-item:hover { background: var(--line-3); }
+.cat-sidenav-item.active {
+  background:    var(--gold-tint);
+  border-color:  var(--line-gold);
+}
+.cat-sidenav-thumb {
+  width:         28px;
+  height:        28px;
+  border-radius: var(--r-xs);
+  overflow:      hidden;
+  flex-shrink:   0;
+  background:    var(--surface2);
+  display:       grid;
+  place-items:   center;
+  border:        1px solid var(--border);
+}
+.cat-sidenav-thumb img {
+  width:      100%;
+  height:     100%;
+  object-fit: contain;
+  display:    block;
+}
+.cat-sidenav-initial {
+  font-size:      10px;
+  font-weight:    700;
+  color:          var(--text3);
+  text-transform: uppercase;
+}
+.cat-sidenav-info {
+  flex:     1;
+  min-width: 0;
+  display:  flex;
+  flex-direction: column;
+  gap:      1px;
+}
+.cat-sidenav-name {
+  font-size:     12px;
+  font-weight:   500;
+  color:         var(--text2);
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  font-family:   var(--font-ar);
+  direction:     rtl;
+  line-height:   1.3;
+}
+.cat-sidenav-item.active .cat-sidenav-name { color: var(--gold-500); font-weight: 600; }
+.cat-sidenav-qcount {
+  font-size:  10px;
+  color:      var(--text4);
+}
+.cat-sidenav-item.active .cat-sidenav-qcount { color: var(--gold-600); }
+.cat-sidenav-more {
+  opacity:   0;
+  flex-shrink: 0;
+  transition: opacity var(--t-fast);
+}
+.cat-sidenav-item:hover .cat-sidenav-more { opacity: 1; }
+.cat-sidenav-more-btn {
+  width:         20px;
+  height:        20px;
+  border-radius: var(--r-xs);
+  background:    var(--bg-glass);
+  border:        1px solid var(--border);
+  color:         var(--text3);
+  cursor:        pointer;
+  display:       grid;
+  place-items:   center;
+  transition:    background var(--t-fast), color var(--t-fast);
+}
+.cat-sidenav-more-btn:hover { background: rgba(255,255,255,0.12); color: var(--text); }
+
+.cat-sidenav-footer {
+  padding:      var(--s-2);
+  border-top:   1px solid var(--border);
+  flex-shrink:  0;
+}
+.btn-add-cat-sidenav {
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  gap:           var(--s-1);
+  width:         100%;
+  padding:       var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  font-size:     12px;
+  color:         var(--text3);
+  background:    none;
+  border:        1px dashed var(--border2);
+  cursor:        pointer;
+  transition:    color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+}
+.btn-add-cat-sidenav:hover { color: var(--gold-500); border-color: var(--line-gold); background: var(--gold-tint); }
+
+/* Layout modifier — sidenav mode overrides the categories bar visibility */
+.editor-screen-sidenav .categories-bar      { display: none; }
+.editor-screen-sidenav .content-area        { flex-direction: row; }
+.editor-screen-sidenav .questions-area      { flex: 1; min-width: 0; }
