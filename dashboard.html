@@ -385,8 +385,8 @@
       <section>
         <div class="section-header">
           <div class="section-title">
-            <i data-lucide="trophy" class="icon-md" style="color:var(--gold-500)"></i>
-            Top categories by questions
+            <i data-lucide="trending-up" class="icon-md" style="color:var(--gold-500)"></i>
+            Most played categories
           </div>
           <a href="./database.html" class="btn btn-sm btn-ghost">
             View all
@@ -511,13 +511,14 @@ function showToast(msg, type = 'success') {
 async function loadOverviewData() {
   const started = performance.now();
 
-  const [listsRes, questionsRes, categoriesRes, mediaRes, usersRes, sessionRes] = await Promise.all([
+  const [listsRes, questionsRes, categoriesRes, mediaRes, usersRes, sessionRes, playsRes] = await Promise.all([
     window._sb.from('lists').select('id, title, created_at, updated_at').order('updated_at', { ascending: false }),
     window._sb.from('questions').select('id, list_id, category_id, created_at, updated_at').is('deleted_at', null),
     window._sb.from('categories').select('id, list_id, name, sort_order, image_path').order('sort_order'),
     window._sb.from('question_media').select('id, question_id, media_type, file_size, created_at').order('created_at', { ascending: false }),
     window._sb.from('user_roles').select('user_id, role, email, created_at').order('created_at', { ascending: false }),
     window._sb.auth.getSession(),
+    window._sb.rpc('get_top_played_categories', { p_limit: 6 }),
   ]);
 
   if (listsRes.error)     throw new Error('lists: '         + listsRes.error.message);
@@ -564,19 +565,25 @@ async function loadOverviewData() {
     categories: catByList[l.id] || 0,
   }));
 
-  /* ── CATEGORY_USAGE (top 6 by question count) ── */
-  const catUsage = categories
-    .map(c => ({
-      id        : c.id,
-      nameAr    : c.name,
-      catKey    : inferCategoryKey(c.name),
-      imagePath : c.image_path || null,
-      count     : questions.filter(q => q.category_id === c.id).length,
-      pct       : 0,
-    }))
-    .sort((a,b) => b.count - a.count)
-    .slice(0, 6);
-  const maxCount = Math.max(...catUsage.map(c => c.count), 1);
+  /* ── CATEGORY_USAGE (top 6 by play count from question_plays) ── */
+  const playsData    = playsRes.data || [];                           // [{ category_id, play_count }]
+  const catMap       = Object.fromEntries(categories.map(c => [c.id, c]));
+  const catUsage     = playsData
+    .map(row => {
+      const cat = catMap[row.category_id];
+      if (!cat) return null;
+      return {
+        id        : cat.id,
+        nameAr    : cat.name,
+        catKey    : inferCategoryKey(cat.name),
+        imagePath : cat.image_path || null,
+        count     : Number(row.play_count),
+        countLabel: 'plays',
+      };
+    })
+    .filter(Boolean);
+  const hasPlays = catUsage.length > 0;
+  const maxCount = hasPlays ? Math.max(...catUsage.map(c => c.count), 1) : 1;
   catUsage.forEach(c => { c.pct = Math.max(8, Math.round((c.count / maxCount) * 100)); });
 
  
@@ -605,7 +612,7 @@ async function loadOverviewData() {
   const newMedia     = media.filter(m => new Date(m.created_at) > sevenDaysAgo).length;
   const liveStats    = { newQuestions, newLists, newMedia, responseMs };
 
-  return { stats, recentLists, catUsage, activity, liveStats };
+  return { stats, recentLists, catUsage, hasPlays, activity, liveStats };
 }
 
 /* ── Load live game-session data ──────────────────────────── */
@@ -675,19 +682,26 @@ function renderLiveStats(live) {
   `).join('');
 }
 
-function renderCategories(catUsage) {
-  if (!catUsage.length) {
-    document.getElementById('catRows').innerHTML = '<div class="ov-empty">No categories yet.</div>';
+function renderCategories(catUsage, hasPlays) {
+  const el = document.getElementById('catRows');
+  if (!hasPlays) {
+    el.innerHTML = `
+      <div class="ov-empty" style="gap:var(--s-2);padding:var(--s-7) var(--s-4);">
+        <i data-lucide="gamepad-2" class="icon-xl" style="color:var(--text4);"></i>
+        <span>No game sessions recorded yet.</span>
+        <span style="font-size:12px;color:var(--text4);">Plays will appear here once the game project starts sending events.</span>
+      </div>`;
+    lucide.createIcons({ nodes: [el] });
     return;
   }
-  document.getElementById('catRows').innerHTML = catUsage.map(c => `
+  el.innerHTML = catUsage.map(c => `
     <div class="cat-row">
       <div class="cat-mini" style="background:${CAT_BG[c.catKey] || 'var(--surface)'}">
         ${catImg(c.imagePath)}
       </div>
       <div class="cat-name">${c.nameAr}</div>
       <div class="bar-wrap"><div class="bar" style="width:${c.pct}%"></div></div>
-      <div class="cat-count">${c.count}</div>
+      <div class="cat-count">${c.count.toLocaleString()} <span style="font-size:10px;color:var(--text4);font-weight:400;">plays</span></div>
     </div>
   `).join('');
 }
@@ -787,10 +801,10 @@ async function init() {
     ]);
 
     if (overviewResult.status === 'fulfilled') {
-      const { stats, recentLists, catUsage, activity, liveStats } = overviewResult.value;
+      const { stats, recentLists, catUsage, hasPlays, activity, liveStats } = overviewResult.value;
       renderKPI(stats);
       renderLiveStats(liveStats);
-      renderCategories(catUsage);
+      renderCategories(catUsage, hasPlays);
       renderActivity(activity);
       renderRecentLists(recentLists);
       document.getElementById('dbRefreshLabel').textContent =
