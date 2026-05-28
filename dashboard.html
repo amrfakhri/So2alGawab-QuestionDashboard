@@ -276,11 +276,199 @@
 
 /* ── Empty / error states ─────────────────────────────────── */
 .ov-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   padding: 40px 20px;
   color: var(--text3);
   font-size: 13px;
+  gap: var(--s-2);
 }
+
+/* ── Online Players banner card ──────────────────────────── */
+.online-players-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  padding: var(--s-4) var(--s-6);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+.online-players-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(34,197,94,0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+.online-players-banner.has-players {
+  border-color: var(--green-br);
+}
+.online-players-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-sm);
+  background: var(--green-bg);
+  border: 1px solid var(--green-br);
+  color: var(--green);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.online-players-count {
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  position: relative;
+  z-index: 1;
+}
+.online-players-count.has-players { color: var(--green); }
+.online-players-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+  z-index: 1;
+}
+.online-players-label strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.online-players-label span {
+  font-size: 12px;
+  color: var(--text3);
+}
+
+/* ── Active Players grid ──────────────────────────────────── */
+.active-players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+  gap: var(--s-4);
+  margin-top: var(--s-5);
+}
+
+.session-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: border-color var(--t-fast), box-shadow var(--t-med);
+}
+.session-card:hover {
+  border-color: var(--border2);
+  box-shadow: var(--shadow);
+}
+
+.session-card-head {
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.session-card-live {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  flex-shrink: 0;
+}
+.session-card-info { flex: 1; min-width: 0; }
+.session-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  color: var(--text);
+}
+.session-card-meta {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 2px;
+}
+
+.session-card-players { padding: var(--s-2) 0; }
+
+.player-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-4);
+  transition: background var(--t-fast);
+}
+.player-row:hover { background: var(--line-3); }
+
+.player-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1.5px solid transparent;
+}
+.player-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.player-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+}
+.player-host-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding: 2px 6px;
+  border-radius: var(--r-pill);
+  background: var(--gold-tint);
+  color: var(--gold-500);
+  border: 1px solid var(--line-gold);
+  flex-shrink: 0;
+}
+.player-score {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  min-width: 44px;
+  text-align: right;
+}
+
+.session-card-foot {
+  padding: var(--s-2) var(--s-4) var(--s-3);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  font-size: 11px;
+  color: var(--text3);
+}
+.session-card-foot i { flex-shrink: 0; }
 
 @media (max-width: 1100px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
@@ -370,12 +558,20 @@
         </div>
         <span style="font-size:12px;color:var(--text3)">Refreshes every 30 s</span>
       </div>
+      <!-- Total online players — prominent count -->
+      <div id="onlinePlayersCard" style="margin-bottom:var(--s-4);">
+        <div class="skeleton" style="height:88px;border-radius:var(--r-lg);"></div>
+      </div>
+
       <div class="kpi-grid" id="sessionsGrid">
         <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
         <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
         <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
         <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
       </div>
+
+      <!-- Active player cards — one card per live session -->
+      <div id="activePlayers"></div>
     </section>
 
     <hr class="hr" />
@@ -615,6 +811,13 @@ async function loadOverviewData() {
   return { stats, recentLists, catUsage, hasPlays, activity, liveStats };
 }
 
+/* ── Load currently active players ───────────────────────── */
+async function loadActivePlayers() {
+  const { data, error } = await window._sb.rpc('get_active_players');
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
 /* ── Load live game-session data ──────────────────────────── */
 async function loadActiveSessions() {
   const fiveMinAgo    = new Date(Date.now() -  5 * 60 * 1000).toISOString();
@@ -783,6 +986,128 @@ function renderActiveSessions({ liveCount, totalDevices, peakAllTime, avgDevices
   `).join('');
 }
 
+/* ── Team colour palette (by team_index) ──────────────────── */
+const TEAM_COLORS = [
+  { bg: 'var(--gold-tint)',            border: 'var(--line-gold)',  text: 'var(--gold-500)',  score: 'var(--gold-500)' },
+  { bg: 'var(--blue-bg)',              border: 'var(--blue-br)',    text: 'var(--blue)',      score: 'var(--blue)' },
+  { bg: 'rgba(167,139,250,0.16)',      border: 'rgba(167,139,250,0.28)', text: 'var(--purple)', score: 'var(--purple)' },
+  { bg: 'var(--green-bg)',             border: 'var(--green-br)',   text: 'var(--green)',     score: 'var(--green)' },
+  { bg: 'var(--red-bg)',               border: 'rgba(255,92,122,0.28)', text: 'var(--red)', score: 'var(--red)' },
+];
+const DEFAULT_TEAM_COLOR = { bg: 'var(--surface2)', border: 'var(--border)', text: 'var(--text3)', score: 'var(--text2)' };
+
+function teamColor(teamIndex) {
+  if (teamIndex == null || teamIndex < 0) return DEFAULT_TEAM_COLOR;
+  return TEAM_COLORS[teamIndex % TEAM_COLORS.length] || DEFAULT_TEAM_COLOR;
+}
+
+function sessionDuration(startedAt) {
+  if (!startedAt) return null;
+  const mins = Math.round((Date.now() - new Date(startedAt)) / 60000);
+  if (mins < 1)   return 'Just started';
+  if (mins < 60)  return `${mins} min`;
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return `${h}h ${m}m`;
+}
+
+function renderOnlinePlayersCard(count) {
+  const el = document.getElementById('onlinePlayersCard');
+  if (!el) return;
+  const live = count > 0;
+  el.innerHTML = `
+    <div class="online-players-banner${live ? ' has-players' : ''}">
+      <div class="online-players-icon">
+        <i data-lucide="users" class="icon-lg"></i>
+      </div>
+      <div class="online-players-count${live ? ' has-players' : ''}">${count}</div>
+      <div class="online-players-label">
+        <strong>Online Players</strong>
+        <span>${live ? 'Active right now across all sessions' : 'No players connected right now'}</span>
+      </div>
+      ${live ? `<span class="live-dot" style="margin-left:auto;flex-shrink:0;position:relative;z-index:1;"></span>` : ''}
+    </div>`;
+  lucide.createIcons({ nodes: [el] });
+}
+
+function renderActivePlayers(players) {
+  const el = document.getElementById('activePlayers');
+  if (!el) return;
+
+  if (!players.length) {
+    el.innerHTML = `
+      <div class="ov-empty" style="padding:var(--s-7) var(--s-4);margin-top:var(--s-5);">
+        <i data-lucide="monitor-off" class="icon-xl" style="color:var(--text4);"></i>
+        <span>No active players right now.</span>
+        <span style="font-size:12px;color:var(--text4);">Cards appear here when the game project starts sending heartbeats.</span>
+      </div>`;
+    lucide.createIcons({ nodes: [el] });
+    return;
+  }
+
+  // Group rows by session_id
+  const sessions = new Map();
+  players.forEach(p => {
+    if (!sessions.has(p.session_id)) {
+      sessions.set(p.session_id, { meta: p, players: [] });
+    }
+    sessions.get(p.session_id).players.push(p);
+  });
+
+  const cards = [...sessions.values()].map(({ meta, players: sp }) => {
+    const title    = meta.list_title || meta.list_id || 'Unnamed Session';
+    const duration = sessionDuration(meta.session_started_at);
+    const playerCount = sp.length;
+
+    const playerRows = sp.map(p => {
+      const tc      = teamColor(p.team_index);
+      const initial = (p.player_name || '?')[0].toUpperCase();
+      const avatar  = p.avatar_url
+        ? `<img src="${p.avatar_url}" alt="" loading="lazy" onerror="this.style.display='none'">`
+        : initial;
+
+      return `
+        <div class="player-row">
+          <div class="player-avatar" style="background:${tc.bg};border-color:${tc.border};color:${tc.text};">
+            ${avatar}
+          </div>
+          <div class="player-name">${escHtml(p.player_name)}</div>
+          ${p.role === 'host'
+            ? `<span class="player-host-badge">Host</span>`
+            : `<div class="player-score" style="color:${tc.score};">${(p.score || 0).toLocaleString()}</div>`
+          }
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="session-card">
+        <div class="session-card-head">
+          <div class="session-card-live">
+            <span class="live-dot" style="width:6px;height:6px;"></span>
+            Live
+          </div>
+          <div class="session-card-info">
+            <div class="session-card-title">${escHtml(title)}</div>
+            <div class="session-card-meta">${duration ? duration + ' · ' : ''}${playerCount} player${playerCount !== 1 ? 's' : ''}</div>
+          </div>
+        </div>
+        <div class="session-card-players">${playerRows}</div>
+        <div class="session-card-foot">
+          <i data-lucide="clock" class="icon-xs"></i>
+          ${duration || 'Active'}
+          <i data-lucide="users" class="icon-xs" style="margin-left:auto;"></i>
+          ${playerCount}
+        </div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `<div class="active-players-grid">${cards}</div>`;
+  lucide.createIcons({ nodes: [el] });
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 /* ── Bootstrap ─────────────────────────────────────────────── */
 async function init() {
   const session = await Auth.requireAuth();
@@ -795,9 +1120,10 @@ async function init() {
   lucide.createIcons();
 
   async function refresh() {
-    const [overviewResult, sessionsResult] = await Promise.allSettled([
+    const [overviewResult, sessionsResult, playersResult] = await Promise.allSettled([
       loadOverviewData(),
       loadActiveSessions(),
+      loadActivePlayers(),
     ]);
 
     if (overviewResult.status === 'fulfilled') {
@@ -820,6 +1146,13 @@ async function init() {
       console.warn('[Overview] game_sessions unavailable:', sessionsResult.reason?.message);
       renderActiveSessions({ liveCount: 0, totalDevices: 0, peakAllTime: 0, avgDevices: '—' });
     }
+
+    const players = playersResult.status === 'fulfilled' ? playersResult.value : [];
+    if (playersResult.status === 'rejected') {
+      console.warn('[Overview] game_active_players unavailable:', playersResult.reason?.message);
+    }
+    renderOnlinePlayersCard(players.length);
+    renderActivePlayers(players);
 
     lucide.createIcons();
   }
