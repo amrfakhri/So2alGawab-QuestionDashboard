@@ -470,6 +470,11 @@
 }
 .session-card-foot i { flex-shrink: 0; }
 
+/* ── Refresh button spin animation ───────────────────────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.btn-refresh.is-loading { pointer-events: none; opacity: .6; }
+.btn-refresh.is-loading i { display: inline-block; animation: spin .7s linear infinite; }
+
 @media (max-width: 1100px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .recent-lists-grid { grid-template-columns: repeat(2, 1fr); }
@@ -521,6 +526,18 @@
     </div>
 
     <!-- KPI Grid -->
+    <div class="section-header">
+      <div class="section-title">
+        <i data-lucide="layers" class="icon-md" style="color:var(--text3)"></i>
+        Content Overview
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--s-3);">
+        <span style="font-size:12px;color:var(--text4);" id="kpiRefreshLabel"></span>
+        <button class="btn btn-sm btn-ghost btn-refresh" id="btnRefreshKPI">
+          <i data-lucide="refresh-cw" class="icon-sm"></i> Refresh
+        </button>
+      </div>
+    </div>
     <div class="kpi-grid" id="kpiGrid">
       <!-- skeleton -->
       <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
@@ -538,7 +555,12 @@
           <span class="live-dot"></span>
           Live Database Stats
         </div>
-        <span style="font-size:12px;color:var(--text3)" id="dbRefreshLabel">Refreshes every 30 s</span>
+        <div style="display:flex;align-items:center;gap:var(--s-3);">
+          <span style="font-size:12px;color:var(--text4);" id="dbRefreshLabel"></span>
+          <button class="btn btn-sm btn-ghost btn-refresh" id="btnRefreshLiveStats">
+            <i data-lucide="refresh-cw" class="icon-sm"></i> Refresh
+          </button>
+        </div>
       </div>
       <div class="kpi-grid" id="liveGrid">
         <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
@@ -556,7 +578,12 @@
           <span class="live-dot"></span>
           Live Game Activity
         </div>
-        <span style="font-size:12px;color:var(--text3)">Refreshes every 30 s</span>
+        <div style="display:flex;align-items:center;gap:var(--s-3);">
+          <span style="font-size:12px;color:var(--text4);" id="gameRefreshLabel"></span>
+          <button class="btn btn-sm btn-ghost btn-refresh" id="btnRefreshGameActivity">
+            <i data-lucide="refresh-cw" class="icon-sm"></i> Refresh
+          </button>
+        </div>
       </div>
       <!-- Total online players — prominent count -->
       <div id="onlinePlayersCard" style="margin-bottom:var(--s-4);">
@@ -1108,6 +1135,96 @@ function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+/* ── Refresh helpers ──────────────────────────────────────── */
+function lastUpdatedNow(labelId) {
+  const el = document.getElementById(labelId);
+  if (el) el.textContent = 'Updated ' + new Date().toLocaleTimeString();
+}
+
+function setRefreshLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.classList.toggle('is-loading', loading);
+  const ic = btn.querySelector('i');
+  if (ic) ic.setAttribute('data-lucide', loading ? 'loader' : 'refresh-cw');
+  lucide.createIcons({ nodes: [btn] });
+}
+
+/* Refresh only the Content Overview (KPI counts) */
+async function refreshKPI() {
+  setRefreshLoading('btnRefreshKPI', true);
+  try {
+    const started = performance.now();
+    const [listsRes, questionsRes, mediaRes, usersRes] = await Promise.all([
+      window._sb.from('lists').select('id', { count: 'exact', head: true }),
+      window._sb.from('questions').select('id', { count: 'exact', head: true }).is('deleted_at', null),
+      window._sb.from('question_media').select('id, file_size'),
+      window._sb.from('user_roles').select('user_id, role'),
+    ]);
+    renderKPI({
+      questions : questionsRes.count  || 0,
+      lists     : listsRes.count      || 0,
+      media     : (mediaRes.data      || []).length,
+      editors   : (usersRes.data      || []).filter(u => ['super_admin','admin','editor'].includes(u.role)).length,
+      mediaSize : formatBytes((mediaRes.data || []).reduce((s, r) => s + Number(r.file_size || 0), 0)),
+      responseMs: Math.round(performance.now() - started),
+    });
+    lastUpdatedNow('kpiRefreshLabel');
+    lucide.createIcons();
+  } catch(e) {
+    showToast('Refresh failed: ' + e.message, 'error');
+  } finally {
+    setRefreshLoading('btnRefreshKPI', false);
+  }
+}
+
+/* Refresh only Live Database Stats (7-day window) */
+async function refreshLiveStats() {
+  setRefreshLoading('btnRefreshLiveStats', true);
+  try {
+    const started     = performance.now();
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const [qRes, lRes, mRes] = await Promise.all([
+      window._sb.from('questions').select('id').gte('created_at', sevenDaysAgo).is('deleted_at', null),
+      window._sb.from('lists').select('id').gte('updated_at', sevenDaysAgo),
+      window._sb.from('question_media').select('id').gte('created_at', sevenDaysAgo),
+    ]);
+    renderLiveStats({
+      newQuestions: (qRes.data || []).length,
+      newLists    : (lRes.data || []).length,
+      newMedia    : (mRes.data || []).length,
+      responseMs  : Math.round(performance.now() - started),
+    });
+    lastUpdatedNow('dbRefreshLabel');
+    lucide.createIcons();
+  } catch(e) {
+    showToast('Refresh failed: ' + e.message, 'error');
+  } finally {
+    setRefreshLoading('btnRefreshLiveStats', false);
+  }
+}
+
+/* Refresh only Live Game Activity */
+async function refreshGameActivity() {
+  setRefreshLoading('btnRefreshGameActivity', true);
+  try {
+    const [sessionsData, players] = await Promise.all([
+      loadActiveSessions(),
+      loadActivePlayers(),
+    ]);
+    renderActiveSessions(sessionsData);
+    renderOnlinePlayersCard(players.length);
+    renderActivePlayers(players);
+    lastUpdatedNow('gameRefreshLabel');
+    lucide.createIcons();
+  } catch(e) {
+    showToast('Refresh failed: ' + e.message, 'error');
+  } finally {
+    setRefreshLoading('btnRefreshGameActivity', false);
+  }
+}
+
 /* ── Bootstrap ─────────────────────────────────────────────── */
 async function init() {
   const session = await Auth.requireAuth();
@@ -1133,8 +1250,8 @@ async function init() {
       renderCategories(catUsage, hasPlays);
       renderActivity(activity);
       renderRecentLists(recentLists);
-      document.getElementById('dbRefreshLabel').textContent =
-        'Last updated ' + new Date().toLocaleTimeString();
+      lastUpdatedNow('kpiRefreshLabel');
+      lastUpdatedNow('dbRefreshLabel');
     } else {
       console.error('[Overview]', overviewResult.reason);
       showToast('Failed to load data: ' + overviewResult.reason.message, 'error');
@@ -1153,11 +1270,17 @@ async function init() {
     }
     renderOnlinePlayersCard(players.length);
     renderActivePlayers(players);
+    lastUpdatedNow('gameRefreshLabel');
 
     lucide.createIcons();
   }
 
   await refresh();
+
+  // Per-section manual refresh buttons
+  document.getElementById('btnRefreshKPI')?.addEventListener('click', refreshKPI);
+  document.getElementById('btnRefreshLiveStats')?.addEventListener('click', refreshLiveStats);
+  document.getElementById('btnRefreshGameActivity')?.addEventListener('click', refreshGameActivity);
 
   // Auto-refresh every 30 s
   setInterval(refresh, 30000);
