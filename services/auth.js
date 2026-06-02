@@ -29,12 +29,39 @@ const Auth = {
     // not just the last fresh password sign-in. Fire-and-forget.
     if (session) this._touchLastSeen();
 
-    sb.auth.onAuthStateChange((_event, session) => {
-      this._session = session;
-      this._role = null;
-    });
+    if (!this._listenersWired) {
+      this._listenersWired = true;
+
+      sb.auth.onAuthStateChange((_event, session) => {
+        this._session = session;
+        this._role = null;
+      });
+
+      // Returning to an idle/backgrounded tab: the access token may have
+      // expired. Re-validate (getSession auto-refreshes an expired token from
+      // the persisted refresh token) so the session is fresh before the next
+      // guard check or query — prevents spurious "logged out" bounces.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible') return;
+        sb.auth.getSession().then(({ data }) => { this._session = data?.session || null; });
+      });
+    }
 
     return session;
+  },
+
+  /* ---- Try to revive an expired-but-refreshable session ---- */
+  async _recoverSession() {
+    const sb = _client();
+    if (!sb) return null;
+    try {
+      const { data, error } = await sb.auth.refreshSession();
+      if (error) return null;
+      this._session = data?.session || null;
+      return this._session;
+    } catch {
+      return null;
+    }
   },
 
   /* ---- Record that the current user is active right now ---- */
@@ -52,7 +79,11 @@ const Auth = {
 
   /* ---- Guard: redirect to login if not authenticated ---- */
   async requireAuth(allowedRoles = null) {
-    const session = await this.init();
+    let session = await this.init();
+
+    // The access token may have expired while idle; try to refresh from the
+    // persisted refresh token before treating the user as logged out.
+    if (!session) session = await this._recoverSession();
 
     if (!session) {
       const redirect = encodeURIComponent(window.location.href);
