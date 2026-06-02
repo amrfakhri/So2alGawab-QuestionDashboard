@@ -1122,6 +1122,7 @@ async function handleFileUpload(files) {
       const result = await MediaService.uploadFile(file, _pendingQuestionId, mediaType, () => {});
 
       // Save record to question_media (not linked to any question yet)
+      const { data: { session } } = await window._sb.auth.getSession();
       const { error } = await window._sb.from('question_media').insert({
         question_id:   null,
         media_type:    result.mediaType,
@@ -1131,7 +1132,8 @@ async function handleFileUpload(files) {
         file_name:     result.fileName,
         mime_type:     result.mimeType,
         file_size:     result.fileSize,
-        sort_order:    0
+        sort_order:    0,
+        uploaded_by:   session?.user?.id || null
       });
 
       progressEl.remove();

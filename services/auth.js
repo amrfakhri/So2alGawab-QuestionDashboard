@@ -25,12 +25,27 @@ const Auth = {
     const { data: { session } } = await sb.auth.getSession();
     this._session = session;
 
+    // Stamp last-seen so "Last Login" reflects real dashboard activity,
+    // not just the last fresh password sign-in. Fire-and-forget.
+    if (session) this._touchLastSeen();
+
     sb.auth.onAuthStateChange((_event, session) => {
       this._session = session;
       this._role = null;
     });
 
     return session;
+  },
+
+  /* ---- Record that the current user is active right now ---- */
+  _touchLastSeen() {
+    if (this._touchedLastSeen) return;   // once per page load is enough
+    this._touchedLastSeen = true;
+    const sb = _client();
+    if (!sb) return;
+    sb.rpc('touch_last_seen').catch(err =>
+      console.warn('[Auth] touch_last_seen failed:', err?.message || err)
+    );
   },
 
   /* ---- Guard: redirect to login if not authenticated ---- */

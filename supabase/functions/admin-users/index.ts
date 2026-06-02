@@ -190,6 +190,7 @@ Deno.serve(async (req: Request) => {
           pending_role:    roleMap[u.id]?.pending_role ?? null,
           created_at:      u.created_at,
           last_sign_in_at: u.last_sign_in_at ?? null,
+          last_seen_at:    roleMap[u.id]?.last_seen_at ?? null,
           disabled:        u.banned_until ? new Date(u.banned_until) > new Date() : false,
           confirmed:       !!u.confirmed_at,
         }))

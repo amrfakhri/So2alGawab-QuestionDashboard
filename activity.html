@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity Log — So2alGawab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/global.css">
+<link rel="stylesheet" href="./assets/css/layout.css">
+<link rel="stylesheet" href="./assets/css/components.css">
+<link rel="stylesheet" href="./assets/css/forms.css">
+<link rel="stylesheet" href="./assets/css/sidebar.css">
+<link rel="stylesheet" href="./assets/css/responsive.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="./services/supabase.js"></script>
+<script src="./services/auth.js"></script>
+<script src="./services/sidebar.js"></script>
+<style>
+  /* ── Activity feed ─────────────────────────────────────────── */
+  .act-feed { display:flex; flex-direction:column; }
+  .act-row {
+    display:flex; align-items:flex-start; gap:14px;
+    padding:14px 16px;
+    border-bottom:1px solid var(--border, rgba(255,255,255,0.06));
+  }
+  .act-row:last-child { border-bottom:none; }
+  .act-row:hover { background:rgba(255,255,255,0.02); }
+  .act-bullet {
+    width:34px; height:34px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .act-main { flex:1; min-width:0; }
+  .act-text { font-size:14px; color:var(--text2); line-height:1.5; }
+  .act-text strong { color:var(--text); font-weight:600; }
+  .act-meta { display:flex; align-items:center; gap:8px; margin-top:3px; flex-wrap:wrap; }
+  .act-time { font-size:12px; color:var(--text3); }
+  .act-tag {
+    font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.04em;
+    padding:2px 8px; border-radius:99px;
+  }
+  .act-tag.list   { background:rgba(255,255,255,0.06); color:var(--text3); }
+  .act-tag.media  { background:var(--blue-bg, rgba(59,130,246,0.15)); color:var(--blue, #60a5fa); }
+  .act-avatar {
+    width:20px; height:20px; border-radius:50%;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:10px; font-weight:700; color:#fff; flex-shrink:0;
+  }
+  .act-who { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text2); }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="appSidebar"></aside>
+<div class="sb-overlay" id="sbOverlay"></div>
+<div class="sb-mobile-bar">
+  <button class="sb-hamburger" id="sbToggle" type="button">
+    <i data-lucide="menu" class="icon-md"></i>
+  </button>
+  <span class="sb-mobile-title" id="sbMobileTitle">Activity Log</span>
+</div>
+
+<!-- ── Page ────────────────────────────────────────────────────── -->
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h1>Activity Log</h1>
+      <p>Everything that's happened across the system — list edits and media uploads, attributed to the user who did them.</p>
+    </div>
+    <button class="btn btn-ghost" id="btnRefresh" onclick="loadActivity()">
+      <i data-lucide="refresh-cw" class="icon-sm"></i> Refresh
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card"><div class="val" id="statTotal">—</div><div class="lbl">Total Activities</div></div>
+    <div class="stat-card"><div class="val text-green" id="statContributors">—</div><div class="lbl">Contributors</div></div>
+    <div class="stat-card"><div class="val text-indigo" id="statLists">—</div><div class="lbl">List Edits</div></div>
+    <div class="stat-card"><div class="val text-muted" id="statMedia">—</div><div class="lbl">Media Uploads</div></div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search by item or user…" oninput="applyFilters()">
+    </div>
+    <select class="filter-select" id="typeFilter" onchange="applyFilters()">
+      <option value="">All Types</option>
+      <option value="list">List edits</option>
+      <option value="media">Media uploads</option>
+    </select>
+    <select class="filter-select" id="userFilter" onchange="applyFilters()">
+      <option value="">All Users</option>
+    </select>
+  </div>
+
+  <!-- Feed -->
+  <div class="table-wrap">
+    <div class="act-feed" id="activityFeed">
+      <div class="table-state"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!--  SCRIPT                                                      -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+const _sb = window._sb;
+
+// ── State ─────────────────────────────────────────────────────
+let allEvents = [];
+let userMap   = {};   // user_id → { name, email, role }
+
+// ── Icon helper ───────────────────────────────────────────────
+function icon(name, cls = '') {
+  return `<i data-lucide="${name}"${cls ? ` class="${cls}"` : ''}></i>`;
+}
+
+// ── Init ──────────────────────────────────────────────────────
+async function init() {
+  const session = await Auth.requireAuth();
+  if (!session) return;
+
+  Sidebar.init('activity');
+  Sidebar.setUser(session.user, await Auth.getRole());
+  await loadActivity();
+}
+
+// ── Data ──────────────────────────────────────────────────────
+async function loadActivity() {
+  setFeedState('loading');
+  const btn = document.getElementById('btnRefresh');
+  if (btn) btn.disabled = true;
+
+  try {
+    const [listsRes, mediaRes, dirRes] = await Promise.all([
+      _sb.from('lists')
+        .select('id, title, created_at, updated_at, created_by, updated_by')
+        .order('updated_at', { ascending: false }),
+      _sb.from('question_media')
+        .select('id, file_name, media_type, created_at, uploaded_by')
+        .order('created_at', { ascending: false }),
+      _sb.rpc('get_user_directory'),
+    ]);
+
+    if (listsRes.error) throw new Error(listsRes.error.message);
+    if (mediaRes.error) throw new Error(mediaRes.error.message);
+
+    const lists = listsRes.data || [];
+    const media = mediaRes.data || [];
+    const dir   = dirRes.data   || [];
+
+    userMap = {};
+    dir.forEach(u => {
+      userMap[u.user_id] = {
+        name:  (u.full_name || '').trim() || u.email || 'Unknown user',
+        email: u.email || '',
+        role:  u.role  || '',
+      };
+    });
+
+    // Synthesize a timeline from the attributed, timestamped data we have.
+    const events = [];
+    lists.forEach(l => {
+      const title = l.title || 'Untitled list';
+      events.push({ ts: l.created_at, userId: l.created_by, action: 'created', type: 'list', target: title });
+      if (l.updated_at && l.updated_at !== l.created_at) {
+        events.push({ ts: l.updated_at, userId: l.updated_by, action: 'updated', type: 'list', target: title });
+      }
+    });
+    media.forEach(m => {
+      events.push({
+        ts: m.created_at, userId: m.uploaded_by, action: 'uploaded', type: 'media',
+        target: m.file_name || `${m.media_type || 'media'} file`,
+      });
+    });
+
+    events.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+    allEvents = events;
+
+    buildUserFilter();
+    updateStats();
+    applyFilters();
+  } catch (e) {
+    setFeedState('error', e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ── Stats ─────────────────────────────────────────────────────
+function updateStats() {
+  const contributors = new Set(allEvents.map(e => e.userId).filter(Boolean));
+  document.getElementById('statTotal').textContent        = allEvents.length;
+  document.getElementById('statContributors').textContent = contributors.size;
+  document.getElementById('statLists').textContent        = allEvents.filter(e => e.type === 'list').length;
+  document.getElementById('statMedia').textContent        = allEvents.filter(e => e.type === 'media').length;
+}
+
+// ── User filter dropdown ──────────────────────────────────────
+function buildUserFilter() {
+  const sel = document.getElementById('userFilter');
+  const ids = [...new Set(allEvents.map(e => e.userId).filter(Boolean))];
+  const opts = ids
+    .map(id => ({ id, name: userMap[id]?.name || 'Unknown user' }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  sel.innerHTML = '<option value="">All Users</option>' +
+    opts.map(o => `<option value="${o.id}">${escHtml(o.name)}</option>`).join('');
+}
+
+// ── Filters ───────────────────────────────────────────────────
+function applyFilters() {
+  const q    = document.getElementById('searchInput').value.toLowerCase().trim();
+  const type = document.getElementById('typeFilter').value;
+  const uid  = document.getElementById('userFilter').value;
+
+  let filtered = allEvents;
+  if (type) filtered = filtered.filter(e => e.type === type);
+  if (uid)  filtered = filtered.filter(e => e.userId === uid);
+  if (q) {
+    filtered = filtered.filter(e => {
+      const who = (userMap[e.userId]?.name || 'system').toLowerCase();
+      return e.target.toLowerCase().includes(q) || who.includes(q) || e.action.includes(q);
+    });
+  }
+
+  renderFeed(filtered);
+}
+
+// ── Render ────────────────────────────────────────────────────
+const TYPE_TONES = {
+  list:  { icon: 'pencil', bg: 'rgba(255,255,255,0.06)', c: 'var(--text3, #94a3b8)' },
+  media: { icon: 'upload', bg: 'var(--blue-bg, rgba(59,130,246,0.15))', c: 'var(--blue, #60a5fa)' },
+};
+
+const ACTION_VERBS = {
+  created:  'created list',
+  updated:  'updated list',
+  uploaded: 'uploaded media',
+};
+
+function renderFeed(events) {
+  const el = document.getElementById('activityFeed');
+
+  if (!events.length) {
+    el.innerHTML = `<div class="table-state">
+      <div class="icon">${icon('activity', 'icon-xl')}</div>
+      <h3>No activity found</h3>
+      <p>Try adjusting your search or filters.</p>
+    </div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  el.innerHTML = events.map(e => {
+    const tone   = TYPE_TONES[e.type] || TYPE_TONES.list;
+    const verb   = ACTION_VERBS[e.action] || e.action;
+    const user   = e.userId ? userMap[e.userId] : null;
+    const whoName = user?.name || 'System';
+    const whoChip = user
+      ? `<span class="act-avatar" style="background:${avatarColor(user.role)}">${escHtml(getInitials(user.name, user.email))}</span><span>${escHtml(whoName)}</span>`
+      : `${icon('server', 'icon-xs')}<span>System</span>`;
+
+    return `
+      <div class="act-row">
+        <div class="act-bullet" style="background:${tone.bg};color:${tone.c}">
+          ${icon(tone.icon, 'icon-sm')}
+        </div>
+        <div class="act-main">
+          <div class="act-text">${verb} <strong>${escHtml(e.target)}</strong></div>
+          <div class="act-meta">
+            <span class="act-who">${whoChip}</span>
+            <span class="act-tag ${e.type}">${e.type}</span>
+            <span class="act-time" title="${e.ts ? new Date(e.ts).toLocaleString() : ''}">${fmtRelative(e.ts)}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  lucide.createIcons();
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function avatarColor(role) {
+  return { super_admin: '#b45309', admin: '#7c3aed', editor: '#1d4ed8', viewer: '#374151', pending: '#92400e' }[role] || '#475569';
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function fmtRelative(iso) {
+  if (!iso) return '—';
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)   return 'Just now';
+  if (m < 60)  return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24)  return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 30)  return `${d}d ago`;
+  return fmtDate(iso);
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function setFeedState(type, msg = '') {
+  const el = document.getElementById('activityFeed');
+  if (type === 'loading') {
+    el.innerHTML = '<div class="table-state"><div class="spinner"></div></div>';
+  } else if (type === 'error') {
+    el.innerHTML = `<div class="table-state">
+      <div class="icon">${icon('alert-triangle', 'icon-xl')}</div>
+      <h3>Couldn't load activity</h3>
+      <p>${escHtml(msg)}</p>
+    </div>`;
+    lucide.createIcons();
+  }
+}
+
+lucide.createIcons();
+init();
+</script>
+</body>
+</html>

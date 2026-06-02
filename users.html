@@ -311,7 +311,7 @@ function renderTable(users) {
       <td>${roleBadge(u.role, u.pending_role)}</td>
       <td>${statusBadge(status)}</td>
       <td class="date-cell">${fmtDate(u.created_at)}</td>
-      <td class="date-cell">${u.last_sign_in_at ? fmtRelative(u.last_sign_in_at) : '<span class="text-muted">Never</span>'}</td>
+      <td class="date-cell">${lastActive(u) ? fmtRelative(lastActive(u)) : '<span class="text-muted">Never</span>'}</td>
       <td class="action-cell">
         <button class="action-btn" onclick="toggleDropdown('${u.id}', event)">${icon('more-horizontal', 'icon-sm')}</button>
         <div class="dropdown" id="dd-${u.id}">${actionsMenu}</div>
@@ -380,6 +380,15 @@ function statusBadge(s) {
 function fmtDate(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// "Last Login" = most recent of a fresh sign-in and live dashboard activity.
+// last_sign_in_at only changes on a real password sign-in; last_seen_at is
+// stamped every time the user loads the dashboard with a persisted session.
+function lastActive(u) {
+  const times = [u.last_sign_in_at, u.last_seen_at].filter(Boolean).map(t => new Date(t).getTime());
+  if (!times.length) return null;
+  return new Date(Math.max(...times)).toISOString();
 }
 
 function fmtRelative(iso) {

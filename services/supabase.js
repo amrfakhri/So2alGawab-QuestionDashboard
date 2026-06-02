@@ -10,6 +10,16 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+/* ---- Current user id (from the locally-cached session, no network) ---- */
+async function _currentUserId() {
+  try {
+    const { data: { session } } = await _sb.auth.getSession();
+    return session?.user?.id || null;
+  } catch {
+    return null;
+  }
+}
+
 /* =====================================================
    EXISTING SCHEMA (read-only reference)
    ─────────────────────────────────────────────────
@@ -209,7 +219,8 @@ const SupabaseDB = {
 
   /* ---- Create a new list ---- */
   async createList(payload) {
-    const res = await _sb.from('lists').insert({ id: payload.id, title: payload.title });
+    const uid = await _currentUserId();
+    const res = await _sb.from('lists').insert({ id: payload.id, title: payload.title, created_by: uid, updated_by: uid });
     _throwIfError(res, 'createList');
 
     if (payload.categories?.length) await this._syncCategories(payload.id, payload.categories);
@@ -220,7 +231,7 @@ const SupabaseDB = {
 
   /* ---- Update a list (only syncs sub-resources when provided) ---- */
   async updateList(id, payload) {
-    const patch = { updated_at: new Date().toISOString() };
+    const patch = { updated_at: new Date().toISOString(), updated_by: await _currentUserId() };
     if (payload.title !== undefined) patch.title = payload.title;
 
     const res = await _sb.from('lists').update(patch).eq('id', id);
@@ -443,7 +454,7 @@ const SupabaseDB = {
       );
     }
 
-    await _sb.from('lists').update({ updated_at: new Date().toISOString() }).eq('id', destListId);
+    await _sb.from('lists').update({ updated_at: new Date().toISOString(), updated_by: await _currentUserId() }).eq('id', destListId);
     return true;
   }
 };

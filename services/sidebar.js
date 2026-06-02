@@ -15,6 +15,7 @@ const _NAV = [
   { id: 'overview', label: 'Overview',       icon: 'layout-dashboard', href: './dashboard.html'       },
   { id: 'database', label: 'Database',        icon: 'database',         href: './database.html'        },
   { id: 'media',    label: 'Media Library',   icon: 'images',           href: './media.html'           },
+  { id: 'activity', label: 'Activity Log',     icon: 'history',          href: './activity.html'        },
   { sep: true },
   { id: 'users',    label: 'Users',           icon: 'users',            href: './users.html',
     gateId: 'sbNavUsers', roles: ['admin','super_admin'] },

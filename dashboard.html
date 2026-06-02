@@ -627,6 +627,10 @@
             <i data-lucide="activity" class="icon-md" style="color:var(--purple)"></i>
             Recent activity
           </div>
+          <a href="./activity.html" class="btn btn-sm btn-ghost">
+            View all
+            <i data-lucide="arrow-left" class="icon-sm"></i>
+          </a>
         </div>
         <div class="activity-card" id="activityFeed">
           <div class="ov-empty">Loading…</div>
@@ -735,11 +739,11 @@ async function loadOverviewData() {
   const started = performance.now();
 
   const [listsRes, questionsRes, categoriesRes, mediaRes, usersRes, sessionRes, playsRes] = await Promise.all([
-    window._sb.from('lists').select('id, title, created_at, updated_at').order('updated_at', { ascending: false }),
+    window._sb.from('lists').select('id, title, created_at, updated_at, updated_by').order('updated_at', { ascending: false }),
     window._sb.from('questions').select('id, list_id, category_id, created_at, updated_at').is('deleted_at', null),
     window._sb.from('categories').select('id, list_id, name, sort_order, image_path').order('sort_order'),
-    window._sb.from('question_media').select('id, question_id, media_type, file_size, created_at').order('created_at', { ascending: false }),
-    window._sb.from('user_roles').select('user_id, role, email, created_at').order('created_at', { ascending: false }),
+    window._sb.from('question_media').select('id, question_id, media_type, file_size, created_at, uploaded_by').order('created_at', { ascending: false }),
+    window._sb.rpc('get_user_directory'),
     window._sb.auth.getSession(),
     window._sb.rpc('get_top_played_categories', { p_limit: 6 }),
   ]);
@@ -754,6 +758,11 @@ async function loadOverviewData() {
   const media      = mediaRes.data      || [];
   const users      = usersRes.data      || [];
   const responseMs = Math.round(performance.now() - started);
+
+  /* Map user_id → display name for activity attribution */
+  const userNameById = {};
+  users.forEach(u => { userNameById[u.user_id] = (u.full_name || '').trim() || u.email || 'Unknown user'; });
+  const whoBy = id => (id && userNameById[id]) || 'System';
 
   /* ── DASHBOARD_STATS ── */
   const stats = {
@@ -813,15 +822,15 @@ async function loadOverviewData() {
   /* ── ACTIVITY (recent list edits + media uploads) ── */
   const activity = [
     ...lists.slice(0, 3).map(l => ({
-      who   : 'Database',
+      who   : whoBy(l.updated_by),
       what  : 'updated list',
       target: l.title || 'Untitled list',
       when  : formatDate(l.updated_at),
       type  : 'edit',
     })),
     ...media.slice(0, 2).map(m => ({
-      who   : 'Storage',
-      what  : 'uploaded',
+      who   : whoBy(m.uploaded_by),
+      what  : 'uploaded media',
       target: String(m.id).slice(0, 8) + '…',
       when  : formatDate(m.created_at),
       type  : 'upload',
@@ -1160,7 +1169,7 @@ async function refreshKPI() {
       window._sb.from('lists').select('id', { count: 'exact', head: true }),
       window._sb.from('questions').select('id', { count: 'exact', head: true }).is('deleted_at', null),
       window._sb.from('question_media').select('id, file_size'),
-      window._sb.from('user_roles').select('user_id, role'),
+      window._sb.rpc('get_user_directory'),
     ]);
     renderKPI({
       questions : questionsRes.count  || 0,
