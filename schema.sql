@@ -1,6 +1,6 @@
 -- So2alGawab — Supabase Database Schema
 -- Run this in the Supabase SQL editor (Dashboard → SQL Editor)
--- Project: https://zsgmageagwaiqxotzmkr.supabase.co
+-- Project: https://qtzdubdhbdvkvesltmkd.supabase.co
 
 -- Enable UUID extension for media/notes primary keys
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

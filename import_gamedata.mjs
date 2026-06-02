@@ -11,8 +11,8 @@ import { readFileSync } from 'fs';
 import { createHash }   from 'crypto';
 
 /* ── Config ─────────────────────────────────────────── */
-const SUPABASE_URL = 'https://zsgmageagwaiqxotzmkr.supabase.co';
-const ANON_KEY     = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzZ21hZ2VhZ3dhaXF4b3R6bWtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNjI3MjIsImV4cCI6MjA5MzYzODcyMn0.HCd1CWSnDsTy7My3ez5EjHAbu5-zNWLC_PURjWzjQXc';
+const SUPABASE_URL = 'https://qtzdubdhbdvkvesltmkd.supabase.co';
+const ANON_KEY     = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0emR1YmRoYmR2a3Zlc2x0bWtkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjQwMzUsImV4cCI6MjA5NjAwMDAzNX0.xbNoT4_rkXYNbqgbYUw9YLCz0VDjv09whqig44EpgZ0';
 
 const LIST_TITLE   = 'gamedata1';       // name shown in the dashboard
 const JSON_PATH    = '/Users/amrfakhri/Mirror/GitHub/So2alGawab-QuestionDashboard/gamedata1.json';
