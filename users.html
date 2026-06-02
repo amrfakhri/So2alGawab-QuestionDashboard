@@ -157,17 +157,24 @@
     <div class="modal-head">
       <div>
         <h2>Reset Password</h2>
-        <p id="resetSubtitle">Generate a one-time password reset link.</p>
+        <p id="resetSubtitle">Send a password reset email to the user.</p>
       </div>
       <button class="modal-close" onclick="closeResetModal()">
         <i data-lucide="x" class="icon-sm"></i>
       </button>
     </div>
     <div class="modal-body">
-      <p class="modal-desc">
-        Copy the link below and send it to the user. It expires after 24 hours and can only be used once.
-      </p>
+      <!-- Success: email sent -->
+      <div id="resetSentWrap" style="display:none;text-align:center;padding:8px 0;">
+        <div style="color:var(--green);margin-bottom:10px;"><i data-lucide="mail-check" class="icon-xl"></i></div>
+        <p class="modal-desc" id="resetSentMsg" style="text-align:center;"></p>
+      </div>
+      <!-- Fallback: manual link (only if email couldn't be sent) -->
       <div id="resetLinkWrap" style="display:none;">
+        <p class="modal-desc">
+          The reset email couldn't be sent automatically. Copy the link below and send it to the user.
+          It expires after 24 hours and can only be used once.
+        </p>
         <div class="modal-label">Reset Link</div>
         <div class="link-box">
           <input type="text" id="resetLinkInput" readonly>
@@ -529,19 +536,30 @@ function hideModalAlert() {
 async function openResetModal(userId, email) {
   document.getElementById('resetSubtitle').textContent   = email;
   document.getElementById('resetLinkWrap').style.display = 'none';
+  document.getElementById('resetSentWrap').style.display = 'none';
   document.getElementById('resetLoading').style.display  = 'block';
   document.getElementById('resetLinkInput').value = '';
   document.getElementById('resetModalBg').classList.add('open');
 
   try {
-    const { link } = await Auth.callAdminFunction('resetPassword', { email });
-    document.getElementById('resetLinkInput').value        = link || 'Error generating link';
-    document.getElementById('resetLinkWrap').style.display = 'block';
+    const { emailed, link } = await Auth.callAdminFunction('resetPassword', { email });
+    if (emailed) {
+      // Email delivered — show confirmation.
+      document.getElementById('resetSentMsg').textContent =
+        `A password reset email has been sent to ${email}. The link expires in 24 hours.`;
+      document.getElementById('resetSentWrap').style.display = 'block';
+      toast('Reset email sent', 'success');
+    } else {
+      // Resend not configured / send failed — fall back to a copyable link.
+      document.getElementById('resetLinkInput').value        = link || 'Error generating link';
+      document.getElementById('resetLinkWrap').style.display = 'block';
+    }
   } catch (err) {
     document.getElementById('resetLinkInput').value        = 'Error: ' + err.message;
     document.getElementById('resetLinkWrap').style.display = 'block';
   } finally {
     document.getElementById('resetLoading').style.display = 'none';
+    lucide.createIcons();
   }
 }
 

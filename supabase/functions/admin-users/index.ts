@@ -57,6 +57,7 @@ async function sendResendEmail(opts: {
     const body = await res.text()
     console.error('Resend error:', res.status, body)
   }
+  return res.ok
 }
 
 Deno.serve(async (req: Request) => {
@@ -372,7 +373,44 @@ Deno.serve(async (req: Request) => {
           options: { redirectTo: DEFAULT_REDIRECT },
         })
         if (linkErr) throw linkErr
-        return json({ link: (linkData as any)?.properties?.action_link ?? null })
+
+        const actionLink = (linkData as any)?.properties?.action_link ?? null
+
+        // Email the recovery link directly to the user so they can reset their
+        // own password. Falls back to returning the link for manual sharing if
+        // Resend isn't configured or the send fails.
+        const resendApiKey    = Deno.env.get('RESEND_API_KEY')
+        const notifyFromEmail = Deno.env.get('NOTIFY_FROM_EMAIL') ?? `noreply@${new URL(APP_URL).hostname}`
+
+        let emailed = false
+        if (resendApiKey && actionLink) {
+          emailed = await sendResendEmail({
+            apiKey:  resendApiKey,
+            from:    `So2alGawab <${notifyFromEmail}>`,
+            to:      email,
+            subject: 'Reset your So2alGawab password',
+            html: `
+              <div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px;">
+                <h2 style="color:#1e293b;margin-bottom:8px;">Reset your password</h2>
+                <p style="color:#475569;">
+                  A password reset was requested for your So2alGawab account.
+                  Click the button below to choose a new password. This link expires
+                  after 24 hours and can only be used once.
+                </p>
+                <a href="${actionLink}"
+                   style="display:inline-block;background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin:12px 0;">
+                  Reset Password →
+                </a>
+                <p style="color:#94a3b8;font-size:13px;margin-top:16px;">
+                  If you didn't request this, you can safely ignore this email — your
+                  password won't change until you use the link above.
+                </p>
+              </div>
+            `,
+          })
+        }
+
+        return json({ emailed, link: emailed ? null : actionLink })
       }
 
       default:
