@@ -113,7 +113,11 @@
 <script>
 'use strict';
 
-const _sb = window._sb;
+// Use the shared client from services/supabase.js (which already declares a
+// top-level `const _sb`). Do NOT redeclare `_sb` here — a second top-level
+// `const _sb` in a classic script collides in the shared global scope and
+// throws "Identifier '_sb' has already been declared", killing this script.
+const sb = window._sb;
 
 // ── State ─────────────────────────────────────────────────────
 let allEvents = [];
@@ -136,19 +140,19 @@ async function init() {
 
 // ── Resilient loaders (tolerate attribution migration not yet run) ──
 async function loadLists() {
-  let res = await _sb.from('lists').select('id, title, created_at, updated_at, created_by, updated_by').order('updated_at', { ascending: false });
-  if (res.error) res = await _sb.from('lists').select('id, title, created_at, updated_at').order('updated_at', { ascending: false });
+  let res = await sb.from('lists').select('id, title, created_at, updated_at, created_by, updated_by').order('updated_at', { ascending: false });
+  if (res.error) res = await sb.from('lists').select('id, title, created_at, updated_at').order('updated_at', { ascending: false });
   return res;
 }
 async function loadMedia() {
-  let res = await _sb.from('question_media').select('id, file_name, media_type, created_at, uploaded_by').order('created_at', { ascending: false });
-  if (res.error) res = await _sb.from('question_media').select('id, file_name, media_type, created_at').order('created_at', { ascending: false });
+  let res = await sb.from('question_media').select('id, file_name, media_type, created_at, uploaded_by').order('created_at', { ascending: false });
+  if (res.error) res = await sb.from('question_media').select('id, file_name, media_type, created_at').order('created_at', { ascending: false });
   return res;
 }
 async function loadDirectory() {
-  const res = await _sb.rpc('get_user_directory');
+  const res = await sb.rpc('get_user_directory');
   if (!res.error) return res;
-  return _sb.from('user_roles').select('user_id, role, email, full_name, created_at').order('created_at', { ascending: false });
+  return sb.from('user_roles').select('user_id, role, email, full_name, created_at').order('created_at', { ascending: false });
 }
 
 // ── Data ──────────────────────────────────────────────────────
