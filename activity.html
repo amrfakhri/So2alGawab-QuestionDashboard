@@ -134,6 +134,23 @@ async function init() {
   await loadActivity();
 }
 
+// ── Resilient loaders (tolerate attribution migration not yet run) ──
+async function loadLists() {
+  let res = await _sb.from('lists').select('id, title, created_at, updated_at, created_by, updated_by').order('updated_at', { ascending: false });
+  if (res.error) res = await _sb.from('lists').select('id, title, created_at, updated_at').order('updated_at', { ascending: false });
+  return res;
+}
+async function loadMedia() {
+  let res = await _sb.from('question_media').select('id, file_name, media_type, created_at, uploaded_by').order('created_at', { ascending: false });
+  if (res.error) res = await _sb.from('question_media').select('id, file_name, media_type, created_at').order('created_at', { ascending: false });
+  return res;
+}
+async function loadDirectory() {
+  const res = await _sb.rpc('get_user_directory');
+  if (!res.error) return res;
+  return _sb.from('user_roles').select('user_id, role, email, full_name, created_at').order('created_at', { ascending: false });
+}
+
 // ── Data ──────────────────────────────────────────────────────
 async function loadActivity() {
   setFeedState('loading');
@@ -142,13 +159,9 @@ async function loadActivity() {
 
   try {
     const [listsRes, mediaRes, dirRes] = await Promise.all([
-      _sb.from('lists')
-        .select('id, title, created_at, updated_at, created_by, updated_by')
-        .order('updated_at', { ascending: false }),
-      _sb.from('question_media')
-        .select('id, file_name, media_type, created_at, uploaded_by')
-        .order('created_at', { ascending: false }),
-      _sb.rpc('get_user_directory'),
+      loadLists(),
+      loadMedia(),
+      loadDirectory(),
     ]);
 
     if (listsRes.error) throw new Error(listsRes.error.message);

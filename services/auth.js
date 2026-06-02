@@ -43,9 +43,11 @@ const Auth = {
     this._touchedLastSeen = true;
     const sb = _client();
     if (!sb) return;
-    sb.rpc('touch_last_seen').catch(err =>
-      console.warn('[Auth] touch_last_seen failed:', err?.message || err)
-    );
+    // rpc() returns a thenable query builder (no .catch); wrap it in a real
+    // Promise. A missing touch_last_seen RPC surfaces as a resolved {error}.
+    Promise.resolve(sb.rpc('touch_last_seen'))
+      .then(({ error }) => { if (error) console.warn('[Auth] touch_last_seen failed:', error.message); })
+      .catch(err => console.warn('[Auth] touch_last_seen failed:', err?.message || err));
   },
 
   /* ---- Guard: redirect to login if not authenticated ---- */
