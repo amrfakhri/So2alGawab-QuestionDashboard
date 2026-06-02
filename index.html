@@ -149,22 +149,45 @@ function showSetPasswordScreen(type) {
   btn.disabled = true;
   document.getElementById('setPwLabel').textContent = 'Verifying link…';
 
-  const { data: { subscription } } = window._sb.auth.onAuthStateChange((event, session) => {
-    subscription.unsubscribe();
-    if (event === 'SIGNED_IN' && session) {
-      // Token exchanged successfully — form is ready
-      btn.disabled = false;
-      document.getElementById('setPwLabel').textContent =
-        type === 'recovery' ? 'Set New Password' : 'Activate Account';
-    } else {
-      // Token was expired or already used
-      showSetPwAlert(
-        'This link has expired or has already been used. Ask your admin to send a new invite.',
-        'error'
-      );
-      document.getElementById('setPasswordForm').style.display = 'none';
-    }
+  let settled = false;
+
+  function markReady() {
+    if (settled) return;
+    settled = true;
+    subscription?.unsubscribe();
+    btn.disabled = false;
+    document.getElementById('setPwLabel').textContent =
+      type === 'recovery' ? 'Set New Password' : 'Activate Account';
+  }
+
+  function markExpired() {
+    if (settled) return;
+    settled = true;
+    subscription?.unsubscribe();
+    showSetPwAlert(
+      'This link has expired or has already been used. Ask your admin to send a new invite.',
+      'error'
+    );
+    document.getElementById('setPasswordForm').style.display = 'none';
+  }
+
+  // The client exchanges the hash tokens for a session asynchronously and
+  // emits an auth event. Recovery links fire PASSWORD_RECOVERY (never
+  // SIGNED_IN), and supabase-js also fires INITIAL_SESSION first — so accept a
+  // session from ANY event instead of waiting for one specific event type.
+  const { data: { subscription } } = window._sb.auth.onAuthStateChange((_event, session) => {
+    if (session) markReady();
   });
+
+  // The hash may already have been processed before we subscribed (so no
+  // further event fires). Check directly, and if no session has appeared
+  // after a grace period, treat the link as genuinely expired/used.
+  window._sb.auth.getSession().then(({ data }) => { if (data?.session) markReady(); });
+  setTimeout(() => {
+    window._sb.auth.getSession().then(({ data }) => {
+      if (data?.session) markReady(); else markExpired();
+    });
+  }, 5000);
 }
 
 function showSetPwAlert(msg, type = 'error') {
