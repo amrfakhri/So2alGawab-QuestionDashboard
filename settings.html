@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Settings — So2alGawab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/global.css">
+<link rel="stylesheet" href="./assets/css/layout.css">
+<link rel="stylesheet" href="./assets/css/components.css">
+<link rel="stylesheet" href="./assets/css/forms.css">
+<link rel="stylesheet" href="./assets/css/sidebar.css">
+<link rel="stylesheet" href="./assets/css/responsive.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="./services/supabase.js?v=20260605"></script>
+<script src="./services/auth.js?v=20260605"></script>
+<script src="./services/sidebar.js?v=20260605"></script>
+<style>
+  /* ── Settings cards ───────────────────────────────────────── */
+  .set-list { display:flex; flex-direction:column; gap:16px; max-width:720px; }
+  .set-card {
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:var(--r-lg); padding:20px; box-shadow:var(--shadow-card);
+  }
+  .set-card-head { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .set-card-title { font-size:15px; font-weight:700; }
+  .set-card-desc { font-size:13px; color:var(--text3); line-height:1.5; margin-bottom:14px; }
+  .set-row { display:flex; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+  .set-input-wrap { display:flex; flex-direction:column; gap:6px; }
+  .set-input-wrap .form-input { width:140px; }
+  .set-input-wrap .form-input.invalid { border-color:var(--red, #ef4444); }
+  .set-feedback { font-size:12px; min-height:16px; }
+  .set-feedback.error   { color:var(--red, #ef4444); }
+  .set-feedback.success { color:var(--green, #22c55e); }
+  .set-meta { font-size:11px; color:var(--text4); margin-top:6px; }
+  .set-key-tag {
+    font-size:10px; font-weight:600; color:var(--text3);
+    background:rgba(255,255,255,0.06); padding:2px 8px; border-radius:99px;
+    font-family:ui-monospace,monospace;
+  }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="appSidebar"></aside>
+<div class="sb-overlay" id="sbOverlay"></div>
+<div class="sb-mobile-bar">
+  <button class="sb-hamburger" id="sbToggle" type="button">
+    <i data-lucide="menu" class="icon-md"></i>
+  </button>
+  <span class="sb-mobile-title" id="sbMobileTitle">Game Settings</span>
+</div>
+
+<!-- ── Page ────────────────────────────────────────────────────── -->
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h1>Game Settings</h1>
+      <p>Shared gameplay configuration. Changes take effect immediately for new matches — no app update needed.</p>
+    </div>
+  </div>
+
+  <div id="settingsRoot">
+    <div class="table-state"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!--  SCRIPT                                                      -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// Shared client from services/supabase.js (do NOT redeclare `_sb` — global collision).
+const sb = window._sb;
+
+// ── Config-driven settings registry ──────────────────────────
+// Add a new shared gameplay setting by appending an entry here. Each maps to a
+// row (key) in public.app_config (value stored as jsonb). Future examples:
+//   { key:'max_online_rounds',     label:'Max Online Rounds',     type:'int', min:1, ... }
+//   { key:'room_player_limit',     label:'Room Player Limit',     type:'int', min:2, ... }
+//   { key:'answer_timer_seconds',  label:'Answer Timer (seconds)',type:'int', min:5, ... }
+//   { key:'matchmaking_timeout',   label:'Matchmaking Timeout (s)',type:'int', min:5, ... }
+const SETTINGS = [
+  {
+    key:        'questions_per_category',
+    label:      'Questions Per Category',
+    description:'Controls how many random questions are shown per category in matches.',
+    type:       'int',
+    min:        1,
+    max:        100,
+    unit:       'questions',
+  },
+];
+
+// ── Icon helper ───────────────────────────────────────────────
+function icon(name, cls = '') {
+  return `<i data-lucide="${name}"${cls ? ` class="${cls}"` : ''}></i>`;
+}
+
+// ── Init (super_admin only) ───────────────────────────────────
+async function init() {
+  const session = await Auth.requireAuth(['super_admin']);
+  if (!session) return;   // requireAuth redirects non-super-admins away
+
+  Sidebar.init('settings');
+  Sidebar.setUser(session.user, 'super_admin');
+  await loadSettings();
+}
+
+// ── Load current values from app_config ───────────────────────
+async function loadSettings() {
+  const root = document.getElementById('settingsRoot');
+  root.innerHTML = '<div class="table-state"><div class="spinner"></div></div>';
+
+  const keys = SETTINGS.map(s => s.key);
+  const { data, error } = await sb
+    .from('app_config')
+    .select('key, value, updated_at')
+    .in('key', keys);
+
+  if (error) {
+    root.innerHTML = `<div class="set-card"><div class="set-feedback error">
+      ${icon('alert-triangle','icon-sm')} Couldn't load settings: ${escHtml(error.message)}</div></div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  const byKey = {};
+  (data || []).forEach(r => { byKey[r.key] = r; });
+
+  root.innerHTML = `<div class="set-list">${SETTINGS.map(s => renderCard(s, byKey[s.key])).join('')}</div>`;
+  lucide.createIcons();
+}
+
+// ── Render one setting card ───────────────────────────────────
+function renderCard(setting, row) {
+  const current = row ? row.value : '';
+  const updated = row?.updated_at ? `Last updated ${fmtDate(row.updated_at)}` : 'Not set yet';
+  return `
+    <div class="set-card" data-key="${setting.key}">
+      <div class="set-card-head">
+        ${icon('sliders-horizontal','icon-sm')}
+        <span class="set-card-title">${escHtml(setting.label)}</span>
+        <span class="set-key-tag">${escHtml(setting.key)}</span>
+      </div>
+      <div class="set-card-desc">${escHtml(setting.description)}</div>
+      <div class="set-row">
+        <div class="set-input-wrap">
+          <input class="form-input" type="number" inputmode="numeric" step="1"
+                 min="${setting.min ?? 1}"${setting.max ? ` max="${setting.max}"` : ''}
+                 id="inp-${setting.key}" value="${escHtml(String(current))}"
+                 oninput="clearFeedback('${setting.key}')">
+          <div class="set-feedback" id="fb-${setting.key}"></div>
+        </div>
+        <button class="btn btn-primary" id="save-${setting.key}"
+                onclick="saveSetting('${setting.key}')">
+          <span class="spinner spinner-sm" id="sp-${setting.key}" style="display:none;"></span>
+          <span id="lbl-${setting.key}">Save</span>
+        </button>
+      </div>
+      <div class="set-meta" id="meta-${setting.key}">${updated}</div>
+    </div>`;
+}
+
+// ── Validation: positive integers only ────────────────────────
+function validateInt(raw, setting) {
+  const s = String(raw).trim();
+  if (s === '')            return { ok:false, msg:'Enter a value.' };
+  if (!/^\d+$/.test(s))    return { ok:false, msg:'Whole numbers only — no decimals, signs, or letters.' };
+  const n = Number(s);
+  if (!Number.isInteger(n) || n <= 0) return { ok:false, msg:'Must be a positive whole number.' };
+  if (setting.min != null && n < setting.min) return { ok:false, msg:`Must be at least ${setting.min}.` };
+  if (setting.max != null && n > setting.max) return { ok:false, msg:`Must be ${setting.max} or less.` };
+  return { ok:true, value:n };
+}
+
+// ── Save one setting ──────────────────────────────────────────
+async function saveSetting(key) {
+  const setting = SETTINGS.find(s => s.key === key);
+  if (!setting) return;
+
+  const input = document.getElementById('inp-' + key);
+  const fb    = document.getElementById('fb-' + key);
+
+  const result = validateInt(input.value, setting);
+  if (!result.ok) {
+    input.classList.add('invalid');
+    setFeedback(key, result.msg, 'error');
+    return;
+  }
+  input.classList.remove('invalid');
+
+  setSaving(key, true);
+  try {
+    const { error } = await sb.from('app_config').upsert(
+      { key, value: result.value, updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    );
+    if (error) throw error;
+
+    setFeedback(key, 'Saved — applies to new matches immediately.', 'success');
+    document.getElementById('meta-' + key).textContent = `Last updated ${fmtDate(new Date().toISOString())}`;
+  } catch (err) {
+    const denied = /permission|denied|row-level|policy/i.test(err.message || '');
+    setFeedback(key, denied ? 'You do not have permission to change this setting.' : ('Save failed: ' + err.message), 'error');
+  } finally {
+    setSaving(key, false);
+  }
+}
+
+// ── UI state helpers ──────────────────────────────────────────
+function setSaving(key, on) {
+  document.getElementById('save-' + key).disabled = on;
+  document.getElementById('sp-' + key).style.display  = on ? 'inline-block' : 'none';
+  document.getElementById('lbl-' + key).textContent   = on ? 'Saving…' : 'Save';
+}
+function setFeedback(key, msg, type) {
+  const fb = document.getElementById('fb-' + key);
+  fb.textContent = msg;
+  fb.className = 'set-feedback ' + type;
+}
+function clearFeedback(key) {
+  document.getElementById('inp-' + key)?.classList.remove('invalid');
+  const fb = document.getElementById('fb-' + key);
+  if (fb) { fb.textContent = ''; fb.className = 'set-feedback'; }
+}
+
+function fmtDate(iso) {
+  return new Date(iso).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+lucide.createIcons();
+init();
+</script>
+</body>
+</html>

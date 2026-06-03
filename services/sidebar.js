@@ -19,6 +19,8 @@ const _NAV = [
   { sep: true },
   { id: 'users',    label: 'Users',           icon: 'users',            href: './users.html',
     gateId: 'sbNavUsers', roles: ['admin','super_admin'] },
+  { id: 'settings', label: 'Game Settings',   icon: 'sliders-horizontal', href: './settings.html',
+    gateId: 'sbNavSettings', roles: ['super_admin'] },
   { id: 'status',   label: 'Supabase Status', icon: 'activity',         href: './supabase-status.html' },
 ];
 
@@ -182,10 +184,12 @@ const Sidebar = {
       roleEl.textContent = (role || '').replace('_', ' ').toUpperCase();
     }
 
-    /* Show/hide role-gated nav items */
-    const isAdmin = ['admin', 'super_admin'].includes(role);
-    const usersEl = document.getElementById('sbNavUsers');
-    if (usersEl) usersEl.style.display = isAdmin ? 'flex' : 'none';
+    /* Show/hide role-gated nav items (driven by each item's `roles` list) */
+    _NAV.forEach(n => {
+      if (!n.gateId || !n.roles) return;
+      const el = document.getElementById(n.gateId);
+      if (el) el.style.display = n.roles.includes(role) ? 'flex' : 'none';
+    });
   }
 };
 
