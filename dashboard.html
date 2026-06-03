@@ -545,6 +545,7 @@
       <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
       <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
       <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+      <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
     </div>
     <hr class="hr" />
 
@@ -1293,6 +1294,7 @@ function renderPlatformStats(d) {
     { label: 'Online Games Played', value: fmt(d.online_games_played), sub: 'finished rooms',    icon: 'globe',      color: 'gold'   },
     { label: 'Local Games Played',  value: fmt(d.local_games_played),  sub: 'teams mode',        icon: 'users',      color: 'green'  },
     { label: 'Active Players',      value: fmt(onlineP + localP),      sub: `${onlineP} online · ${localP} local`, icon: 'gamepad-2', color: 'coral', live: true },
+    { label: 'Active Guests',       value: fmt(d.active_guests),       sub: 'guests in a game',  icon: 'user-round', color: 'violet', live: true },
     { label: 'Active TV Sessions',  value: fmt(d.active_tv_sessions),  sub: 'casting now',       icon: 'tv',         color: 'blue',  live: true },
   ];
   document.getElementById('platformGrid').innerHTML = cards.map(k => `
