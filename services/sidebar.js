@@ -44,6 +44,32 @@ const Sidebar = {
       const item = _NAV.find(n => n.id === activeId);
       if (item) titleEl.textContent = item.label;
     }
+
+    /* Probe Supabase and update the connection badge on every page */
+    this.checkConnection();
+  },
+
+  /* ---- Ping Supabase and reflect status in the footer badge ---- */
+  async checkConnection() {
+    const badge = document.getElementById('connBadge');
+    const label = document.getElementById('connLabel');
+    if (!badge || !label) return;
+
+    let connected = false;
+    try {
+      const DB = window.SupabaseDB;
+      if (DB && typeof DB.ping === 'function') {
+        connected = await DB.ping();
+      } else if (window._sb) {
+        const { error } = await window._sb.from('app_config').select('key').limit(1);
+        connected = !error;
+      }
+    } catch {
+      connected = false;
+    }
+
+    badge.className   = 'sb-conn conn-badge ' + (connected ? 'connected' : 'local');
+    label.textContent = connected ? 'Supabase Connected' : 'Offline';
   },
 
   /* ---- Build sidebar HTML string ---- */

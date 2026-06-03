@@ -15,9 +15,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-<script src="./services/supabase.js?v=20260605"></script>
-<script src="./services/auth.js?v=20260605"></script>
-<script src="./services/sidebar.js?v=20260605"></script>
+<script src="./services/supabase.js?v=20260606"></script>
+<script src="./services/auth.js?v=20260606"></script>
+<script src="./services/sidebar.js?v=20260606"></script>
 
 <style>
 /* ── Page-level layout ────────────────────────────────────── */
@@ -524,6 +524,29 @@
         </a>
       </div>
     </div>
+
+    <!-- Platform Stats (game-wide) -->
+    <div class="section-header">
+      <div class="section-title">
+        <span class="live-dot"></span>
+        Platform Stats
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--s-3);">
+        <span style="font-size:12px;color:var(--text4);" id="platformRefreshLabel"></span>
+        <button class="btn btn-sm btn-ghost btn-refresh" id="btnRefreshPlatform">
+          <i data-lucide="refresh-cw" class="icon-sm"></i> Refresh
+        </button>
+      </div>
+    </div>
+    <div class="kpi-grid" id="platformGrid">
+      <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+      <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+      <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+      <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+      <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+      <div class="kpi-card"><div class="skeleton" style="height:120px"></div></div>
+    </div>
+    <hr class="hr" />
 
     <!-- KPI Grid -->
     <div class="section-header">
@@ -1253,6 +1276,58 @@ async function refreshGameActivity() {
   }
 }
 
+/* ── Platform stats (game-wide, via get_dashboard_overview RPC) ── */
+function renderPlatformStats(d) {
+  // Abbreviate large counts (12,480 → 12.5K, 1,200,000 → 1.2M); small numbers stay exact.
+  const fmt = (n) => {
+    n = Number(n ?? 0);
+    if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (n >= 10000)   return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+    return n.toLocaleString();
+  };
+  const onlineP = Number(d.active_players_online ?? 0);
+  const localP  = Number(d.active_players_local ?? 0);
+  const cards = [
+    { label: 'Registered Users',    value: fmt(d.registered_users),    sub: 'real accounts',     icon: 'user-check', color: 'blue'   },
+    { label: 'Guests',              value: fmt(d.total_guests),        sub: 'guest devices',     icon: 'user',       color: 'violet' },
+    { label: 'Online Games Played', value: fmt(d.online_games_played), sub: 'finished rooms',    icon: 'globe',      color: 'gold'   },
+    { label: 'Local Games Played',  value: fmt(d.local_games_played),  sub: 'teams mode',        icon: 'users',      color: 'green'  },
+    { label: 'Active Players',      value: fmt(onlineP + localP),      sub: `${onlineP} online · ${localP} local`, icon: 'gamepad-2', color: 'coral', live: true },
+    { label: 'Active TV Sessions',  value: fmt(d.active_tv_sessions),  sub: 'casting now',       icon: 'tv',         color: 'blue',  live: true },
+  ];
+  document.getElementById('platformGrid').innerHTML = cards.map(k => `
+    <div class="kpi-card">
+      <div class="kpi-icon ${k.color}"><i data-lucide="${k.icon}" class="icon-md"></i></div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-trend neutral">${
+        k.live ? '<span class="live-dot"></span>' : '<i data-lucide="arrow-up" class="icon-xs"></i>'
+      }${k.sub}</div>
+    </div>
+  `).join('');
+  lucide.createIcons();
+}
+
+async function loadPlatformStats() {
+  try {
+    const { data, error } = await window._sb.rpc('get_dashboard_overview');
+    if (error) throw error;
+    renderPlatformStats(data || {});
+    lastUpdatedNow('platformRefreshLabel');
+  } catch (e) {
+    const grid = document.getElementById('platformGrid');
+    if (grid) {
+      grid.innerHTML = `<div class="ov-empty" style="grid-column:1/-1;">Couldn't load platform stats — ${e.message || 'error'}</div>`;
+    }
+  }
+}
+
+async function refreshPlatformStats() {
+  setRefreshLoading('btnRefreshPlatform', true);
+  try { await loadPlatformStats(); }
+  finally { setRefreshLoading('btnRefreshPlatform', false); }
+}
+
 /* ── Bootstrap ─────────────────────────────────────────────── */
 async function init() {
   const session = await Auth.requireAuth();
@@ -1265,6 +1340,9 @@ async function init() {
   lucide.createIcons();
 
   async function refresh() {
+    // Platform stats come from a single RPC and self-render — fire alongside the rest.
+    loadPlatformStats();
+
     const [overviewResult, sessionsResult, playersResult] = await Promise.allSettled([
       loadOverviewData(),
       loadActiveSessions(),
@@ -1309,6 +1387,7 @@ async function init() {
   document.getElementById('btnRefreshKPI')?.addEventListener('click', refreshKPI);
   document.getElementById('btnRefreshLiveStats')?.addEventListener('click', refreshLiveStats);
   document.getElementById('btnRefreshGameActivity')?.addEventListener('click', refreshGameActivity);
+  document.getElementById('btnRefreshPlatform')?.addEventListener('click', refreshPlatformStats);
 
   // Auto-refresh every 30 s
   setInterval(refresh, 30000);
