@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Players — So2alGawab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/global.css">
+<link rel="stylesheet" href="./assets/css/layout.css">
+<link rel="stylesheet" href="./assets/css/components.css">
+<link rel="stylesheet" href="./assets/css/forms.css">
+<link rel="stylesheet" href="./assets/css/sidebar.css">
+<link rel="stylesheet" href="./assets/css/responsive.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="./services/supabase.js?v=20260606"></script>
+<script src="./services/auth.js?v=20260606"></script>
+<script src="./services/sidebar.js?v=20260606"></script>
+<style>
+  /* Player avatar image (overrides the gold initials circle) */
+  .avatar.player-avatar { background: var(--card2, #11152e); padding: 0; overflow: hidden; }
+  .avatar.player-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* Category chips */
+  .cat-chips { display: flex; flex-wrap: wrap; gap: 4px; max-width: 260px; }
+  .cat-chip {
+    font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+    background: rgba(255,255,255,.06); color: var(--text3); border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  /* Numeric cells */
+  .num-cell { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
+  .num-sub  { font-size: 11px; color: var(--text3); font-weight: 500; margin-top: 1px; }
+
+  /* Pagination */
+  .pager {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-top: 16px; flex-wrap: wrap;
+  }
+  .pager-info { font-size: 13px; color: var(--text3); }
+  .pager-btns { display: flex; gap: 8px; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="appSidebar"></aside>
+<div class="sb-overlay" id="sbOverlay"></div>
+<div class="sb-mobile-bar">
+  <button class="sb-hamburger" id="sbToggle" type="button">
+    <i data-lucide="menu" class="icon-md"></i>
+  </button>
+  <span class="sb-mobile-title">Game Players</span>
+</div>
+
+<!-- ── Page ────────────────────────────────────────────────────── -->
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h1>Game Players</h1>
+      <p>Everyone who plays So2alGawab — registered players and guests. Dashboard team members are excluded.</p>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card"><div class="val" id="statTotal">—</div><div class="lbl">Players Shown</div></div>
+    <div class="stat-card"><div class="val text-green" id="statGames">—</div><div class="lbl">Games (page)</div></div>
+    <div class="stat-card"><div class="val text-indigo" id="statTime">—</div><div class="lbl">Time Played (page)</div></div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search by username or email…">
+    </div>
+    <select class="filter-select" id="typeFilter">
+      <option value="all">All Players</option>
+      <option value="registered">Registered</option>
+      <option value="guest">Guests</option>
+    </select>
+    <select class="filter-select" id="sortFilter">
+      <option value="last_active">Recently Active</option>
+      <option value="games">Most Games</option>
+      <option value="time">Most Time Played</option>
+      <option value="points">Most Points</option>
+      <option value="joined">Newest</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>Type</th>
+          <th>Games</th>
+          <th>Time Played</th>
+          <th>Top Categories</th>
+          <th>Points / Level</th>
+          <th>Last Active</th>
+        </tr>
+      </thead>
+      <tbody id="playersBody">
+        <tr><td colspan="7"><div class="table-state"><div class="spinner"></div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pager" id="pager" style="display:none;">
+    <div class="pager-info" id="pagerInfo"></div>
+    <div class="pager-btns">
+      <button class="btn btn-ghost btn-sm" id="prevBtn" onclick="changePage(-1)">
+        <i data-lucide="chevron-left" class="icon-sm"></i> Prev
+      </button>
+      <button class="btn btn-ghost btn-sm" id="nextBtn" onclick="changePage(1)">
+        Next <i data-lucide="chevron-right" class="icon-sm"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!--  SCRIPT                                                      -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+const PAGE_SIZE = 25;
+
+// ── Icon helper for template literals ────────────────────────
+function icon(name, cls = '') {
+  return `<i data-lucide="${name}"${cls ? ` class="${cls}"` : ''}></i>`;
+}
+
+// ── State ─────────────────────────────────────────────────────
+const state = { search: '', type: 'all', sort: 'last_active', offset: 0, total: 0 };
+let searchTimer;
+
+// ── Init ──────────────────────────────────────────────────────
+async function init() {
+  const session = await Auth.requireAuth();   // any approved dashboard role
+  if (!session) return;
+
+  Sidebar.init('players');
+  Sidebar.setUser(session.user, await Auth.getRole());
+
+  document.getElementById('searchInput').addEventListener('input', e => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { state.search = e.target.value.trim(); state.offset = 0; load(); }, 300);
+  });
+  document.getElementById('typeFilter').addEventListener('change', e => { state.type = e.target.value; state.offset = 0; load(); });
+  document.getElementById('sortFilter').addEventListener('change', e => { state.sort = e.target.value; state.offset = 0; load(); });
+
+  await load();
+}
+
+// ── Data ──────────────────────────────────────────────────────
+async function load() {
+  setTableState('loading');
+  document.getElementById('pager').style.display = 'none';
+  try {
+    const { data, error } = await window._sb.rpc('get_game_players', {
+      p_search: state.search || null,
+      p_type:   state.type,
+      p_limit:  PAGE_SIZE,
+      p_offset: state.offset,
+      p_sort:   state.sort,
+    });
+    if (error) throw error;
+    state.total = data?.total || 0;
+    const players = data?.players || [];
+    renderTable(players);
+    updateStats(players);
+    renderPager(players.length);
+  } catch (e) {
+    const msg = /not_authorized/.test(e.message || '') ? 'You do not have access to this list.' : e.message;
+    setTableState('error', msg);
+  }
+}
+
+// ── Stats (current page) ──────────────────────────────────────
+function updateStats(players) {
+  document.getElementById('statTotal').textContent = state.total;
+  document.getElementById('statGames').textContent = players.reduce((s, p) => s + (p.games_played || 0), 0);
+  document.getElementById('statTime').textContent  = fmtTime(players.reduce((s, p) => s + (p.play_seconds || 0), 0));
+}
+
+// ── Table render ──────────────────────────────────────────────
+function renderTable(players) {
+  const tbody = document.getElementById('playersBody');
+
+  if (!players.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="table-state">
+      <div class="icon">${icon('gamepad-2', 'icon-xl')}</div>
+      <h3>No players found</h3>
+      <p>Try adjusting your search or filters.</p>
+    </div></td></tr>`;
+    lucide.createIcons();
+    return;
+  }
+
+  tbody.innerHTML = players.map(p => {
+    const isGuest = p.type === 'guest';
+    const name    = isGuest ? 'Guest' : (p.username?.trim() || '—');
+    const email   = isGuest ? `Anonymous · ${shortId(p.id)}` : (p.email || '—');
+
+    return `
+    <tr>
+      <td>
+        <div class="user-cell">
+          <div class="avatar player-avatar"><img src="${avatarSrc(p)}" alt="" onerror="this.src='./assets/avatars/ProfileAvatar-default.png'"></div>
+          <div>
+            <div class="user-name">${escHtml(name)}</div>
+            <div class="user-email">${escHtml(email)}</div>
+          </div>
+        </div>
+      </td>
+      <td>${typeBadge(p.type)}</td>
+      <td><span class="num-cell">${p.games_played || 0}</span>${p.wins ? `<div class="num-sub">${p.wins} wins</div>` : ''}</td>
+      <td><span class="num-cell">${fmtTime(p.play_seconds)}</span></td>
+      <td>${catChips(p.top_categories)}</td>
+      <td>${isGuest ? '<span class="text-muted">—</span>' : `<span class="num-cell">${(p.total_points || 0).toLocaleString()}</span><div class="num-sub">Lvl ${p.level || 1}</div>`}</td>
+      <td class="date-cell">${p.last_played ? fmtRelative(p.last_played) : '<span class="text-muted">Never</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  lucide.createIcons();
+}
+
+// ── Pagination ────────────────────────────────────────────────
+function renderPager(pageCount) {
+  const pager = document.getElementById('pager');
+  if (!state.total) { pager.style.display = 'none'; return; }
+
+  const from = state.offset + 1;
+  const to   = state.offset + pageCount;
+  document.getElementById('pagerInfo').textContent = `Showing ${from}–${to} of ${state.total}`;
+  document.getElementById('prevBtn').disabled = state.offset <= 0;
+  document.getElementById('nextBtn').disabled = to >= state.total;
+  pager.style.display = 'flex';
+  lucide.createIcons();
+}
+
+function changePage(dir) {
+  const next = state.offset + dir * PAGE_SIZE;
+  if (next < 0 || next >= state.total) return;
+  state.offset = next;
+  load();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function avatarSrc(p) {
+  if (p.type === 'guest' || p.avatar_index == null || p.avatar_index === 0) {
+    return './assets/avatars/ProfileAvatar-default.png';
+  }
+  return `./assets/avatars/ProfileAvatar-${String(p.avatar_index).padStart(2, '0')}.png`;
+}
+
+function typeBadge(type) {
+  return type === 'guest'
+    ? '<span class="badge badge-gray">Guest</span>'
+    : '<span class="badge badge-gold">Registered</span>';
+}
+
+function catChips(cats) {
+  if (!Array.isArray(cats) || !cats.length) return '<span class="text-muted">—</span>';
+  return `<div class="cat-chips">${cats.map(c =>
+    `<span class="cat-chip" title="${escHtml(c.category)} · ${c.count} game${c.count === 1 ? '' : 's'}">${escHtml(c.category)}</span>`
+  ).join('')}</div>`;
+}
+
+function fmtTime(sec) {
+  sec = Number(sec || 0);
+  if (sec <= 0) return '0m';
+  const h = Math.floor(sec / 3600);
+  const m = Math.round((sec % 3600) / 60);
+  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  return `${m}m`;
+}
+
+function shortId(id) {
+  return String(id || '').slice(0, 8);
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function fmtRelative(iso) {
+  if (!iso) return '—';
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return 'Just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d ago`;
+  return fmtDate(iso);
+}
+
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function setTableState(type, msg = '') {
+  const tbody = document.getElementById('playersBody');
+  if (type === 'loading') {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="table-state"><div class="spinner"></div></div></td></tr>`;
+  } else if (type === 'error') {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="table-state">
+      <div class="icon">${icon('triangle-alert', 'icon-xl')}</div>
+      <h3>Failed to load players</h3>
+      <p class="text-error">${escHtml(msg)}</p>
+    </div></td></tr>`;
+    lucide.createIcons();
+  }
+}
+
+lucide.createIcons();
+init();
+</script>
+</body>
+</html>
