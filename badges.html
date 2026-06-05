@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Badges — So2alGawab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/global.css">
+<link rel="stylesheet" href="./assets/css/layout.css">
+<link rel="stylesheet" href="./assets/css/components.css">
+<link rel="stylesheet" href="./assets/css/forms.css">
+<link rel="stylesheet" href="./assets/css/sidebar.css">
+<link rel="stylesheet" href="./assets/css/responsive.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="./services/supabase.js?v=20260606"></script>
+<script src="./services/auth.js?v=20260606"></script>
+<script src="./services/sidebar.js?v=20260606"></script>
+<style>
+  .cond-cell code { font-size: 11px; color: var(--text3); }
+  .flag-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+  .flag-chip {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    padding: 2px 7px; border-radius: 999px; border: 1px solid var(--border); color: var(--text3);
+  }
+  .flag-chip.on  { color: var(--gold-500); border-color: var(--line-gold); background: var(--gold-tint); }
+  .flag-chip.off { opacity: .5; }
+  .badge-name-ar { font-size: 13px; font-weight: 600; color: var(--text); }
+  .badge-name-en { font-size: 12px; color: var(--text3); margin-top: 1px; }
+  .badge-key     { font-size: 11px; color: var(--text3); font-family: monospace; }
+  .form-hint     { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .row-inactive td { opacity: .5; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="appSidebar"></aside>
+<div class="sb-overlay" id="sbOverlay"></div>
+<div class="sb-mobile-bar">
+  <button class="sb-hamburger" id="sbToggle" type="button"><i data-lucide="menu" class="icon-md"></i></button>
+  <span class="sb-mobile-title">Badges</span>
+</div>
+
+<!-- ── Page ────────────────────────────────────────────────────── -->
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1>Badges</h1>
+      <p>Manage the player achievement catalog. Create, edit, disable, and schedule seasonal &amp; hidden badges — no app release needed.</p>
+    </div>
+    <button class="btn btn-primary" onclick="openCreate()">
+      <i data-lucide="plus" class="icon-sm"></i> New Badge
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search by name or key…" oninput="applyFilters()">
+    </div>
+    <select class="filter-select" id="groupFilter" onchange="applyFilters()"><option value="">All Groups</option></select>
+    <select class="filter-select" id="rarityFilter" onchange="applyFilters()">
+      <option value="">All Rarities</option>
+      <option value="common">Common</option><option value="rare">Rare</option>
+      <option value="epic">Epic</option><option value="legendary">Legendary</option>
+      <option value="mythic">Mythic</option>
+    </select>
+    <select class="filter-select" id="statusFilter" onchange="applyFilters()">
+      <option value="">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th style="width:48px;">#</th>
+          <th>Badge</th>
+          <th>Group</th>
+          <th>Rarity</th>
+          <th>Unlock condition</th>
+          <th>Flags</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="badgesBody">
+        <tr><td colspan="7"><div class="table-state"><div class="spinner"></div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════ CREATE / EDIT MODAL ════ -->
+<div class="modal-bg" id="badgeModalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h2 id="modalTitle">New Badge</h2>
+        <p id="modalSubtitle">Define a player achievement.</p>
+      </div>
+      <button class="modal-close" onclick="closeModal()"><i data-lucide="x" class="icon-sm"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-alert" id="modalAlert"></div>
+      <form id="badgeForm" onsubmit="saveBadge(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Key <span class="text-required">*</span></label>
+            <input class="form-input" id="fKey" type="text" placeholder="e.g. correct_100" autocomplete="off">
+            <div class="form-hint">Unique, lowercase, no spaces. Cannot change after creation.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Sort order</label>
+            <input class="form-input" id="fSort" type="number" value="0">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Name (Arabic) <span class="text-required">*</span></label>
+            <input class="form-input" id="fNameAr" type="text" dir="rtl" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Name (English) <span class="text-required">*</span></label>
+            <input class="form-input" id="fNameEn" type="text" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Description (Arabic)</label>
+            <input class="form-input" id="fDescAr" type="text" dir="rtl" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description (English)</label>
+            <input class="form-input" id="fDescEn" type="text" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Group</label>
+            <select class="form-select" id="fGroup">
+              <option value="knowledge">Knowledge</option><option value="category">Category</option>
+              <option value="speed">Speed</option><option value="streak">Streak</option>
+              <option value="wins">Wins</option><option value="social">Social</option>
+              <option value="firsts">Firsts</option><option value="hidden">Hidden</option>
+              <option value="seasonal">Seasonal</option><option value="general">General</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Rarity</label>
+            <select class="form-select" id="fRarity">
+              <option value="common">Common</option><option value="rare">Rare</option>
+              <option value="epic">Epic</option><option value="legendary">Legendary</option>
+              <option value="mythic">Mythic</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Condition type</label>
+            <select class="form-select" id="fCondType" onchange="hintForType()">
+              <option value="correct_total">correct_total</option>
+              <option value="mastery_tier">mastery_tier</option>
+              <option value="fast_total">fast_total</option>
+              <option value="fast_under_ms">fast_under_ms</option>
+              <option value="streak_in_match">streak_in_match</option>
+              <option value="wins_total">wins_total</option>
+              <option value="win_streak">win_streak</option>
+              <option value="hosted_completed">hosted_completed</option>
+              <option value="friends_in_match">friends_in_match</option>
+              <option value="unique_friends_total">unique_friends_total</option>
+              <option value="matches_total">matches_total</option>
+              <option value="completed_losses">completed_losses</option>
+              <option value="level_reached">level_reached</option>
+              <option value="perfect_match">perfect_match</option>
+              <option value="match_predicate">match_predicate</option>
+              <option value="time_window">time_window</option>
+              <option value="account_in_season">account_in_season</option>
+              <option value="manual">manual</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Icon reference</label>
+            <input class="form-input" id="fIcon" type="text" placeholder="optional asset/url ref" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Condition params (JSON)</label>
+          <input class="form-input" id="fParams" type="text" placeholder='{"count":100}' autocomplete="off" style="font-family:monospace;">
+          <div class="form-hint" id="paramsHint">JSON object of thresholds for the condition type.</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Season (optional)</label>
+            <input class="form-input" id="fSeason" type="text" placeholder="e.g. ramadan_2026" autocomplete="off">
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end;gap:16px;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="fHidden"> Hidden</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="fSeasonal"> Seasonal</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="fActive" checked> Active</label>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveBadge(event)">
+        <span id="saveSpinner" class="spinner spinner-sm" style="display:none;"></span>
+        <span id="saveLabel">Save Badge</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ CONFIRM DELETE ════ -->
+<div class="modal-bg" id="confirmModalBg" onclick="if(event.target===this)closeConfirm()">
+  <div class="modal confirm-modal">
+    <div class="modal-body modal-body-padded">
+      <div class="confirm-icon"><i data-lucide="trash-2" class="icon-2xl text-error"></i></div>
+      <div class="confirm-title">Delete badge</div>
+      <p class="confirm-body" id="confirmBody"></p>
+      <div class="confirm-warning">Players who already earned it will lose it. This cannot be undone.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger" id="confirmDeleteBtn">
+        <span id="delSpinner" class="spinner spinner-sm" style="display:none;"></span><span>Delete</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+function icon(name, cls=''){ return `<i data-lucide="${name}"${cls?` class="${cls}"`:''}></i>`; }
+function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+let allBadges = [];
+const RARITY_CLASS = { common:'badge-gray', rare:'badge-blue', epic:'badge-purple', legendary:'badge-gold', mythic:'badge-amber' };
+const PARAM_HINTS = {
+  correct_total:'{"count":100}', mastery_tier:'{"category":"Anime","tier":3}', fast_total:'{"count":50}',
+  fast_under_ms:'{"ms":2000}', streak_in_match:'{"length":10}', wins_total:'{"count":10}', win_streak:'{"length":5}',
+  hosted_completed:'{"count":25}', friends_in_match:'{"count":3}', unique_friends_total:'{"count":10}',
+  matches_total:'{"count":1}', completed_losses:'{"count":25}', level_reached:'{"level":20}',
+  perfect_match:'{}', match_predicate:'{"rule":"buzzer_beater"}', time_window:'{"from":"03:00","to":"05:00"}',
+  account_in_season:'{"season":"launch"}', manual:'{}'
+};
+
+async function init(){
+  const session = await Auth.requireAuth(['admin','super_admin']);
+  if (!session) return;
+  Sidebar.init('badges');
+  Sidebar.setUser(session.user, await Auth.getRole());
+  await load();
+}
+
+async function load(){
+  setState('loading');
+  try {
+    const { data, error } = await window._sb.rpc('admin_list_badges');
+    if (error) throw error;
+    allBadges = data || [];
+    buildGroupFilter();
+    applyFilters();
+  } catch (e){
+    const msg = /not_authorized/.test(e.message||'') ? 'You do not have access to badge management.' : e.message;
+    setState('error', msg);
+  }
+}
+
+function buildGroupFilter(){
+  const sel = document.getElementById('groupFilter');
+  const groups = [...new Set(allBadges.map(b => b.group).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All Groups</option>' + groups.map(g => `<option value="${escHtml(g)}">${escHtml(g)}</option>`).join('');
+}
+
+function applyFilters(){
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const g = document.getElementById('groupFilter').value;
+  const r = document.getElementById('rarityFilter').value;
+  const s = document.getElementById('statusFilter').value;
+  let list = allBadges.slice();
+  if (q) list = list.filter(b => (b.name_ar||'').toLowerCase().includes(q) || (b.name_en||'').toLowerCase().includes(q) || (b.key||'').toLowerCase().includes(q));
+  if (g) list = list.filter(b => b.group === g);
+  if (r) list = list.filter(b => b.rarity === r);
+  if (s) list = list.filter(b => s === 'active' ? b.active : !b.active);
+  render(list);
+}
+
+function render(list){
+  const tbody = document.getElementById('badgesBody');
+  if (!list.length){
+    tbody.innerHTML = `<tr><td colspan="7"><div class="table-state"><div class="icon">${icon('award','icon-xl')}</div><h3>No badges</h3><p>Create your first badge.</p></div></td></tr>`;
+    lucide.createIcons(); return;
+  }
+  tbody.innerHTML = list.map(b => {
+    const rc = RARITY_CLASS[b.rarity] || 'badge-gray';
+    const params = b.condition_params ? JSON.stringify(b.condition_params) : '{}';
+    const bj = encodeURIComponent(JSON.stringify(b)).replace(/'/g, '%27');
+    return `<tr class="${b.active?'':'row-inactive'}">
+      <td class="date-cell">${b.sort_order ?? 0}</td>
+      <td>
+        <div class="badge-name-ar" dir="rtl">${escHtml(b.name_ar)}</div>
+        <div class="badge-name-en">${escHtml(b.name_en)}</div>
+        <div class="badge-key">${escHtml(b.key)}</div>
+      </td>
+      <td><span class="badge badge-gray">${escHtml(b.group)}</span></td>
+      <td><span class="badge ${rc}">${escHtml(b.rarity)}</span></td>
+      <td class="cond-cell"><div>${escHtml(b.condition_type)}</div><code>${escHtml(params)}</code></td>
+      <td><div class="flag-chips">
+        <span class="flag-chip ${b.hidden?'on':'off'}">hidden</span>
+        <span class="flag-chip ${b.seasonal?'on':'off'}">seasonal</span>
+        <span class="flag-chip ${b.active?'on':'off'}">active</span>
+      </div></td>
+      <td class="action-cell" style="white-space:nowrap;">
+        <button class="action-btn" title="Edit" onclick="openEdit('${bj}')">${icon('pencil','icon-sm')}</button>
+        <button class="action-btn" title="${b.active?'Disable':'Enable'}" onclick="toggleActive('${escHtml(b.key)}',${b.active?'false':'true'})">${icon(b.active?'eye-off':'eye','icon-sm')}</button>
+        <button class="action-btn" title="Delete" onclick="askDelete('${escHtml(b.key)}','${escHtml(b.name_en)}')">${icon('trash-2','icon-sm')}</button>
+      </td>
+    </tr>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+function setState(type, msg=''){
+  const tbody = document.getElementById('badgesBody');
+  if (type==='loading') tbody.innerHTML = `<tr><td colspan="7"><div class="table-state"><div class="spinner"></div></div></td></tr>`;
+  else if (type==='error'){
+    tbody.innerHTML = `<tr><td colspan="7"><div class="table-state"><div class="icon">${icon('triangle-alert','icon-xl')}</div><h3>Failed to load</h3><p class="text-error">${escHtml(msg)}</p></div></td></tr>`;
+    lucide.createIcons();
+  }
+}
+
+// ── Modal ──
+function hintForType(){
+  const t = document.getElementById('fCondType').value;
+  document.getElementById('paramsHint').textContent = 'Example: ' + (PARAM_HINTS[t] || '{}');
+}
+function openCreate(){
+  document.getElementById('modalTitle').textContent = 'New Badge';
+  document.getElementById('modalSubtitle').textContent = 'Define a player achievement.';
+  document.getElementById('badgeForm').reset();
+  document.getElementById('fKey').disabled = false;
+  document.getElementById('fActive').checked = true;
+  document.getElementById('fSort').value = 0;
+  document.getElementById('fParams').value = '';
+  hideAlert(); hintForType();
+  document.getElementById('badgeModalBg').classList.add('open');
+}
+function openEdit(enc){
+  const b = JSON.parse(decodeURIComponent(enc));
+  document.getElementById('modalTitle').textContent = 'Edit Badge';
+  document.getElementById('modalSubtitle').textContent = b.key;
+  document.getElementById('fKey').value = b.key; document.getElementById('fKey').disabled = true;
+  document.getElementById('fNameAr').value = b.name_ar || '';
+  document.getElementById('fNameEn').value = b.name_en || '';
+  document.getElementById('fDescAr').value = b.description_ar || '';
+  document.getElementById('fDescEn').value = b.description_en || '';
+  document.getElementById('fGroup').value = b.group || 'general';
+  document.getElementById('fRarity').value = b.rarity || 'common';
+  document.getElementById('fCondType').value = b.condition_type || 'manual';
+  document.getElementById('fParams').value = b.condition_params ? JSON.stringify(b.condition_params) : '';
+  document.getElementById('fIcon').value = b.icon_ref || '';
+  document.getElementById('fSeason').value = b.season || '';
+  document.getElementById('fSort').value = b.sort_order ?? 0;
+  document.getElementById('fHidden').checked = !!b.hidden;
+  document.getElementById('fSeasonal').checked = !!b.seasonal;
+  document.getElementById('fActive').checked = b.active !== false;
+  hideAlert(); hintForType();
+  document.getElementById('badgeModalBg').classList.add('open');
+}
+function closeModal(){ document.getElementById('badgeModalBg').classList.remove('open'); }
+function hideAlert(){ document.getElementById('modalAlert').style.display='none'; }
+function showAlert(m){ const el=document.getElementById('modalAlert'); el.textContent=m; el.className='form-alert error'; el.style.display='block'; }
+
+async function saveBadge(e){
+  e.preventDefault();
+  const key = document.getElementById('fKey').value.trim();
+  const name_ar = document.getElementById('fNameAr').value.trim();
+  const name_en = document.getElementById('fNameEn').value.trim();
+  if (!key || !name_ar || !name_en){ showAlert('Key and both names are required.'); return; }
+  if (!/^[a-z0-9_]+$/.test(key)){ showAlert('Key must be lowercase letters, numbers, and underscores only.'); return; }
+  let params = {};
+  const rawParams = document.getElementById('fParams').value.trim();
+  if (rawParams){ try { params = JSON.parse(rawParams); } catch { showAlert('Condition params must be valid JSON.'); return; } }
+
+  const payload = {
+    key, name_ar, name_en,
+    description_ar: document.getElementById('fDescAr').value.trim(),
+    description_en: document.getElementById('fDescEn').value.trim(),
+    group: document.getElementById('fGroup').value,
+    rarity: document.getElementById('fRarity').value,
+    icon_ref: document.getElementById('fIcon').value.trim() || null,
+    hidden: document.getElementById('fHidden').checked,
+    seasonal: document.getElementById('fSeasonal').checked,
+    season: document.getElementById('fSeason').value.trim() || null,
+    active: document.getElementById('fActive').checked,
+    sort_order: parseInt(document.getElementById('fSort').value, 10) || 0,
+    condition_type: document.getElementById('fCondType').value,
+    condition_params: params,
+  };
+
+  setSaveLoading(true); hideAlert();
+  try {
+    const { error } = await window._sb.rpc('admin_save_badge', { p: payload });
+    if (error) throw error;
+    toast('Badge saved', 'success');
+    closeModal(); await load();
+  } catch (err){ showAlert(err.message); }
+  finally { setSaveLoading(false); }
+}
+function setSaveLoading(on){ document.getElementById('saveBtn').disabled=on; document.getElementById('saveSpinner').style.display=on?'inline-block':'none'; }
+
+async function toggleActive(key, makeActive){
+  const b = allBadges.find(x => x.key === key); if (!b) return;
+  try {
+    const payload = { ...b, condition_params: b.condition_params || {}, active: makeActive };
+    const { error } = await window._sb.rpc('admin_save_badge', { p: payload });
+    if (error) throw error;
+    toast(makeActive ? 'Badge enabled' : 'Badge disabled', 'success');
+    await load();
+  } catch (err){ toast(err.message, 'error'); }
+}
+
+// ── Delete ──
+let pendingDeleteKey = null;
+function askDelete(key, name){
+  pendingDeleteKey = key;
+  document.getElementById('confirmBody').innerHTML = `Delete <strong>${escHtml(name)}</strong> (<code>${escHtml(key)}</code>)?`;
+  document.getElementById('confirmModalBg').classList.add('open');
+}
+function closeConfirm(){ document.getElementById('confirmModalBg').classList.remove('open'); pendingDeleteKey = null; }
+document.getElementById('confirmDeleteBtn').onclick = async () => {
+  if (!pendingDeleteKey) return;
+  document.getElementById('delSpinner').style.display = 'inline-block';
+  try {
+    const { error } = await window._sb.rpc('admin_delete_badge', { p_key: pendingDeleteKey });
+    if (error) throw error;
+    toast('Badge deleted', 'success'); closeConfirm(); await load();
+  } catch (err){ toast(err.message, 'error'); }
+  finally { document.getElementById('delSpinner').style.display = 'none'; }
+};
+
+// ── Toast ──
+let toastTimer;
+function toast(msg, type='success'){
+  const el = document.getElementById('toast');
+  el.innerHTML = `${icon(type==='success'?'check-circle':'x-circle','icon-sm')} ${msg}`;
+  el.className = 'show ' + type; lucide.createIcons();
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className=''; }, 3500);
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape'){ closeModal(); closeConfirm(); } });
+lucide.createIcons();
+init();
+</script>
+</body>
+</html>

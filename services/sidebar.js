@@ -20,6 +20,8 @@ const _NAV = [
   { sep: true },
   { id: 'users',    label: 'Users',           icon: 'users',            href: './users.html',
     gateId: 'sbNavUsers', roles: ['admin','super_admin'] },
+  { id: 'badges',   label: 'Badges',          icon: 'award',            href: './badges.html',
+    gateId: 'sbNavBadges', roles: ['admin','super_admin'] },
   { id: 'settings', label: 'Game Settings',   icon: 'sliders-horizontal', href: './settings.html',
     gateId: 'sbNavSettings', roles: ['super_admin'] },
   { id: 'status',   label: 'Supabase Status', icon: 'activity',         href: './supabase-status.html' },
