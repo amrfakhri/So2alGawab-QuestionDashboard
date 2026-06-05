@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Category Pools — So2alGawab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/global.css">
+<link rel="stylesheet" href="./assets/css/layout.css">
+<link rel="stylesheet" href="./assets/css/components.css">
+<link rel="stylesheet" href="./assets/css/forms.css">
+<link rel="stylesheet" href="./assets/css/sidebar.css">
+<link rel="stylesheet" href="./assets/css/responsive.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="./services/supabase.js?v=20260606"></script>
+<script src="./services/auth.js?v=20260606"></script>
+<script src="./services/sidebar.js?v=20260606"></script>
+<style>
+  .id-cell { font-size: 11px; color: var(--text3); font-family: monospace; }
+  .num-cell { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text); }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="appSidebar"></aside>
+<div class="sb-overlay" id="sbOverlay"></div>
+<div class="sb-mobile-bar">
+  <button class="sb-hamburger" id="sbToggle" type="button"><i data-lucide="menu" class="icon-md"></i></button>
+  <span class="sb-mobile-title">Category Pools</span>
+</div>
+
+<!-- ── Page ────────────────────────────────────────────────────── -->
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1>Category Pools</h1>
+      <p>Question count per category — the basis for mastery tier thresholds. Refresh after adding questions or at the start of a season.</p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <input class="form-input" id="seasonInput" type="text" placeholder="season (optional)" style="width:160px;" autocomplete="off">
+      <button class="btn btn-primary" id="refreshBtn" onclick="refresh()">
+        <span id="refreshSpinner" class="spinner spinner-sm" style="display:none;"></span>
+        <i data-lucide="refresh-cw" class="icon-sm"></i> Refresh pools
+      </button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Category ID</th>
+          <th>Pool size</th>
+          <th>Season</th>
+          <th>Last refreshed</th>
+        </tr>
+      </thead>
+      <tbody id="poolsBody">
+        <tr><td colspan="5"><div class="table-state"><div class="spinner"></div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+function icon(name, cls=''){ return `<i data-lucide="${name}"${cls?` class="${cls}"`:''}></i>`; }
+function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function init(){
+  const session = await Auth.requireAuth(['admin','super_admin']);
+  if (!session) return;
+  Sidebar.init('pools');
+  Sidebar.setUser(session.user, await Auth.getRole());
+  await load();
+}
+
+async function load(){
+  setState('loading');
+  try {
+    const { data, error } = await window._sb.rpc('admin_list_category_pools');
+    if (error) throw error;
+    render(data || []);
+  } catch (e){
+    const msg = /not_authorized/.test(e.message||'') ? 'You do not have access to category pools.' : e.message;
+    setState('error', msg);
+  }
+}
+
+function render(pools){
+  const tbody = document.getElementById('poolsBody');
+  if (!pools.length){
+    tbody.innerHTML = `<tr><td colspan="5"><div class="table-state">
+      <div class="icon">${icon('layers','icon-xl')}</div>
+      <h3>No pools yet</h3>
+      <p>Click “Refresh pools” to compute question counts per category.</p>
+    </div></td></tr>`;
+    lucide.createIcons(); return;
+  }
+  tbody.innerHTML = pools.map(p => `
+    <tr>
+      <td><span class="user-name">${escHtml(p.name || '—')}</span></td>
+      <td class="id-cell">${escHtml(p.category_id)}</td>
+      <td><span class="num-cell">${p.pool_size ?? 0}</span></td>
+      <td>${p.season ? `<span class="badge badge-gray">${escHtml(p.season)}</span>` : '<span class="text-muted">—</span>'}</td>
+      <td class="date-cell">${p.snapshot_at ? new Date(p.snapshot_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}</td>
+    </tr>`).join('');
+  lucide.createIcons();
+}
+
+function setState(type, msg=''){
+  const tbody = document.getElementById('poolsBody');
+  if (type==='loading') tbody.innerHTML = `<tr><td colspan="5"><div class="table-state"><div class="spinner"></div></div></td></tr>`;
+  else if (type==='error'){
+    tbody.innerHTML = `<tr><td colspan="5"><div class="table-state"><div class="icon">${icon('triangle-alert','icon-xl')}</div><h3>Failed to load</h3><p class="text-error">${escHtml(msg)}</p></div></td></tr>`;
+    lucide.createIcons();
+  }
+}
+
+async function refresh(){
+  const season = document.getElementById('seasonInput').value.trim() || null;
+  document.getElementById('refreshBtn').disabled = true;
+  document.getElementById('refreshSpinner').style.display = 'inline-block';
+  try {
+    const { data, error } = await window._sb.rpc('refresh_category_pools', { p_season: season });
+    if (error) throw error;
+    toast(`Pools refreshed (${data?.categories ?? 0} categories)`, 'success');
+    await load();
+  } catch (e){
+    toast(/not_authorized/.test(e.message||'') ? 'Not authorized.' : e.message, 'error');
+  } finally {
+    document.getElementById('refreshBtn').disabled = false;
+    document.getElementById('refreshSpinner').style.display = 'none';
+  }
+}
+
+let toastTimer;
+function toast(msg, type='success'){
+  const el = document.getElementById('toast');
+  el.innerHTML = `${icon(type==='success'?'check-circle':'x-circle','icon-sm')} ${msg}`;
+  el.className = 'show ' + type; lucide.createIcons();
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className=''; }, 3500);
+}
+
+lucide.createIcons();
+init();
+</script>
+</body>
+</html>

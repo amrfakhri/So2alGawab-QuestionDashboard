@@ -191,6 +191,17 @@
           <input class="form-input" id="fParams" type="text" placeholder='{"count":100}' autocomplete="off" style="font-family:monospace;">
           <div class="form-hint" id="paramsHint">JSON object of thresholds for the condition type.</div>
         </div>
+        <div class="form-group" id="fCategoryGroup" style="display:none;">
+          <label class="form-label">Category &amp; tier (mastery award)</label>
+          <div class="form-row" style="gap:10px;">
+            <select class="form-select" id="fCategory" onchange="onCategoryPick()" style="flex:2;"><option value="">— pick a category —</option></select>
+            <select class="form-select" id="fTier" onchange="onCategoryPick()" style="flex:1;">
+              <option value="1">Tier 1</option><option value="2">Tier 2</option>
+              <option value="3" selected>Tier 3</option><option value="4">Tier 4</option><option value="5">Tier 5</option>
+            </select>
+          </div>
+          <div class="form-hint">Picking a category fills the params above with its stable <code>category_id</code>. Remember to set this badge Active.</div>
+        </div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Season (optional)</label>
@@ -240,9 +251,10 @@ function icon(name, cls=''){ return `<i data-lucide="${name}"${cls?` class="${cl
 function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 let allBadges = [];
+let allCats = [];
 const RARITY_CLASS = { common:'badge-gray', rare:'badge-blue', epic:'badge-purple', legendary:'badge-gold', mythic:'badge-amber' };
 const PARAM_HINTS = {
-  correct_total:'{"count":100}', mastery_tier:'{"category":"Anime","tier":3}', fast_total:'{"count":50}',
+  correct_total:'{"count":100}', mastery_tier:'{"category_id":"…","tier":3}', fast_total:'{"count":50}',
   fast_under_ms:'{"ms":2000}', streak_in_match:'{"length":10}', wins_total:'{"count":10}', win_streak:'{"length":5}',
   hosted_completed:'{"count":25}', friends_in_match:'{"count":3}', unique_friends_total:'{"count":10}',
   matches_total:'{"count":1}', completed_losses:'{"count":25}', level_reached:'{"level":20}',
@@ -255,7 +267,31 @@ async function init(){
   if (!session) return;
   Sidebar.init('badges');
   Sidebar.setUser(session.user, await Auth.getRole());
+  await loadCategories();
   await load();
+}
+
+async function loadCategories(){
+  try {
+    const { data } = await window._sb.from('categories').select('id, name').order('name');
+    allCats = data || [];
+    const sel = document.getElementById('fCategory');
+    sel.innerHTML = '<option value="">— pick a category —</option>' +
+      allCats.map(c => `<option value="${escHtml(c.id)}">${escHtml(c.name)}</option>`).join('');
+  } catch { /* categories optional for the picker */ }
+}
+
+// Keep the mastery_tier category dropdown ⇄ the params JSON in sync.
+function syncCategoryPicker(){
+  let p = {};
+  try { p = JSON.parse(document.getElementById('fParams').value || '{}'); } catch {}
+  document.getElementById('fCategory').value = p.category_id || '';
+  document.getElementById('fTier').value = String(p.tier || 3);
+}
+function onCategoryPick(){
+  const cat  = document.getElementById('fCategory').value;
+  const tier = parseInt(document.getElementById('fTier').value, 10) || 3;
+  document.getElementById('fParams').value = JSON.stringify({ category_id: cat || null, tier });
 }
 
 async function load(){
@@ -339,6 +375,9 @@ function setState(type, msg=''){
 function hintForType(){
   const t = document.getElementById('fCondType').value;
   document.getElementById('paramsHint').textContent = 'Example: ' + (PARAM_HINTS[t] || '{}');
+  const isMastery = t === 'mastery_tier';
+  document.getElementById('fCategoryGroup').style.display = isMastery ? 'block' : 'none';
+  if (isMastery) syncCategoryPicker();
 }
 function openCreate(){
   document.getElementById('modalTitle').textContent = 'New Badge';
