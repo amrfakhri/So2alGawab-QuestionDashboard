@@ -26,6 +26,8 @@ const _NAV = [
     gateId: 'sbNavPools', roles: ['admin','super_admin'] },
   { id: 'settings', label: 'Game Settings',   icon: 'sliders-horizontal', href: './settings.html',
     gateId: 'sbNavSettings', roles: ['super_admin'] },
+  { id: 'runtime',  label: 'Runtime / Live',  icon: 'power',            href: './runtime.html',
+    gateId: 'sbNavRuntime', roles: ['admin','super_admin'] },
   { id: 'status',   label: 'Supabase Status', icon: 'activity',         href: './supabase-status.html' },
 ];
 

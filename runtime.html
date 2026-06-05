@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runtime / Live — So2alGawab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/global.css">
+<link rel="stylesheet" href="./assets/css/layout.css">
+<link rel="stylesheet" href="./assets/css/components.css">
+<link rel="stylesheet" href="./assets/css/forms.css">
+<link rel="stylesheet" href="./assets/css/sidebar.css">
+<link rel="stylesheet" href="./assets/css/responsive.css">
+<style>
+  .ctrl-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 18px 20px; margin-bottom: 16px; display: flex; align-items: center;
+    justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  }
+  .ctrl-card.danger { border-color: rgba(255,92,122,.35); }
+  .ctrl-info h3 { font-size: 15px; margin: 0 0 4px; }
+  .ctrl-info p  { font-size: 13px; color: var(--text3); margin: 0; max-width: 520px; }
+  .state-pill { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+  .state-on  { background: var(--green-bg); color: var(--green); }
+  .state-off { background: var(--red-bg); color: var(--red); }
+  /* simple toggle */
+  .tg { position: relative; width: 54px; height: 30px; flex-shrink: 0; }
+  .tg input { opacity: 0; width: 0; height: 0; }
+  .tg .track { position: absolute; inset: 0; background: var(--border); border-radius: 999px; transition: .15s; cursor: pointer; }
+  .tg .track::before { content: ''; position: absolute; height: 24px; width: 24px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .15s; }
+  .tg input:checked + .track { background: var(--gold-500); }
+  .tg input:checked + .track::before { transform: translateX(24px); }
+  .tg input:disabled + .track { opacity: .5; cursor: default; }
+  .msg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; width: 100%; }
+  @media (max-width: 640px){ .msg-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="appSidebar"></aside>
+<div class="sb-overlay" id="sbOverlay"></div>
+<div class="sb-mobile-bar">
+  <button class="sb-hamburger" id="sbToggle" type="button"><i data-lucide="menu" class="icon-md"></i></button>
+  <span class="sb-mobile-title">Runtime / Live</span>
+</div>
+
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1>Runtime / Live Controls</h1>
+      <p>Emergency levers that take effect immediately — no app release. The online switch is enforced server-side, so disabling it stops new rooms even for already-open apps.</p>
+    </div>
+    <button class="btn btn-ghost" onclick="load()"><i data-lucide="refresh-cw" class="icon-sm"></i> Refresh</button>
+  </div>
+
+  <div id="content" style="display:none;">
+    <!-- Online kill-switch -->
+    <div class="ctrl-card">
+      <div class="ctrl-info">
+        <h3>Online multiplayer <span id="onlinePill" class="state-pill">—</span></h3>
+        <p>Master switch for online rooms. When OFF, players can't create, join, or start online matches (server-enforced). Local play is unaffected.</p>
+      </div>
+      <label class="tg"><input type="checkbox" id="tgOnline" onchange="setFlag('online_enabled', this.checked)"><span class="track"></span></label>
+    </div>
+
+    <!-- Maintenance mode -->
+    <div class="ctrl-card danger">
+      <div class="ctrl-info">
+        <h3>Maintenance mode <span id="maintPill" class="state-pill">—</span></h3>
+        <p><strong>High impact:</strong> when ON, the whole app shows the maintenance message below and players can't play. Use only during incidents.</p>
+        <div class="msg-row">
+          <div>
+            <label class="form-label">Message (English)</label>
+            <input class="form-input" id="msgEn" type="text" placeholder="We're doing quick maintenance…">
+          </div>
+          <div>
+            <label class="form-label">Message (Arabic)</label>
+            <input class="form-input" id="msgAr" type="text" dir="rtl" placeholder="بنحدّث دلوقتي…">
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="saveMessage()">Save message</button>
+      </div>
+      <label class="tg"><input type="checkbox" id="tgMaint" onchange="confirmMaintenance(this)"><span class="track"></span></label>
+    </div>
+
+    <!-- Recent backend errors (A13) -->
+    <div style="margin-top:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <h2 style="font-size:16px;margin:0;">Recent backend errors</h2>
+        <button class="btn btn-ghost btn-sm" onclick="loadErrors()"><i data-lucide="refresh-cw" class="icon-sm"></i> Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table class="users-table">
+          <thead><tr><th>When</th><th>Function</th><th>Message</th></tr></thead>
+          <tbody id="errBody"><tr><td colspan="3"><div class="table-state"><div class="spinner"></div></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="loadState" class="table-state"><div class="spinner"></div></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+function icon(name, cls=''){ return `<i data-lucide="${name}"${cls?` class="${cls}"`:''}></i>`; }
+
+async function init(){
+  const session = await Auth.requireAuth(['admin','super_admin']);
+  if (!session) return;
+  Sidebar.init('runtime');
+  Sidebar.setUser(session.user, await Auth.getRole());
+  await load();
+}
+
+async function load(){
+  document.getElementById('content').style.display = 'none';
+  document.getElementById('loadState').style.display = 'flex';
+  try {
+    const { data, error } = await window._sb.from('app_config').select('key, value')
+      .in('key', ['online_enabled', 'maintenance_mode', 'maintenance_message']);
+    if (error) throw error;
+    const m = new Map((data||[]).map(r => [r.key, r.value]));
+    const online = m.get('online_enabled') !== false && m.get('online_enabled') !== 'false';
+    const maint  = m.get('maintenance_mode') === true || m.get('maintenance_mode') === 'true';
+    const msg = m.get('maintenance_message') || {};
+    document.getElementById('tgOnline').checked = online;
+    document.getElementById('tgMaint').checked = maint;
+    document.getElementById('msgEn').value = msg.en || '';
+    document.getElementById('msgAr').value = msg.ar || '';
+    pill('onlinePill', online); pill('maintPill', maint, true);
+    document.getElementById('content').style.display = 'block';
+    document.getElementById('loadState').style.display = 'none';
+    lucide.createIcons();
+    loadErrors();
+  } catch (e){
+    document.getElementById('loadState').innerHTML = `<div class="icon">${icon('triangle-alert','icon-xl')}</div><p class="text-error">${e.message}</p>`;
+    lucide.createIcons();
+  }
+}
+
+function pill(id, on, invert){
+  const el = document.getElementById(id);
+  // online: on=green/good. maintenance: on=red/bad (invert).
+  const good = invert ? !on : on;
+  el.textContent = on ? (invert ? 'ON' : 'ENABLED') : (invert ? 'OFF' : 'DISABLED');
+  el.className = 'state-pill ' + (good ? 'state-on' : 'state-off');
+}
+
+async function setFlag(key, value){
+  try {
+    const { error } = await window._sb.rpc('admin_set_app_config', { p_key: key, p_value: value });
+    if (error) throw error;
+    toast('Saved', 'success');
+    await load();
+  } catch (e){
+    toast(/not_authorized/.test(e.message||'') ? 'Not authorized.' : e.message, 'error');
+    await load();
+  }
+}
+
+function confirmMaintenance(cb){
+  if (cb.checked && !confirm('Turn ON maintenance mode? This blocks the whole app for all players.')){
+    cb.checked = false; return;
+  }
+  setFlag('maintenance_mode', cb.checked);
+}
+
+async function saveMessage(){
+  const value = { en: document.getElementById('msgEn').value.trim(), ar: document.getElementById('msgAr').value.trim() };
+  try {
+    const { error } = await window._sb.rpc('admin_set_app_config', { p_key: 'maintenance_message', p_value: value });
+    if (error) throw error;
+    toast('Message saved', 'success');
+  } catch (e){ toast(e.message, 'error'); }
+}
+
+function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+async function loadErrors(){
+  const tb = document.getElementById('errBody');
+  try {
+    const { data, error } = await window._sb.rpc('admin_list_function_errors', { p_limit: 50 });
+    if (error) throw error;
+    const rows = data || [];
+    if (!rows.length){
+      tb.innerHTML = `<tr><td colspan="3"><div class="table-state"><div class="icon">${icon('check-circle','icon-xl')}</div><h3>No recent errors</h3></div></td></tr>`;
+    } else {
+      tb.innerHTML = rows.map(r => `<tr>
+        <td class="date-cell">${new Date(r.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
+        <td><span class="badge badge-gray">${escHtml(r.function_name)}</span></td>
+        <td style="font-size:12px;color:var(--text3);">${escHtml(r.message)}</td>
+      </tr>`).join('');
+    }
+    lucide.createIcons();
+  } catch (e){
+    tb.innerHTML = `<tr><td colspan="3"><div class="table-state"><p class="text-error">${escHtml(e.message)}</p></div></td></tr>`;
+  }
+}
+
+let toastTimer;
+function toast(msg, type='success'){
+  const el = document.getElementById('toast');
+  el.innerHTML = `${icon(type==='success'?'check-circle':'x-circle','icon-sm')} ${msg}`;
+  el.className = 'show ' + type; lucide.createIcons();
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className=''; }, 3000);
+}
+
+lucide.createIcons();
+init();
+</script>
+</body>
+</html>
