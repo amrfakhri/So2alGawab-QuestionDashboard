@@ -91,7 +91,7 @@ async function loadReports(){
     const rows = data || [];
     if (!rows.length){
       tb.innerHTML = `<tr><td colspan="5"><div class="table-state"><div class="icon">${icon('shield-check','icon-xl')}</div><h3>No reports</h3></div></td></tr>`;
-      lucide.createIcons(); return;
+      window.lucide && lucide.createIcons(); return;
     }
     tb.innerHTML = rows.map(r => `<tr>
       <td class="date-cell">${new Date(r.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
@@ -103,7 +103,7 @@ async function loadReports(){
         <button class="btn btn-ghost btn-sm" onclick="resolve('${r.id}','dismissed')">Dismiss</button>
       </td>
     </tr>`).join('');
-    lucide.createIcons();
+    window.lucide && lucide.createIcons();
   } catch (e){
     tb.innerHTML = `<tr><td colspan="5"><div class="table-state"><p class="text-error">${esc(/not_authorized/.test(e.message||'')?'Not authorized.':e.message)}</p></div></td></tr>`;
   }
@@ -142,15 +142,15 @@ let toastTimer;
 function toast(msg, type='success'){
   const el = document.getElementById('toast');
   el.innerHTML = `${icon(type==='success'?'check-circle':'x-circle','icon-sm')} ${msg}`;
-  el.className = 'show ' + type; lucide.createIcons();
+  el.className = 'show ' + type; window.lucide && lucide.createIcons();
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className=''; }, 3000);
 }
 
-lucide.createIcons();
+window.lucide && lucide.createIcons();
 init().catch((e) => {
   document.getElementById('reportsBody').innerHTML =
     `<tr><td colspan="5"><div class="table-state"><div class="icon">${icon('triangle-alert','icon-xl')}</div><h3>Couldn't load</h3><p class="text-error">${esc(e && e.message ? e.message : String(e))}</p></div></td></tr>`;
-  lucide.createIcons();
+  window.lucide && lucide.createIcons();
 });
 </script>
 </body>

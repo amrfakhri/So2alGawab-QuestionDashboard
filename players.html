@@ -201,7 +201,7 @@ function renderTable(players) {
       <h3>No players found</h3>
       <p>Try adjusting your search or filters.</p>
     </div></td></tr>`;
-    lucide.createIcons();
+    window.lucide && lucide.createIcons();
     return;
   }
 
@@ -230,7 +230,7 @@ function renderTable(players) {
     </tr>`;
   }).join('');
 
-  lucide.createIcons();
+  window.lucide && lucide.createIcons();
 }
 
 // ── Pagination ────────────────────────────────────────────────
@@ -244,7 +244,7 @@ function renderPager(pageCount) {
   document.getElementById('prevBtn').disabled = state.offset <= 0;
   document.getElementById('nextBtn').disabled = to >= state.total;
   pager.style.display = 'flex';
-  lucide.createIcons();
+  window.lucide && lucide.createIcons();
 }
 
 function changePage(dir) {
@@ -321,11 +321,11 @@ function setTableState(type, msg = '') {
       <h3>Failed to load players</h3>
       <p class="text-error">${escHtml(msg)}</p>
     </div></td></tr>`;
-    lucide.createIcons();
+    window.lucide && lucide.createIcons();
   }
 }
 
-lucide.createIcons();
+window.lucide && lucide.createIcons();
 init();
 </script>
 </body>

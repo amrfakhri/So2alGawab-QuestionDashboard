@@ -134,11 +134,11 @@ async function load(){
     pill('onlinePill', online); pill('maintPill', maint, true);
     document.getElementById('content').style.display = 'block';
     document.getElementById('loadState').style.display = 'none';
-    lucide.createIcons();
+    window.lucide && lucide.createIcons();
     loadErrors();
   } catch (e){
     document.getElementById('loadState').innerHTML = `<div class="icon">${icon('triangle-alert','icon-xl')}</div><p class="text-error">${e.message}</p>`;
-    lucide.createIcons();
+    window.lucide && lucide.createIcons();
   }
 }
 
@@ -194,7 +194,7 @@ async function loadErrors(){
         <td style="font-size:12px;color:var(--text3);">${escHtml(r.message)}</td>
       </tr>`).join('');
     }
-    lucide.createIcons();
+    window.lucide && lucide.createIcons();
   } catch (e){
     tb.innerHTML = `<tr><td colspan="3"><div class="table-state"><p class="text-error">${escHtml(e.message)}</p></div></td></tr>`;
   }
@@ -204,15 +204,15 @@ let toastTimer;
 function toast(msg, type='success'){
   const el = document.getElementById('toast');
   el.innerHTML = `${icon(type==='success'?'check-circle':'x-circle','icon-sm')} ${msg}`;
-  el.className = 'show ' + type; lucide.createIcons();
+  el.className = 'show ' + type; window.lucide && lucide.createIcons();
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className=''; }, 3000);
 }
 
-lucide.createIcons();
+window.lucide && lucide.createIcons();
 init().catch((e) => {
   document.getElementById('loadState').innerHTML =
     `<div class="icon">${icon('triangle-alert','icon-xl')}</div><p class="text-error">${(e && e.message) ? e.message : String(e)}</p>`;
-  lucide.createIcons();
+  window.lucide && lucide.createIcons();
 });
 </script>
 </body>

@@ -331,7 +331,7 @@ function render(list){
   const tbody = document.getElementById('badgesBody');
   if (!list.length){
     tbody.innerHTML = `<tr><td colspan="7"><div class="table-state"><div class="icon">${icon('award','icon-xl')}</div><h3>No badges</h3><p>Create your first badge.</p></div></td></tr>`;
-    lucide.createIcons(); return;
+    window.lucide && lucide.createIcons(); return;
   }
   tbody.innerHTML = list.map(b => {
     const rc = RARITY_CLASS[b.rarity] || 'badge-gray';
@@ -359,7 +359,7 @@ function render(list){
       </td>
     </tr>`;
   }).join('');
-  lucide.createIcons();
+  window.lucide && lucide.createIcons();
 }
 
 function setState(type, msg=''){
@@ -367,7 +367,7 @@ function setState(type, msg=''){
   if (type==='loading') tbody.innerHTML = `<tr><td colspan="7"><div class="table-state"><div class="spinner"></div></div></td></tr>`;
   else if (type==='error'){
     tbody.innerHTML = `<tr><td colspan="7"><div class="table-state"><div class="icon">${icon('triangle-alert','icon-xl')}</div><h3>Failed to load</h3><p class="text-error">${escHtml(msg)}</p></div></td></tr>`;
-    lucide.createIcons();
+    window.lucide && lucide.createIcons();
   }
 }
 
@@ -489,12 +489,12 @@ let toastTimer;
 function toast(msg, type='success'){
   const el = document.getElementById('toast');
   el.innerHTML = `${icon(type==='success'?'check-circle':'x-circle','icon-sm')} ${msg}`;
-  el.className = 'show ' + type; lucide.createIcons();
+  el.className = 'show ' + type; window.lucide && lucide.createIcons();
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className=''; }, 3500);
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape'){ closeModal(); closeConfirm(); } });
-lucide.createIcons();
+window.lucide && lucide.createIcons();
 init();
 </script>
 </body>

@@ -133,15 +133,15 @@ async function load(){
 
     document.getElementById('content').style.display = 'block';
     document.getElementById('state').style.display = 'none';
-    lucide.createIcons();
+    window.lucide && lucide.createIcons();
   } catch (e){
     const msg = /not_authorized/.test(e.message||'') ? 'You do not have access to analytics.' : e.message;
     document.getElementById('state').innerHTML = `<div class="icon">${icon('triangle-alert','icon-xl')}</div><p class="text-error">${esc(msg)}</p>`;
-    lucide.createIcons();
+    window.lucide && lucide.createIcons();
   }
 }
 
-lucide.createIcons();
+window.lucide && lucide.createIcons();
 init();
 </script>
 </body>

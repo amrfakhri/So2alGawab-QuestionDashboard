@@ -101,7 +101,7 @@ function render(pools){
       <h3>No pools yet</h3>
       <p>Click “Refresh pools” to compute question counts per category.</p>
     </div></td></tr>`;
-    lucide.createIcons(); return;
+    window.lucide && lucide.createIcons(); return;
   }
   tbody.innerHTML = pools.map(p => `
     <tr>
@@ -111,7 +111,7 @@ function render(pools){
       <td>${p.season ? `<span class="badge badge-gray">${escHtml(p.season)}</span>` : '<span class="text-muted">—</span>'}</td>
       <td class="date-cell">${p.snapshot_at ? new Date(p.snapshot_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}</td>
     </tr>`).join('');
-  lucide.createIcons();
+  window.lucide && lucide.createIcons();
 }
 
 function setState(type, msg=''){
@@ -119,7 +119,7 @@ function setState(type, msg=''){
   if (type==='loading') tbody.innerHTML = `<tr><td colspan="5"><div class="table-state"><div class="spinner"></div></div></td></tr>`;
   else if (type==='error'){
     tbody.innerHTML = `<tr><td colspan="5"><div class="table-state"><div class="icon">${icon('triangle-alert','icon-xl')}</div><h3>Failed to load</h3><p class="text-error">${escHtml(msg)}</p></div></td></tr>`;
-    lucide.createIcons();
+    window.lucide && lucide.createIcons();
   }
 }
 
@@ -144,11 +144,11 @@ let toastTimer;
 function toast(msg, type='success'){
   const el = document.getElementById('toast');
   el.innerHTML = `${icon(type==='success'?'check-circle':'x-circle','icon-sm')} ${msg}`;
-  el.className = 'show ' + type; lucide.createIcons();
+  el.className = 'show ' + type; window.lucide && lucide.createIcons();
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className=''; }, 3500);
 }
 
-lucide.createIcons();
+window.lucide && lucide.createIcons();
 init();
 </script>
 </body>
