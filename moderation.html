@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moderation — So2alGawab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/global.css">
+<link rel="stylesheet" href="./assets/css/layout.css">
+<link rel="stylesheet" href="./assets/css/components.css">
+<link rel="stylesheet" href="./assets/css/forms.css">
+<link rel="stylesheet" href="./assets/css/sidebar.css">
+<link rel="stylesheet" href="./assets/css/responsive.css">
+<style>
+  .sec-title { font-size: 16px; margin: 22px 0 12px; }
+  .term-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .term-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--border); border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 13px; }
+  .term-chip button { border: none; background: var(--red-bg); color: var(--red); border-radius: 50%; width: 20px; height: 20px; cursor: pointer; line-height: 1; }
+  .add-row { display: flex; gap: 8px; margin-bottom: 14px; max-width: 420px; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="appSidebar"></aside>
+<div class="sb-overlay" id="sbOverlay"></div>
+<div class="sb-mobile-bar">
+  <button class="sb-hamburger" id="sbToggle" type="button"><i data-lucide="menu" class="icon-md"></i></button>
+  <span class="sb-mobile-title">Moderation</span>
+</div>
+
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1>Moderation</h1>
+      <p>Review player reports and curate the username/answer denylist (enforced server-side on usernames).</p>
+    </div>
+    <button class="btn btn-ghost" onclick="loadAll()"><i data-lucide="refresh-cw" class="icon-sm"></i> Refresh</button>
+  </div>
+
+  <!-- Reports -->
+  <h2 class="sec-title">Reports</h2>
+  <div class="filters">
+    <select class="filter-select" id="statusFilter" onchange="loadReports()">
+      <option value="open">Open</option>
+      <option value="reviewed">Reviewed</option>
+      <option value="actioned">Actioned</option>
+      <option value="dismissed">Dismissed</option>
+      <option value="all">All</option>
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table class="users-table">
+      <thead><tr><th>When</th><th>Reporter → Target</th><th>Context</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="reportsBody"><tr><td colspan="5"><div class="table-state"><div class="spinner"></div></div></td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- Banned terms -->
+  <h2 class="sec-title">Banned terms (username / answer denylist)</h2>
+  <div class="add-row">
+    <input class="form-input" id="newTerm" type="text" placeholder="add a term…">
+    <button class="btn btn-primary" onclick="addTerm()">Add</button>
+  </div>
+  <div class="term-chips" id="terms"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+function icon(n,c=''){ return `<i data-lucide="${n}"${c?` class="${c}"`:''}></i>`; }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function init(){
+  const session = await Auth.requireAuth(['admin','super_admin']);
+  if (!session) return;
+  Sidebar.init('moderation');
+  Sidebar.setUser(session.user, await Auth.getRole());
+  await loadAll();
+}
+async function loadAll(){ await Promise.all([loadReports(), loadTerms()]); }
+
+async function loadReports(){
+  const tb = document.getElementById('reportsBody');
+  tb.innerHTML = `<tr><td colspan="5"><div class="table-state"><div class="spinner"></div></div></td></tr>`;
+  try {
+    const status = document.getElementById('statusFilter').value;
+    const { data, error } = await window._sb.rpc('admin_list_reports', { p_status: status });
+    if (error) throw error;
+    const rows = data || [];
+    if (!rows.length){
+      tb.innerHTML = `<tr><td colspan="5"><div class="table-state"><div class="icon">${icon('shield-check','icon-xl')}</div><h3>No reports</h3></div></td></tr>`;
+      lucide.createIcons(); return;
+    }
+    tb.innerHTML = rows.map(r => `<tr>
+      <td class="date-cell">${new Date(r.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
+      <td><span class="user-name">${esc(r.reporter||'?')}</span> → <span class="user-name">${esc(r.target||'?')}</span></td>
+      <td><span class="badge badge-gray">${esc(r.context)}</span></td>
+      <td>${statusBadge(r.status)}</td>
+      <td class="action-cell" style="white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" onclick="resolve('${r.id}','actioned')">Action</button>
+        <button class="btn btn-ghost btn-sm" onclick="resolve('${r.id}','dismissed')">Dismiss</button>
+      </td>
+    </tr>`).join('');
+    lucide.createIcons();
+  } catch (e){
+    tb.innerHTML = `<tr><td colspan="5"><div class="table-state"><p class="text-error">${esc(/not_authorized/.test(e.message||'')?'Not authorized.':e.message)}</p></div></td></tr>`;
+  }
+}
+function statusBadge(s){
+  const m = { open:'badge-amber', reviewed:'badge-blue', actioned:'badge-green', dismissed:'badge-gray' };
+  return `<span class="badge ${m[s]||'badge-gray'}">${esc(s)}</span>`;
+}
+async function resolve(id, status){
+  try { const { error } = await window._sb.rpc('admin_resolve_report', { p_id: id, p_status: status }); if (error) throw error; toast('Updated','success'); loadReports(); }
+  catch (e){ toast(e.message,'error'); }
+}
+
+async function loadTerms(){
+  try {
+    const { data, error } = await window._sb.rpc('admin_list_banned_terms');
+    if (error) throw error;
+    const terms = data || [];
+    document.getElementById('terms').innerHTML = terms.length
+      ? terms.map(t => `<span class="term-chip">${esc(t.term)}<button title="remove" onclick="removeTerm('${esc(t.term).replace(/'/g,"\\'")}')">×</button></span>`).join('')
+      : '<span class="text-muted">No terms yet.</span>';
+  } catch (e){ document.getElementById('terms').innerHTML = `<span class="text-error">${esc(e.message)}</span>`; }
+}
+async function addTerm(){
+  const term = document.getElementById('newTerm').value.trim();
+  if (!term) return;
+  try { const { error } = await window._sb.rpc('admin_add_banned_term', { p_term: term, p_lang: null }); if (error) throw error; document.getElementById('newTerm').value=''; toast('Added','success'); loadTerms(); }
+  catch (e){ toast(e.message,'error'); }
+}
+async function removeTerm(term){
+  try { const { error } = await window._sb.rpc('admin_remove_banned_term', { p_term: term }); if (error) throw error; toast('Removed','success'); loadTerms(); }
+  catch (e){ toast(e.message,'error'); }
+}
+
+let toastTimer;
+function toast(msg, type='success'){
+  const el = document.getElementById('toast');
+  el.innerHTML = `${icon(type==='success'?'check-circle':'x-circle','icon-sm')} ${msg}`;
+  el.className = 'show ' + type; lucide.createIcons();
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className=''; }, 3000);
+}
+
+lucide.createIcons();
+init();
+</script>
+</body>
+</html>
