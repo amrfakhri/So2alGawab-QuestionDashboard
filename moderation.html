@@ -147,7 +147,11 @@ function toast(msg, type='success'){
 }
 
 lucide.createIcons();
-init();
+init().catch((e) => {
+  document.getElementById('reportsBody').innerHTML =
+    `<tr><td colspan="5"><div class="table-state"><div class="icon">${icon('triangle-alert','icon-xl')}</div><h3>Couldn't load</h3><p class="text-error">${esc(e && e.message ? e.message : String(e))}</p></div></td></tr>`;
+  lucide.createIcons();
+});
 </script>
 </body>
 </html>
