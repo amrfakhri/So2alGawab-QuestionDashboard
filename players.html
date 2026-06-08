@@ -226,7 +226,7 @@ function renderTable(players) {
       <td><span class="num-cell">${fmtTime(p.play_seconds)}</span></td>
       <td>${catChips(p.top_categories)}</td>
       <td>${isGuest ? '<span class="text-muted">—</span>' : `<span class="num-cell">${(p.total_points || 0).toLocaleString()}</span><div class="num-sub">Lvl ${p.level || 1}</div>`}</td>
-      <td class="date-cell">${p.last_played ? fmtRelative(p.last_played) : '<span class="text-muted">Never</span>'}</td>
+      <td class="date-cell">${(p.last_active || p.last_played) ? fmtRelative(p.last_active || p.last_played) : '<span class="text-muted">Never</span>'}</td>
     </tr>`;
   }).join('');
 
