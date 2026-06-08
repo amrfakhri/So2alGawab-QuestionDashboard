@@ -183,7 +183,17 @@ Deno.serve(async (req: Request) => {
         const roleMap: Record<string, any> = {}
         ;(roles || []).forEach((r: any) => { roleMap[r.user_id] = r })
 
-        const users = authData.users.map((u: any) => ({
+        // This Supabase project is SHARED with the game app, so auth.users
+        // contains game players too. Only list dashboard staff: accounts with a
+        // real (non-pending) role, or invited users awaiting approval
+        // (pending_role set). Game players have no user_roles row, or only the
+        // legacy trigger-created row (role='pending', pending_role=NULL).
+        const isStaff = (u: any) => {
+          const r = roleMap[u.id]
+          return r && (r.role !== 'pending' || r.pending_role != null)
+        }
+
+        const users = authData.users.filter(isStaff).map((u: any) => ({
           id:              u.id,
           email:           u.email ?? '',
           full_name:       roleMap[u.id]?.full_name ?? u.user_metadata?.full_name ?? '',
