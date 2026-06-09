@@ -1,0 +1,11 @@
+{
+  "name": "Lammah Game",
+  "short_name": "Lammah",
+  "icons": [
+    { "src": "/assets/logo/logo-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/assets/logo/logo-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#1a1530",
+  "background_color": "#1a1530",
+  "display": "standalone"
+}

@@ -1,5 +1,5 @@
 /**
- * So2alGawab — Questions Manager API
+ * Lammah Game — Questions Manager API
  * Express server with SQLite persistence.
  *
  * Start:    node server.js
@@ -56,6 +56,6 @@ app.use((err, _req, res, _next) => {
    Start
 ------------------------------------------------------- */
 app.listen(PORT, () => {
-  console.log(`\n🎮  So2alGawab Questions API`);
+  console.log(`\n🎮  Lammah Game Questions API`);
   console.log(`    http://localhost:${PORT}/api\n`);
 });

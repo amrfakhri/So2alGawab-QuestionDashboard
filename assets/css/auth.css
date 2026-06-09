@@ -188,3 +188,6 @@ input::placeholder { color: var(--text4, rgb(122,128,148)); }
   transition:    background .15s;
 }
 .btn-sign-out:hover { background: rgba(255,92,122,0.20); }
+
+/* Image-based brand logo on auth screens */
+.logo-img { width: 76px; height: 76px; border-radius: 18px; box-shadow: var(--glow-gold-md); display: block; }

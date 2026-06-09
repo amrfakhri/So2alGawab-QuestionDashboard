@@ -372,3 +372,6 @@ body.no-sidebar {
 
   .sb-mobile-bar { display: flex; }
 }
+
+/* Image-based brand logo */
+img.sb-logo-icon { object-fit: cover; background: transparent; box-shadow: var(--glow-gold-sm); padding: 0; }

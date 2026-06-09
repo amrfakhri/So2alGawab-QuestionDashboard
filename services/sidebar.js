@@ -97,8 +97,8 @@ const Sidebar = {
     return `
       <!-- Logo -->
       <a class="sb-logo" href="./dashboard.html">
-        <i data-lucide="gamepad-2" class="icon-lg sb-logo-icon"></i>
-        <span class="sb-logo-text"><span>So2al</span>Gawab</span>
+        <img src="./assets/logo/logo-64.png" class="sb-logo-icon" alt="Lammah Game logo" />
+        <span class="sb-logo-text"><span>Lammah</span> Game</span>
       </a>
 
       <!-- Nav -->
