@@ -375,3 +375,4 @@ body.no-sidebar {
 
 /* Image-based brand logo */
 img.sb-logo-icon { object-fit: cover; background: transparent; box-shadow: var(--glow-gold-sm); padding: 0; }
+.sb-logo-wordmark { height: 34px; width: auto; display: block; }

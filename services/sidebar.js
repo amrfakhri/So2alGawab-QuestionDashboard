@@ -97,8 +97,7 @@ const Sidebar = {
     return `
       <!-- Logo -->
       <a class="sb-logo" href="./dashboard.html">
-        <img src="./assets/logo/logo-64.png" class="sb-logo-icon" alt="Lammah Game logo" />
-        <span class="sb-logo-text"><span>Lammah</span> Game</span>
+        <img src="./assets/logo/wordmark.svg" class="sb-logo-wordmark" alt="Lammah" />
       </a>
 
       <!-- Nav -->
