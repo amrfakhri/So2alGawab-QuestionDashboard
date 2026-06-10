@@ -46,8 +46,10 @@ body.no-sidebar {
   display:     flex;
   align-items: center;
   gap:         10px;
-  padding:     0 20px;
-  height:      72px;
+  padding:     24px 24px;
+  height:      auto;
+  justify-content: center;
+  width: 100%;
   flex-shrink: 0;
   border-bottom: 1px solid var(--border);
   text-decoration: none;
