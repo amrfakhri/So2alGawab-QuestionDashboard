@@ -36,6 +36,35 @@
   .badge-key     { font-size: 11px; color: var(--text3); font-family: monospace; }
   .form-hint     { font-size: 11px; color: var(--text3); margin-top: 4px; }
   .row-inactive td { opacity: .5; }
+
+  /* ── Icon picker ── */
+  .icon-field-wrap { display: flex; gap: 8px; align-items: flex-start; }
+  .icon-preview-box {
+    width: 56px; height: 56px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface-glass); flex-shrink: 0; overflow: hidden;
+    display: flex; align-items: center; justify-content: center; color: var(--text3);
+  }
+  .icon-preview-box img { width: 100%; height: 100%; object-fit: contain; }
+  .icon-field-inputs { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .icon-field-btns { display: flex; gap: 6px; }
+  .icon-field-btns .btn { padding: 5px 10px; font-size: 12px; height: auto; }
+
+  /* ── Media picker modal ── */
+  .media-picker-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px; max-height: 420px; overflow-y: auto; padding: 2px;
+  }
+  .mpick-card {
+    border: 2px solid var(--border); border-radius: 12px; overflow: hidden;
+    cursor: pointer; background: var(--surface-glass); transition: border-color .15s;
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .mpick-card:hover { border-color: var(--gold-500); }
+  .mpick-card.selected { border-color: var(--gold-500); }
+  .mpick-card img { width: 100%; height: 100%; object-fit: contain; }
+  .mpick-empty { grid-column: 1/-1; text-align: center; padding: 32px; color: var(--text3); }
+  .media-picker-search { margin-bottom: 12px; }
 </style>
 </head>
 <body>
@@ -83,6 +112,7 @@
       <thead>
         <tr>
           <th style="width:48px;">#</th>
+          <th style="width:52px;">Icon</th>
           <th>Badge</th>
           <th>Group</th>
           <th>Rarity</th>
@@ -187,8 +217,28 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Icon reference</label>
-            <input class="form-input" id="fIcon" type="text" placeholder="optional asset/url ref" autocomplete="off">
+            <label class="form-label">Badge image</label>
+            <div class="icon-field-wrap">
+              <div class="icon-preview-box" id="iconPreviewBox">
+                <i data-lucide="image" class="icon-md"></i>
+              </div>
+              <div class="icon-field-inputs">
+                <input class="form-input" id="fIcon" type="text" placeholder="Image URL" autocomplete="off" oninput="onIconUrlChange()">
+                <div class="icon-field-btns">
+                  <label class="btn btn-ghost" style="cursor:pointer;" title="Upload image file">
+                    <i data-lucide="upload" class="icon-sm"></i> Upload
+                    <input type="file" id="iconFileInput" accept="image/*" style="display:none;" onchange="uploadBadgeIcon(this)">
+                  </label>
+                  <button type="button" class="btn btn-ghost" onclick="openMediaPicker()" title="Pick from media library">
+                    <i data-lucide="library" class="icon-sm"></i> Media
+                  </button>
+                  <button type="button" class="btn btn-ghost" id="clearIconBtn" onclick="clearIcon()" style="display:none;" title="Remove image">
+                    <i data-lucide="x" class="icon-sm"></i>
+                  </button>
+                </div>
+                <div class="form-hint" id="iconUploadHint">Upload a PNG/SVG or paste a URL. Recommended: 256×256px.</div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="form-group">
@@ -244,6 +294,29 @@
       <button class="btn btn-danger" id="confirmDeleteBtn">
         <span id="delSpinner" class="spinner spinner-sm" style="display:none;"></span><span>Delete</span>
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MEDIA PICKER MODAL ════ -->
+<div class="modal-bg" id="mediaPickerBg" onclick="if(event.target===this)closeMediaPicker()">
+  <div class="modal" style="max-width:660px;">
+    <div class="modal-head">
+      <div>
+        <h2>Pick from Media Library</h2>
+        <p>Select an existing image to use as the badge icon.</p>
+      </div>
+      <button class="modal-close" onclick="closeMediaPicker()"><i data-lucide="x" class="icon-sm"></i></button>
+    </div>
+    <div class="modal-body">
+      <input class="form-input media-picker-search" id="mediaPickerSearch" type="text" placeholder="Search by filename…" oninput="filterMediaPicker()">
+      <div class="media-picker-grid" id="mediaPickerGrid">
+        <div class="mpick-empty"><div class="spinner"></div></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeMediaPicker()">Cancel</button>
+      <button class="btn btn-primary" id="mediaPickerConfirm" onclick="confirmMediaPick()" disabled>Use selected</button>
     </div>
   </div>
 </div>
@@ -335,15 +408,19 @@ function applyFilters(){
 function render(list){
   const tbody = document.getElementById('badgesBody');
   if (!list.length){
-    tbody.innerHTML = `<tr><td colspan="7"><div class="table-state"><div class="icon">${icon('award','icon-xl')}</div><h3>No badges</h3><p>Create your first badge.</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="table-state"><div class="icon">${icon('award','icon-xl')}</div><h3>No badges</h3><p>Create your first badge.</p></div></td></tr>`;
     window.lucide && lucide.createIcons(); return;
   }
   tbody.innerHTML = list.map(b => {
     const rc = RARITY_CLASS[b.rarity] || 'badge-gray';
     const params = b.condition_params ? JSON.stringify(b.condition_params) : '{}';
     const bj = encodeURIComponent(JSON.stringify(b)).replace(/'/g, '%27');
+    const iconCell = b.icon_ref
+      ? `<img src="${escHtml(b.icon_ref)}" style="width:40px;height:40px;object-fit:contain;border-radius:8px;" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'—',style:'color:var(--text3)'}))"/>`
+      : `<span style="color:var(--text3);">—</span>`;
     return `<tr class="${b.active?'':'row-inactive'}">
       <td class="date-cell">${b.sort_order ?? 0}</td>
+      <td style="text-align:center;">${iconCell}</td>
       <td>
         <div class="badge-name-ar" dir="rtl">${escHtml(b.name_ar)}</div>
         <div class="badge-name-en">${escHtml(b.name_en)}</div>
@@ -369,9 +446,9 @@ function render(list){
 
 function setState(type, msg=''){
   const tbody = document.getElementById('badgesBody');
-  if (type==='loading') tbody.innerHTML = `<tr><td colspan="7"><div class="table-state"><div class="spinner"></div></div></td></tr>`;
+  if (type==='loading') tbody.innerHTML = `<tr><td colspan="8"><div class="table-state"><div class="spinner"></div></div></td></tr>`;
   else if (type==='error'){
-    tbody.innerHTML = `<tr><td colspan="7"><div class="table-state"><div class="icon">${icon('triangle-alert','icon-xl')}</div><h3>Failed to load</h3><p class="text-error">${escHtml(msg)}</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="table-state"><div class="icon">${icon('triangle-alert','icon-xl')}</div><h3>Failed to load</h3><p class="text-error">${escHtml(msg)}</p></div></td></tr>`;
     window.lucide && lucide.createIcons();
   }
 }
@@ -392,6 +469,7 @@ function openCreate(){
   document.getElementById('fActive').checked = true;
   document.getElementById('fSort').value = 0;
   document.getElementById('fParams').value = '';
+  setIconPreview('');
   hideAlert(); hintForType();
   document.getElementById('badgeModalBg').classList.add('open');
 }
@@ -414,8 +492,123 @@ function openEdit(enc){
   document.getElementById('fHidden').checked = !!b.hidden;
   document.getElementById('fSeasonal').checked = !!b.seasonal;
   document.getElementById('fActive').checked = b.active !== false;
+  setIconPreview(b.icon_ref || '');
   hideAlert(); hintForType();
   document.getElementById('badgeModalBg').classList.add('open');
+}
+
+// ── Icon picker helpers ──────────────────────────────────────────────────────
+
+function setIconPreview(url) {
+  const box = document.getElementById('iconPreviewBox');
+  const clearBtn = document.getElementById('clearIconBtn');
+  if (url) {
+    box.innerHTML = `<img src="${escHtml(url)}" onerror="setIconPreview('')">`;
+    clearBtn.style.display = 'inline-flex';
+  } else {
+    box.innerHTML = `<i data-lucide="image" class="icon-md"></i>`;
+    clearBtn.style.display = 'none';
+    window.lucide && lucide.createIcons();
+  }
+}
+
+function onIconUrlChange() {
+  const url = document.getElementById('fIcon').value.trim();
+  setIconPreview(url);
+}
+
+function clearIcon() {
+  document.getElementById('fIcon').value = '';
+  setIconPreview('');
+}
+
+async function uploadBadgeIcon(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const hint = document.getElementById('iconUploadHint');
+  hint.textContent = 'Uploading…';
+  try {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const uniqueName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const filePath = `badge-icons/${uniqueName}`;
+    const { error } = await window._sb.storage.from('question-media').upload(filePath, file, { upsert: false, contentType: file.type });
+    if (error) throw error;
+    const { data: urlData } = window._sb.storage.from('question-media').getPublicUrl(filePath);
+    const publicUrl = urlData.publicUrl;
+    document.getElementById('fIcon').value = publicUrl;
+    setIconPreview(publicUrl);
+    hint.textContent = 'Uploaded successfully.';
+  } catch (err) {
+    hint.textContent = 'Upload failed: ' + err.message;
+  }
+  input.value = '';
+}
+
+// ── Media picker ─────────────────────────────────────────────────────────────
+
+let mediaPickerItems = [];
+let mediaPickerSelected = null;
+
+async function openMediaPicker() {
+  mediaPickerSelected = null;
+  document.getElementById('mediaPickerConfirm').disabled = true;
+  document.getElementById('mediaPickerSearch').value = '';
+  document.getElementById('mediaPickerBg').classList.add('open');
+  document.getElementById('mediaPickerGrid').innerHTML = '<div class="mpick-empty"><div class="spinner"></div></div>';
+  try {
+    const { data, error } = await window._sb
+      .from('question_media')
+      .select('id, media_url, file_name, media_type')
+      .eq('media_type', 'image')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    mediaPickerItems = data || [];
+    renderMediaPicker(mediaPickerItems);
+  } catch (err) {
+    document.getElementById('mediaPickerGrid').innerHTML = `<div class="mpick-empty">Failed to load: ${escHtml(err.message)}</div>`;
+  }
+}
+
+function renderMediaPicker(items) {
+  const grid = document.getElementById('mediaPickerGrid');
+  if (!items.length) {
+    grid.innerHTML = '<div class="mpick-empty">No images found in media library.</div>';
+    return;
+  }
+  grid.innerHTML = items.map(item => `
+    <div class="mpick-card${mediaPickerSelected===item.media_url?' selected':''}"
+         data-url="${escHtml(item.media_url)}"
+         onclick="selectMediaItem(this,'${escHtml(item.media_url)}')"
+         title="${escHtml(item.file_name||'')}">
+      <img src="${escHtml(item.media_url)}" loading="lazy"
+           onerror="this.parentElement.style.display='none'">
+    </div>`).join('');
+}
+
+function filterMediaPicker() {
+  const q = document.getElementById('mediaPickerSearch').value.toLowerCase();
+  const filtered = q ? mediaPickerItems.filter(i => (i.file_name||'').toLowerCase().includes(q)) : mediaPickerItems;
+  renderMediaPicker(filtered);
+}
+
+function selectMediaItem(el, url) {
+  document.querySelectorAll('.mpick-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  mediaPickerSelected = url;
+  document.getElementById('mediaPickerConfirm').disabled = false;
+}
+
+function confirmMediaPick() {
+  if (!mediaPickerSelected) return;
+  document.getElementById('fIcon').value = mediaPickerSelected;
+  setIconPreview(mediaPickerSelected);
+  closeMediaPicker();
+}
+
+function closeMediaPicker() {
+  document.getElementById('mediaPickerBg').classList.remove('open');
+  mediaPickerSelected = null;
 }
 function closeModal(){ document.getElementById('badgeModalBg').classList.remove('open'); }
 function hideAlert(){ document.getElementById('modalAlert').style.display='none'; }
@@ -498,7 +691,7 @@ function toast(msg, type='success'){
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className=''; }, 3500);
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape'){ closeModal(); closeConfirm(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape'){ closeModal(); closeConfirm(); closeMediaPicker(); } });
 window.lucide && lucide.createIcons();
 init();
 </script>
