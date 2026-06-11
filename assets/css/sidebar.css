@@ -377,4 +377,4 @@ body.no-sidebar {
 
 /* Image-based brand logo */
 img.sb-logo-icon { object-fit: cover; background: transparent; box-shadow: var(--glow-gold-sm); padding: 0; }
-.sb-logo-wordmark { height: 48px; width: auto; display: block; }
+.sb-logo-wordmark { height: 124px; width: auto; display: block; }
