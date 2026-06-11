@@ -197,12 +197,11 @@ async function load() {
   document.getElementById('pager').style.display = 'none';
   try {
     const { data, error } = await window._sb.rpc('get_game_players', {
-      p_search:   state.search || null,
-      p_type:     state.type,
-      p_limit:    PAGE_SIZE,
-      p_offset:   state.offset,
-      p_sort:     state.sort,
-      p_sort_dir: state.sortDir,
+      p_search: state.search || null,
+      p_type:   state.type,
+      p_limit:  PAGE_SIZE,
+      p_offset: state.offset,
+      p_sort:   state.sort,
     });
     if (error) throw error;
     state.total = data?.total || 0;
