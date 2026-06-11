@@ -47,6 +47,23 @@
   }
   .pager-info { font-size: 13px; color: var(--text3); }
   .pager-btns { display: flex; gap: 8px; }
+
+  /* Sortable column headers */
+  .users-table th.sortable-col {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .users-table th.sortable-col:hover { color: var(--text); }
+  .users-table th .sort-icon {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 4px;
+    opacity: 0.25;
+    vertical-align: middle;
+    transition: opacity .15s;
+  }
+  .users-table th.sort-active .sort-icon { opacity: 1; color: var(--gold-500, #f5c84b); }
 </style>
 </head>
 <body>
@@ -88,13 +105,6 @@
       <option value="registered">Registered</option>
       <option value="guest">Guests</option>
     </select>
-    <select class="filter-select" id="sortFilter">
-      <option value="last_active">Recently Active</option>
-      <option value="games">Most Games</option>
-      <option value="time">Most Time Played</option>
-      <option value="points">Most Points</option>
-      <option value="joined">Newest</option>
-    </select>
   </div>
 
   <!-- Table -->
@@ -102,13 +112,13 @@
     <table class="users-table">
       <thead>
         <tr>
-          <th>Player</th>
-          <th>Type</th>
-          <th>Games</th>
-          <th>Time Played</th>
+          <th class="sortable-col" data-sort="joined">Player <span class="sort-icon"></span></th>
+          <th class="sortable-col" data-sort="type">Type <span class="sort-icon"></span></th>
+          <th class="sortable-col" data-sort="games">Games <span class="sort-icon"></span></th>
+          <th class="sortable-col" data-sort="time">Time Played <span class="sort-icon"></span></th>
           <th>Top Categories</th>
-          <th>Points / Level</th>
-          <th>Last Active</th>
+          <th class="sortable-col" data-sort="points">Points / Level <span class="sort-icon"></span></th>
+          <th class="sortable-col" data-sort="last_active">Last Active <span class="sort-icon"></span></th>
         </tr>
       </thead>
       <tbody id="playersBody">
@@ -145,7 +155,7 @@ function icon(name, cls = '') {
 }
 
 // ── State ─────────────────────────────────────────────────────
-const state = { search: '', type: 'all', sort: 'last_active', offset: 0, total: 0 };
+const state = { search: '', type: 'all', sort: 'last_active', sortDir: 'desc', offset: 0, total: 0 };
 let searchTimer;
 
 // ── Init ──────────────────────────────────────────────────────
@@ -161,8 +171,23 @@ async function init() {
     searchTimer = setTimeout(() => { state.search = e.target.value.trim(); state.offset = 0; load(); }, 300);
   });
   document.getElementById('typeFilter').addEventListener('change', e => { state.type = e.target.value; state.offset = 0; load(); });
-  document.getElementById('sortFilter').addEventListener('change', e => { state.sort = e.target.value; state.offset = 0; load(); });
 
+  document.querySelector('.users-table thead').addEventListener('click', e => {
+    const th = e.target.closest('th[data-sort]');
+    if (!th) return;
+    const col = th.dataset.sort;
+    if (col === state.sort) {
+      state.sortDir = state.sortDir === 'desc' ? 'asc' : 'desc';
+    } else {
+      state.sort = col;
+      state.sortDir = 'desc';
+    }
+    state.offset = 0;
+    updateSortHeaders();
+    load();
+  });
+
+  updateSortHeaders();
   await load();
 }
 
@@ -172,11 +197,12 @@ async function load() {
   document.getElementById('pager').style.display = 'none';
   try {
     const { data, error } = await window._sb.rpc('get_game_players', {
-      p_search: state.search || null,
-      p_type:   state.type,
-      p_limit:  PAGE_SIZE,
-      p_offset: state.offset,
-      p_sort:   state.sort,
+      p_search:    state.search || null,
+      p_type:      state.type,
+      p_limit:     PAGE_SIZE,
+      p_offset:    state.offset,
+      p_sort:      state.sort,
+      p_sort_dir:  state.sortDir,
     });
     if (error) throw error;
     state.total = data?.total || 0;
@@ -259,6 +285,21 @@ function changePage(dir) {
   state.offset = next;
   load();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Sort header indicators ────────────────────────────────────
+function updateSortHeaders() {
+  document.querySelectorAll('.users-table th[data-sort]').forEach(th => {
+    const isActive = th.dataset.sort === state.sort;
+    th.classList.toggle('sort-active', isActive);
+    const iconEl = th.querySelector('.sort-icon');
+    if (!iconEl) return;
+    iconEl.innerHTML = isActive
+      ? (state.sortDir === 'asc'
+          ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>'
+          : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>')
+      : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 9l7-7 7 7M5 15l7 7 7-7"/></svg>';
+  });
 }
 
 // ── Helpers ───────────────────────────────────────────────────
