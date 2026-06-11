@@ -10,16 +10,16 @@ body {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background:
-    radial-gradient(120% 60% at 50% -10%, rgba(245, 200, 75, 0.08) 0%, transparent 55%),
-    var(--bg);
+  background-image: linear-gradient(rgb(35, 10, 76) 0.4%, rgb(27, 6, 42) 50%, rgb(5, 2, 7) 100%);
 }
 
 /* ── Auth Card ───────────────────────────────────────────────────── */
 .auth-card {
   width: 100%;
   max-width: 400px;
-  background: var(--surface);
+  background: rgba(13, 15, 23, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border2);
   border-radius: var(--r-xl);
   padding: 40px;
