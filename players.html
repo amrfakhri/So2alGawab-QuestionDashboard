@@ -197,12 +197,12 @@ async function load() {
   document.getElementById('pager').style.display = 'none';
   try {
     const { data, error } = await window._sb.rpc('get_game_players', {
-      p_search:    state.search || null,
-      p_type:      state.type,
-      p_limit:     PAGE_SIZE,
-      p_offset:    state.offset,
-      p_sort:      state.sort,
-      p_sort_dir:  state.sortDir,
+      p_search:   state.search || null,
+      p_type:     state.type,
+      p_limit:    PAGE_SIZE,
+      p_offset:   state.offset,
+      p_sort:     state.sort,
+      p_sort_dir: state.sortDir,
     });
     if (error) throw error;
     state.total = data?.total || 0;
@@ -289,16 +289,16 @@ function changePage(dir) {
 
 // ── Sort header indicators ────────────────────────────────────
 function updateSortHeaders() {
+  const ICON_ASC      = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
+  const ICON_DESC     = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>';
+  const ICON_INACTIVE = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 9l7-7 7 7M5 15l7 7 7-7"/></svg>';
   document.querySelectorAll('.users-table th[data-sort]').forEach(th => {
     const isActive = th.dataset.sort === state.sort;
     th.classList.toggle('sort-active', isActive);
     const iconEl = th.querySelector('.sort-icon');
     if (!iconEl) return;
-    iconEl.innerHTML = isActive
-      ? (state.sortDir === 'asc'
-          ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>'
-          : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>')
-      : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 9l7-7 7 7M5 15l7 7 7-7"/></svg>';
+    if (!isActive) { iconEl.innerHTML = ICON_INACTIVE; return; }
+    iconEl.innerHTML = state.sortDir === 'asc' ? ICON_ASC : ICON_DESC;
   });
 }
 
