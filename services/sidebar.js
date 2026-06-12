@@ -13,7 +13,7 @@
 
 const _NAV = [
   { id: 'overview', label: 'Overview',       icon: 'layout-dashboard', href: './dashboard.html'       },
-  { id: 'database', label: 'Database',        icon: 'database',         href: './database.html'        },
+  { id: 'database', label: 'Questions List',        icon: 'database',         href: './database.html'        },
   { id: 'media',    label: 'Media Library',   icon: 'images',           href: './media.html'           },
   { id: 'activity', label: 'Activity Log',     icon: 'history',          href: './activity.html'        },
   { id: 'players',  label: 'Game Players',     icon: 'gamepad-2',        href: './players.html'         },
