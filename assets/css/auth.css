@@ -10,7 +10,11 @@ body {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background-image: linear-gradient(rgb(35, 10, 76) 0.4%, rgb(27, 6, 42) 50%, rgb(5, 2, 7) 100%);
+  background-image: url('../images/Objects-dashboard.png'), linear-gradient(rgb(35, 10, 76) 0.4%, rgb(27, 6, 42) 50%, rgb(5, 2, 7) 100%);
+  background-blend-mode: soft-light, normal;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 /* ── Auth Card ───────────────────────────────────────────────────── */

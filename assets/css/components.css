@@ -31,16 +31,16 @@
   background: var(--grad-gold);
   color:      var(--fg-on-gold, rgb(10,13,31));
   border-color: transparent;
-  box-shadow:   var(--glow-gold-md), var(--shadow-inset);
+  /* box-shadow:   var(--glow-gold-md), var(--shadow-inset); */
   font-weight: 700;
 }
 .btn-primary:hover { filter: brightness(1.06); }
 .btn-primary:disabled { filter: none; }
 
 .btn-ghost {
-  background:  rgba(255,255,255,0.04);
+  background:  rgba(23, 12, 33, 1);
   color:       var(--text2);
-  border:      1px solid var(--border);
+  /* border:      1px solid var(--border); */
 }
 .btn-ghost:hover {
   background:  rgba(255,255,255,0.08);
@@ -254,7 +254,7 @@
 /* ── List Card ───────────────────────────────────────────────────── */
 .list-card {
   background: var(--surface);
-  border:     1px solid var(--border);
+  /* border:     1px solid var(--border); */
   border-radius: var(--r-xl);
   overflow:   visible;
   display:    flex;

@@ -6,9 +6,9 @@
 /* ── Design Tokens ──────────────────────────────────────────────── */
 :root {
   /* ── Backgrounds (cinematic dark, navy/violet undertone) ──────── */
-  --bg:        rgb(5, 7, 15);
-  --panel:     #0d0f17;
-  --surface:   #0d0f17;
+  --bg:        #0F0617;
+  --panel:     #170C21;
+  --surface:   #1E1530;
   --surface2:  rgb(22, 22, 28);
   --surface3:  rgb(30, 32, 48);
   --bg-glass:  rgba(58, 64, 84, 0.20);

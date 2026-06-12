@@ -135,7 +135,7 @@
 .ls-search-input {
   width: 100%;
   background: var(--surface);
-  border: 1px solid var(--border2);
+  border: none;
   border-radius: var(--r-sm);
   padding: 7px 12px 7px 32px;
   color: var(--text);
@@ -145,7 +145,7 @@
 .ls-search-input:focus { border-color: var(--gold-700, rgb(201,155,47)); box-shadow: 0 0 0 3px rgba(245,200,75,0.12); }
 .ls-sort {
   background: var(--surface);
-  border: 1px solid var(--border2);
+  border: none;
   border-radius: var(--r-sm);
   padding: 7px 12px;
   color: var(--text);
