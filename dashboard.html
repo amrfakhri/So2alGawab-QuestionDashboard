@@ -84,7 +84,7 @@
   background: var(--panel);
   /* border: 1px solid var(--border); */
   overflow: hidden;
-  box-shadow: var(--shadow-card);
+  /* box-shadow: var(--shadow-card); */
 }
 .kpi-card::before {
   content: "";
@@ -868,23 +868,40 @@ async function loadOverviewData() {
   catUsage.forEach(c => { c.pct = Math.max(8, Math.round((c.count / maxCount) * 100)); });
 
  
-  /* ── ACTIVITY (recent list edits + media uploads) ── */
-  const activity = [
-    ...lists.slice(0, 3).map(l => ({
-      who   : whoBy(l.updated_by),
-      what  : 'updated list',
-      target: l.title || 'Untitled list',
-      when  : formatDate(l.updated_at),
-      type  : 'edit',
-    })),
-    ...media.slice(0, 2).map(m => ({
-      who   : whoBy(m.uploaded_by),
-      what  : 'uploaded media',
-      target: String(m.id).slice(0, 8) + '…',
-      when  : formatDate(m.created_at),
-      type  : 'upload',
-    })),
-  ].slice(0, 5);
+  /* ── ACTIVITY (from unified feed RPC, fallback to lists+media) ── */
+  let activity;
+  const feedRes = await window._sb.rpc('get_activity_feed', { p_limit: 10 });
+  if (!feedRes.error && feedRes.data) {
+    const ACTION_WHAT = {
+      created : 'created list', updated: 'updated list', uploaded: 'uploaded media',
+      saved   : 'edited question', moved: 'moved question', deleted: 'deleted question',
+    };
+    const TYPE_MAP = { list: 'edit', media: 'upload', question: 'question' };
+    activity = feedRes.data.slice(0, 5).map(r => ({
+      who   : whoBy(r.user_id),
+      what  : ACTION_WHAT[r.action] || r.action,
+      target: (r.target || '').substring(0, 50),
+      when  : formatDate(r.ts),
+      type  : TYPE_MAP[r.type] || 'edit',
+    }));
+  } else {
+    activity = [
+      ...lists.slice(0, 3).map(l => ({
+        who   : whoBy(l.updated_by),
+        what  : 'updated list',
+        target: l.title || 'Untitled list',
+        when  : formatDate(l.updated_at),
+        type  : 'edit',
+      })),
+      ...media.slice(0, 2).map(m => ({
+        who   : whoBy(m.uploaded_by),
+        what  : 'uploaded media',
+        target: String(m.id).slice(0, 8) + '…',
+        when  : formatDate(m.created_at),
+        type  : 'upload',
+      })),
+    ].slice(0, 5);
+  }
 
   /* ── LIVE STATS (7-day window, derived from loaded data) ── */
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -1000,9 +1017,10 @@ function renderActivity(activity) {
     return;
   }
   const TONES = {
-    edit  : { bg: 'rgba(255,255,255,0.05)', c: 'var(--text3)',    icon: 'pencil' },
-    upload: { bg: 'var(--blue-bg)',          c: 'var(--blue)',     icon: 'upload' },
-    add   : { bg: 'var(--green-bg)',         c: 'var(--green)',    icon: 'plus' },
+    edit    : { bg: 'rgba(255,255,255,0.05)', c: 'var(--text3)',  icon: 'pencil' },
+    upload  : { bg: 'var(--blue-bg)',          c: 'var(--blue)',   icon: 'upload' },
+    add     : { bg: 'var(--green-bg)',         c: 'var(--green)',  icon: 'plus' },
+    question: { bg: 'rgba(250,189,47,0.15)',   c: '#fabd2f',       icon: 'history' },
   };
   document.getElementById('activityFeed').innerHTML = activity.map(a => {
     const t = TONES[a.type] || TONES.edit;

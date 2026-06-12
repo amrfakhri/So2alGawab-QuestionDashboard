@@ -59,6 +59,8 @@ function _assembleQuestion(q, gs, mediaRows, meta) {
     id:                     settings.sort_order ?? 0,
     userId:                 hints.userId || '',
     categoryId:             q.category_id || '',
+    createdBy:              q.created_by  || null,
+    updatedBy:              q.updated_by  || null,
     class:                  settings.class || 'CLASS_200',
     buttonClick:            settings.button_click || 'TeamOne',
     rightAnswerGivenByTeam: null,
@@ -152,6 +154,8 @@ const SupabaseDB = {
       title:      l.title,
       createdAt:  l.created_at,
       updatedAt:  l.updated_at,
+      createdBy:  l.created_by  || null,
+      updatedBy:  l.updated_by  || null,
       // { length: n } duck-types as an array length for the UI
       questions:  { length: qMap[l.id]   || 0 },
       categories: { length: catMap[l.id] || 0 }
@@ -174,12 +178,14 @@ const SupabaseDB = {
       name:      c.name,
       order:     c.sort_order,
       imagePath: c.image_path || null,
+      createdBy: c.created_by || null,
     }));
 
     if (!qRes.data || qRes.data.length === 0) {
       return {
         id: list.id, title: list.title,
         createdAt: list.created_at, updatedAt: list.updated_at,
+        createdBy: list.created_by || null, updatedBy: list.updated_by || null,
         categories, questions: []
       };
     }
@@ -213,6 +219,7 @@ const SupabaseDB = {
     return {
       id: list.id, title: list.title,
       createdAt: list.created_at, updatedAt: list.updated_at,
+      createdBy: list.created_by || null, updatedBy: list.updated_by || null,
       categories, questions
     };
   },
@@ -272,22 +279,26 @@ const SupabaseDB = {
   ===================================================== */
 
   async _syncCategories(listId, categories) {
+    const uid    = await _currentUserId();
     const newIds = (categories || []).map(c => c.id);
 
     // Delete removed categories
-    const existRes = await _sb.from('categories').select('id').eq('list_id', listId);
+    const existRes    = await _sb.from('categories').select('id').eq('list_id', listId);
     const existingIds = (existRes.data || []).map(c => c.id);
-    const toDelete = existingIds.filter(cid => !newIds.includes(cid));
+    const toDelete    = existingIds.filter(cid => !newIds.includes(cid));
     if (toDelete.length) {
       await _sb.from('categories').delete().in('id', toDelete);
     }
 
     if (categories && categories.length) {
+      const brandNew = new Set(newIds.filter(id => !existingIds.includes(id)));
       const rows = categories.map(c => ({
         id:         c.id,
         list_id:    listId,
         name:       c.name,
-        sort_order: c.order ?? 0
+        sort_order: c.order ?? 0,
+        // Only stamp created_by on genuinely new rows; preserve it on updates
+        ...(brandNew.has(c.id) && uid ? { created_by: uid } : {})
       }));
       _throwIfError(
         await _sb.from('categories').upsert(rows, { onConflict: 'id' }),
@@ -297,12 +308,14 @@ const SupabaseDB = {
   },
 
   async _syncQuestions(listId, questions) {
+    const uid     = await _currentUserId();
     const newQIds = (questions || []).map(q => q.questionId);
 
     // Remove questions that were deleted in the editor
-    const existRes = await _sb.from('questions').select('id').eq('list_id', listId);
+    const existRes    = await _sb.from('questions').select('id').eq('list_id', listId);
     const existingIds = (existRes.data || []).map(q => q.id);
-    const toDelete = existingIds.filter(qid => !newQIds.includes(qid));
+    const toDelete    = existingIds.filter(qid => !newQIds.includes(qid));
+    const brandNewQs  = new Set(newQIds.filter(id => !existingIds.includes(id)));
 
     if (toDelete.length) {
       await Promise.all([
@@ -316,13 +329,16 @@ const SupabaseDB = {
     if (!questions || questions.length === 0) return;
 
     // ---- questions table ----
+    const now = new Date().toISOString();
     const qRows = questions.map(q => ({
       id:             q.questionId,
       list_id:        listId,
       category_id:    q.categoryId || null,
       question:       q.GamesQuestion?.question     || '',
       correct_answer: q.GamesQuestion?.correctAnswer || null,
-      updated_at:     new Date().toISOString()
+      updated_at:     now,
+      updated_by:     uid || null,
+      ...(brandNewQs.has(q.questionId) && uid ? { created_by: uid } : {})
     }));
     _throwIfError(
       await _sb.from('questions').upsert(qRows, { onConflict: 'id' }),
@@ -412,11 +428,50 @@ const SupabaseDB = {
     }
   },
 
+  /* ---- User directory: userId → { name, email, role } ---- */
+  async getUserDirectory() {
+    const res = await _sb.rpc('get_user_directory');
+    if (res.error) return [];
+    return (res.data || []).map(u => ({
+      id:    u.user_id,
+      name:  u.full_name || u.email || 'Unknown',
+      email: u.email || '',
+      role:  u.role  || '',
+    }));
+  },
+
+  /* ---- Write a change log entry for a question ---- */
+  async logQuestionChange(questionId, action, changes = null) {
+    await _sb.rpc('log_question_change', {
+      p_question_id: questionId,
+      p_action:      action,
+      p_changes:     changes || null   // pass object directly — JSONB, not stringified
+    });
+  },
+
+  /* ---- Fetch change log for a question ---- */
+  async getQuestionHistory(questionId) {
+    try {
+      const res = await _sb.rpc('get_question_history', { p_question_id: questionId });
+      if (res.error) return [];
+      return (res.data || []).map(r => ({
+        id:        r.id,
+        action:    r.action,
+        changedAt: r.changed_at,
+        changes:   r.changes,
+        userName:  r.user_name  || r.user_email || 'Unknown',
+        userEmail: r.user_email || '',
+      }));
+    } catch {
+      return [];
+    }
+  },
+
   /* ---- Get categories for a given list ---- */
   async getCategories(listId) {
     const res = await _sb.from('categories').select('*').eq('list_id', listId).order('sort_order');
     _throwIfError(res, 'getCategories');
-    return (res.data || []).map(c => ({ id: c.id, name: c.name, order: c.sort_order, imagePath: c.image_path || null }));
+    return (res.data || []).map(c => ({ id: c.id, name: c.name, order: c.sort_order, imagePath: c.image_path || null, createdBy: c.created_by || null }));
   },
 
   /* ---- Move a single question to a different category / list ---- */

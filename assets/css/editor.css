@@ -640,6 +640,15 @@ body.db-page {
   color:      var(--text4);
 }
 .cat-sidenav-item.active .cat-sidenav-qcount { color: var(--gold-600); }
+.cat-sidenav-creator {
+  font-size:   9px;
+  color:       var(--text4);
+  display:     flex;
+  align-items: center;
+  gap:         3px;
+  margin-top:  1px;
+}
+.cat-sidenav-item.active .cat-sidenav-creator { color: var(--gold-700); }
 .cat-sidenav-more {
   opacity:   0;
   flex-shrink: 0;

@@ -47,8 +47,14 @@
     font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.04em;
     padding:2px 8px; border-radius:99px;
   }
-  .act-tag.list   { background:rgba(255,255,255,0.06); color:var(--text3); }
-  .act-tag.media  { background:var(--blue-bg, rgba(59,130,246,0.15)); color:var(--blue, #60a5fa); }
+  .act-tag.list     { background:rgba(255,255,255,0.06); color:var(--text3); }
+  .act-tag.media    { background:var(--blue-bg, rgba(59,130,246,0.15)); color:var(--blue, #60a5fa); }
+  .act-tag.question { background:rgba(250,189,47,0.15); color:#fabd2f; }
+  .act-changes { margin-top:5px; display:flex; flex-direction:column; gap:2px; }
+  .act-change  { font-size:11px; color:var(--text3); display:flex; align-items:baseline; gap:4px; flex-wrap:wrap; }
+  .act-change-field { font-weight:600; color:var(--text2); }
+  .act-change-from  { text-decoration:line-through; opacity:.7; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .act-change-to    { color:var(--text); max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .act-avatar {
     width:20px; height:20px; border-radius:50%;
     display:inline-flex; align-items:center; justify-content:center;
@@ -74,7 +80,7 @@
   <div class="page-header">
     <div>
       <h1>Activity Log</h1>
-      <p>Everything that's happened across the system — list edits and media uploads, attributed to the user who did them.</p>
+      <p>Everything that's happened across the system — list edits, media uploads, and question changes, attributed to the user who did them.</p>
     </div>
     <button class="btn btn-ghost" id="btnRefresh" onclick="loadActivity()">
       <i data-lucide="refresh-cw" class="icon-sm"></i> Refresh
@@ -86,6 +92,7 @@
     <div class="stat-card"><div class="val" id="statTotal">—</div><div class="lbl">Total Activities</div></div>
     <div class="stat-card"><div class="val text-green" id="statContributors">—</div><div class="lbl">Contributors</div></div>
     <div class="stat-card"><div class="val text-indigo" id="statLists">—</div><div class="lbl">List Edits</div></div>
+    <div class="stat-card"><div class="val text-gold" id="statQuestions">—</div><div class="lbl">Question Changes</div></div>
     <div class="stat-card"><div class="val text-muted" id="statMedia">—</div><div class="lbl">Media Uploads</div></div>
   </div>
 
@@ -98,6 +105,7 @@
     <select class="filter-select" id="typeFilter" onchange="applyFilters()">
       <option value="">All Types</option>
       <option value="list">List edits</option>
+      <option value="question">Question changes</option>
       <option value="media">Media uploads</option>
     </select>
     <select class="filter-select" id="userFilter" onchange="applyFilters()">
@@ -168,18 +176,11 @@ async function loadActivity() {
   if (btn) btn.disabled = true;
 
   try {
-    const [listsRes, mediaRes, dirRes] = await Promise.all([
-      loadLists(),
-      loadMedia(),
-      loadDirectory(),
-    ]);
-
-    if (listsRes.error) throw new Error(listsRes.error.message);
-    if (mediaRes.error) throw new Error(mediaRes.error.message);
-
-    const lists = listsRes.data || [];
-    const media = mediaRes.data || [];
-    const dir   = dirRes.data   || [];
+    // Try the unified RPC first; fall back to legacy per-table approach if it
+    // hasn't been deployed yet.
+    const feedRes = await sb.rpc('get_activity_feed', { p_limit: 500 });
+    const dirRes  = await loadDirectory();
+    const dir     = dirRes.data || [];
 
     userMap = {};
     dir.forEach(u => {
@@ -190,25 +191,39 @@ async function loadActivity() {
       };
     });
 
-    // Synthesize a timeline from the attributed, timestamped data we have.
-    const events = [];
-    lists.forEach(l => {
-      const title = l.title || 'Untitled list';
-      events.push({ ts: l.created_at, userId: l.created_by, action: 'created', type: 'list', target: title });
-      if (l.updated_at && l.updated_at !== l.created_at) {
-        events.push({ ts: l.updated_at, userId: l.updated_by, action: 'updated', type: 'list', target: title });
-      }
-    });
-    media.forEach(m => {
-      events.push({
-        ts: m.created_at, userId: m.uploaded_by, action: 'uploaded', type: 'media',
-        target: m.file_name || `${m.media_type || 'media'} file`,
+    let events;
+    if (!feedRes.error) {
+      // RPC returns: { ts, user_id, action, type, target, detail }
+      events = (feedRes.data || []).map(r => ({
+        ts:     r.ts,
+        userId: r.user_id,
+        action: r.action,
+        type:   r.type,
+        target: r.target,
+        detail: r.detail || null,
+      }));
+    } else {
+      // Legacy fallback: synthesize from lists + media (no question events)
+      const [listsRes, mediaRes] = await Promise.all([loadLists(), loadMedia()]);
+      if (listsRes.error) throw new Error(listsRes.error.message);
+      events = [];
+      (listsRes.data || []).forEach(l => {
+        const title = l.title || 'Untitled list';
+        events.push({ ts: l.created_at, userId: l.created_by, action: 'created', type: 'list', target: title, detail: null });
+        if (l.updated_at && l.updated_at !== l.created_at) {
+          events.push({ ts: l.updated_at, userId: l.updated_by, action: 'updated', type: 'list', target: title, detail: null });
+        }
       });
-    });
+      (mediaRes.data || []).forEach(m => {
+        events.push({
+          ts: m.created_at, userId: m.uploaded_by, action: 'uploaded', type: 'media',
+          target: m.file_name || `${m.media_type || 'media'} file`, detail: null,
+        });
+      });
+      events.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+    }
 
-    events.sort((a, b) => new Date(b.ts) - new Date(a.ts));
     allEvents = events;
-
     buildUserFilter();
     updateStats();
     applyFilters();
@@ -225,6 +240,7 @@ function updateStats() {
   document.getElementById('statTotal').textContent        = allEvents.length;
   document.getElementById('statContributors').textContent = contributors.size;
   document.getElementById('statLists').textContent        = allEvents.filter(e => e.type === 'list').length;
+  document.getElementById('statQuestions').textContent    = allEvents.filter(e => e.type === 'question').length;
   document.getElementById('statMedia').textContent        = allEvents.filter(e => e.type === 'media').length;
 }
 
@@ -260,15 +276,36 @@ function applyFilters() {
 
 // ── Render ────────────────────────────────────────────────────
 const TYPE_TONES = {
-  list:  { icon: 'pencil', bg: 'rgba(255,255,255,0.06)', c: 'var(--text3, #94a3b8)' },
-  media: { icon: 'upload', bg: 'var(--blue-bg, rgba(59,130,246,0.15))', c: 'var(--blue, #60a5fa)' },
+  list:     { icon: 'pencil',  bg: 'rgba(255,255,255,0.06)',           c: 'var(--text3, #94a3b8)' },
+  media:    { icon: 'upload',  bg: 'rgba(59,130,246,0.15)',            c: '#60a5fa' },
+  question: { icon: 'history', bg: 'rgba(250,189,47,0.15)',            c: '#fabd2f' },
 };
 
 const ACTION_VERBS = {
   created:  'created list',
   updated:  'updated list',
   uploaded: 'uploaded media',
+  // question change log actions
+  saved:    'edited question',
+  moved:    'moved question',
+  deleted:  'deleted question',
 };
+
+function renderChanges(detail) {
+  if (!detail || typeof detail !== 'object') return '';
+  const entries = Object.entries(detail);
+  if (!entries.length) return '';
+  const rows = entries.map(([field, diff]) => {
+    const from = diff && diff.from != null ? escHtml(String(diff.from)).substring(0, 80) : null;
+    const to   = diff && diff.to   != null ? escHtml(String(diff.to)).substring(0, 80)   : null;
+    return `<div class="act-change">
+      <span class="act-change-field">${escHtml(field)}:</span>
+      ${from != null ? `<span class="act-change-from">${from}</span><span style="opacity:.5">→</span>` : ''}
+      ${to   != null ? `<span class="act-change-to">${to}</span>` : ''}
+    </div>`;
+  }).join('');
+  return `<div class="act-changes">${rows}</div>`;
+}
 
 function renderFeed(events) {
   const el = document.getElementById('activityFeed');
@@ -284,9 +321,10 @@ function renderFeed(events) {
   }
 
   el.innerHTML = events.map(e => {
-    const tone   = TYPE_TONES[e.type] || TYPE_TONES.list;
-    const verb   = ACTION_VERBS[e.action] || e.action;
-    const user   = e.userId ? userMap[e.userId] : null;
+    const tone    = TYPE_TONES[e.type] || TYPE_TONES.list;
+    const rawVerb = ACTION_VERBS[e.action];
+    const verb    = rawVerb || (e.type === 'question' ? `${e.action} question` : e.action);
+    const user    = e.userId ? userMap[e.userId] : null;
     const whoName = user?.name || 'System';
     const whoChip = user
       ? `<span class="act-avatar" style="background:${avatarColor(user.role)}">${escHtml(getInitials(user.name, user.email))}</span><span>${escHtml(whoName)}</span>`
@@ -304,6 +342,7 @@ function renderFeed(events) {
             <span class="act-tag ${e.type}">${e.type}</span>
             <span class="act-time" title="${e.ts ? new Date(e.ts).toLocaleString() : ''}">${fmtRelative(e.ts)}</span>
           </div>
+          ${e.detail ? renderChanges(e.detail) : ''}
         </div>
       </div>`;
   }).join('');
@@ -314,6 +353,13 @@ function renderFeed(events) {
 // ── Helpers ───────────────────────────────────────────────────
 function avatarColor(role) {
   return { super_admin: '#b45309', admin: '#7c3aed', editor: '#1d4ed8', viewer: '#374151', pending: '#92400e' }[role] || '#475569';
+}
+
+function getInitials(name, email) {
+  const src = (name || email || '?').trim();
+  const parts = src.split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return src.slice(0, 2).toUpperCase();
 }
 
 function fmtDate(iso) {

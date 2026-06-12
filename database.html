@@ -414,6 +414,16 @@
 
   </div><!-- /drawer-body -->
 
+  <!-- Question change history (edit mode only) -->
+  <div class="q-history-wrap" id="qHistoryWrap" style="display:none;">
+    <button class="q-history-toggle" id="btnToggleHistory" type="button">
+      <i data-lucide="history" class="icon-sm"></i>
+      <span>Change History</span>
+      <i data-lucide="chevron-down" class="icon-xs q-history-chevron"></i>
+    </button>
+    <div class="q-history-body" id="qHistoryBody"></div>
+  </div>
+
   <div class="drawer-foot">
     <button class="btn btn-ghost" id="btnCancelDrawer">Cancel</button>
     <button class="btn btn-primary" id="btnSaveQuestion">Save Question</button>
@@ -741,8 +751,15 @@ let appState = {
   listsSearch: '',
   listsSort: 'updated',
   cachedLists: [],
-  activeListData: null
+  activeListData: null,
+  userDir: {}          // userId → { id, name, email, role }
 };
+
+function resolveUserName(userId) {
+  if (!userId) return null;
+  const u = appState.userDir[userId];
+  return u ? (u.name || u.email || null) : null;
+}
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -795,8 +812,10 @@ function renderListsGrid(lists) {
   }
 
   grid.innerHTML = filtered.map(list => {
-    const qCount   = list.questions?.length || 0;
-    const catCount = list.categories?.length || 0;
+    const qCount      = list.questions?.length || 0;
+    const catCount    = list.categories?.length || 0;
+    const creatorName = resolveUserName(list.createdBy);
+    const updaterName = resolveUserName(list.updatedBy);
     return `
       <div class="list-card" data-list-id="${list.id}">
         <div class="list-card-header">
@@ -804,6 +823,8 @@ function renderListsGrid(lists) {
           <div class="list-card-info">
             <div class="list-card-title" title="${escHtml(list.title)}">${escHtml(list.title)}</div>
             <div class="list-card-date">Updated ${fmtDate(list.updatedAt || list.createdAt)}</div>
+            ${creatorName ? `<div class="list-card-creator">${icon('user', 'icon-xs')} Created by <strong>${escHtml(creatorName)}</strong></div>` : ''}
+            ${updaterName && updaterName !== creatorName ? `<div class="list-card-creator list-card-updater">${icon('pencil', 'icon-xs')} Last edited by <strong>${escHtml(updaterName)}</strong></div>` : ''}
           </div>
           <div class="lc-menu">
             <button class="lc-menu-btn" aria-label="More actions" tabindex="0">${icon('more-horizontal')}</button>
@@ -931,13 +952,14 @@ function renderCategoriesSideNav(list) {
   const allActive = appState.activeCategoryId === 'all';
 
   const catItems = cats.map(cat => {
-    const count    = list.questions.filter(q => q.categoryId === cat.id).length;
-    const isActive = appState.activeCategoryId === cat.id;
-    const img      = cat.imagePath;
-    const imgSrc   = img ? (img.startsWith('http') ? img : `${window.SUPABASE_URL}/storage/v1/object/public/question-media/${img}`) : null;
-    const thumb    = imgSrc
+    const count       = list.questions.filter(q => q.categoryId === cat.id).length;
+    const isActive    = appState.activeCategoryId === cat.id;
+    const img         = cat.imagePath;
+    const imgSrc      = img ? (img.startsWith('http') ? img : `${window.SUPABASE_URL}/storage/v1/object/public/question-media/${img}`) : null;
+    const thumb       = imgSrc
       ? `<img src="${escHtml(imgSrc)}" alt="" loading="lazy" onerror="this.parentNode.innerHTML='<span class=\\'cat-sidenav-initial\\'>${escHtml((cat.name||'?')[0])}</span>'">`
       : `<span class="cat-sidenav-initial">${escHtml((cat.name||'?')[0])}</span>`;
+    const creatorName = resolveUserName(cat.createdBy);
 
     return `
       <button class="cat-sidenav-item${isActive?' active':''}" data-cat-id="${cat.id}">
@@ -945,6 +967,7 @@ function renderCategoriesSideNav(list) {
         <span class="cat-sidenav-info">
           <span class="cat-sidenav-name">${escHtml(cat.name)}</span>
           <span class="cat-sidenav-qcount">${count} question${count !== 1 ? 's' : ''}</span>
+          ${creatorName ? `<span class="cat-sidenav-creator">${icon('user', 'icon-xs')} ${escHtml(creatorName)}</span>` : ''}
         </span>
         <span class="cat-sidenav-more">
           <span class="cat-sidenav-more-btn cat-more-btn" data-action="open-cat-menu" data-id="${cat.id}" title="More actions">${icon('more-horizontal', 'icon-xs')}</span>
@@ -1058,6 +1081,7 @@ function renderQTable(qs, list) {
         <td>
           <div class="q-text q-text-truncate" title="${escHtml(gq.question||'')}">${escHtml(gq.question||'—')}</div>
           <div class="q-answer">${escHtml(gq.correctAnswer||'')}</div>
+          ${resolveUserName(q.createdBy) ? `<div class="q-creator">${icon('user','icon-xs')} ${escHtml(resolveUserName(q.createdBy))}</div>` : ''}
         </td>
         <td>${catPill(list, q.categoryId)}</td>
         <td>${badgeForClass(q.class)}</td>
@@ -1245,8 +1269,11 @@ async function confirmBulkMoveQuestions() {
 /* =====================================================
    DRAWER
 ===================================================== */
+let _drawerSnapshot = null;  // pre-edit question snapshot for diff
+
 function openDrawer(questionId) {
   appState.editingQuestionId = questionId || null;
+  _drawerSnapshot = null;
   const list  = appState.activeListData;
   const isNew = !questionId;
   document.getElementById('drawerTitle').textContent  = isNew ? 'Add Question' : 'Edit Question';
@@ -1265,8 +1292,15 @@ function openDrawer(questionId) {
   } else {
     const q = list.questions.find(q => q.questionId === questionId || q.GamesQuestion?.id === questionId);
     if (!q) { closeDrawer(); return; }
+    _drawerSnapshot = JSON.parse(JSON.stringify(q));  // deep-clone for diff later
     populateDrawer(q, q.GamesQuestion || {});
   }
+
+  // Show/hide history panel
+  const histWrap = document.getElementById('qHistoryWrap');
+  if (histWrap) histWrap.style.display = isNew ? 'none' : '';
+  const hist = document.getElementById('qHistoryBody');
+  if (hist) { hist.innerHTML = ''; document.getElementById('qHistoryWrap')?.classList.remove('open'); }
 
   document.getElementById('drawerOverlay').classList.add('open');
   document.getElementById('questionDrawer').classList.add('open');
@@ -1659,11 +1693,16 @@ async function saveQuestion() {
   const list = appState.activeListData;
   if (!list) return;
 
+  let questionId, logAction, logChanges;
+
   if (appState.editingQuestionId) {
     const idx = list.questions.findIndex(q => q.questionId === appState.editingQuestionId || q.GamesQuestion?.id === appState.editingQuestionId);
     if (idx === -1) { toast('Question not found', 'error'); return; }
     const ex = list.questions[idx];
     list.questions[idx] = { ...ex, categoryId:data.categoryId, class:data.class, buttonClick:data.buttonClick, points:data.points, teamIndex:data.teamIndex, userId:data.userId||ex.userId, GamesQuestion:{ ...ex.GamesQuestion, ...data.GamesQuestion, id:ex.questionId, updatedAt:nowISO() } };
+    questionId  = ex.questionId;
+    logAction   = 'updated';
+    logChanges  = diffQuestion(_drawerSnapshot, list.questions[idx], list);
     toast('Question updated');
   } else {
     const qId = fakeObjectId();
@@ -1671,13 +1710,110 @@ async function saveQuestion() {
       id: Math.floor(Math.random()*90000)+1000, userId:data.userId||'', categoryId:data.categoryId, class:data.class, buttonClick:data.buttonClick, rightAnswerGivenByTeam:null, points:data.points, questionId:qId, teamIndex:data.teamIndex,
       GamesQuestion:{ ...data.GamesQuestion, id:qId, createdAt:nowISO(), updatedAt:nowISO() }
     });
+    questionId = qId;
+    logAction  = 'created';
+    logChanges = null;
     toast('Question added');
   }
 
   await persistList();
+  // Log change in the background — don't block the save
+  if (questionId) DB.logQuestionChange(questionId, logAction, logChanges).catch(() => {});
   closeDrawer();
   renderCategoriesBar();
   renderQuestions();
+}
+
+function diffQuestion(oldQ, newQ, list) {
+  if (!oldQ || !newQ) return null;
+  const diff = {};
+  const og = oldQ.GamesQuestion || {}, ng = newQ.GamesQuestion || {};
+
+  const track = (key, from, to) => {
+    if (String(from ?? '') !== String(to ?? '')) diff[key] = { from: from ?? null, to: to ?? null };
+  };
+
+  track('question',      og.question,      ng.question);
+  track('correctAnswer', og.correctAnswer, ng.correctAnswer);
+  track('status',        og.status,        ng.status);
+  track('points',        oldQ.points,      newQ.points);
+  track('class',         oldQ.class,       newQ.class);
+  track('label',         og.label,         ng.label);
+  track('layoutTemplate', og.layoutTemplate, ng.layoutTemplate);
+
+  // Category: show name not ID
+  if (oldQ.categoryId !== newQ.categoryId) {
+    const cats = list?.categories || [];
+    diff.category = {
+      from: cats.find(c => c.id === oldQ.categoryId)?.name || oldQ.categoryId || null,
+      to:   cats.find(c => c.id === newQ.categoryId)?.name || newQ.categoryId || null
+    };
+  }
+
+  // Media: just flag additions/removals
+  const countMedia = (q, type) => (q.GamesQuestion?.[type]?.filter(Boolean).length || 0);
+  ['image','video','audio'].forEach(type => {
+    const from = countMedia(oldQ, type), to = countMedia(newQ, type);
+    if (from !== to) diff[type + 'Count'] = { from, to };
+  });
+
+  return Object.keys(diff).length ? diff : null;
+}
+
+/* =====================================================
+   QUESTION HISTORY
+===================================================== */
+async function toggleQuestionHistory() {
+  const wrap = document.getElementById('qHistoryWrap');
+  const body = document.getElementById('qHistoryBody');
+  if (!wrap || !body) return;
+
+  const isOpen = wrap.classList.toggle('open');
+  if (!isOpen) return;
+
+  // Load only once per drawer open
+  if (body.dataset.loaded === appState.editingQuestionId) return;
+  body.innerHTML = `<div class="q-history-loading"><div class="spinner spinner-sm"></div> Loading…</div>`;
+  body.dataset.loaded = appState.editingQuestionId;
+
+  try {
+    const entries = await DB.getQuestionHistory(appState.editingQuestionId);
+    if (!entries.length) {
+      body.innerHTML = `<div class="q-history-empty">No history yet.</div>`;
+      return;
+    }
+    body.innerHTML = entries.map(renderHistoryEntry).join('');
+    lucide.createIcons({ nodes: [body] });
+  } catch {
+    body.innerHTML = `<div class="q-history-empty text-error">Failed to load history.</div>`;
+  }
+}
+
+function renderHistoryEntry(e) {
+  const actionIcon = { created:'plus-circle', updated:'pencil', moved:'folder-input', deleted:'trash-2' };
+  const actionColor = { created:'text-green', updated:'', moved:'text-indigo', deleted:'text-error' };
+  const label = e.action.charAt(0).toUpperCase() + e.action.slice(1);
+
+  let changeLines = '';
+  if (e.changes && typeof e.changes === 'object') {
+    const fieldLabels = { question:'Question', correctAnswer:'Answer', status:'Status', points:'Points', class:'Class', label:'Label', layoutTemplate:'Layout', category:'Category', list:'List', imageCount:'Images', videoCount:'Videos', audioCount:'Audio' };
+    changeLines = Object.entries(e.changes).map(([k, v]) => {
+      const fl = fieldLabels[k] || k;
+      const from = v?.from != null ? `<span class="q-hist-from">${escHtml(String(v.from))}</span> → ` : '';
+      const to   = v?.to   != null ? `<span class="q-hist-to">${escHtml(String(v.to))}</span>` : '—';
+      return `<div class="q-hist-change"><span class="q-hist-field">${escHtml(fl)}</span>${from}${to}</div>`;
+    }).join('');
+  }
+
+  return `
+    <div class="q-hist-entry">
+      <div class="q-hist-header">
+        <span class="q-hist-action ${actionColor[e.action] || ''}">${icon(actionIcon[e.action] || 'clock', 'icon-xs')} ${label}</span>
+        <span class="q-hist-user">${icon('user', 'icon-xs')} ${escHtml(e.userName)}</span>
+        <span class="q-hist-time">${fmtRelative(e.changedAt)}</span>
+      </div>
+      ${changeLines ? `<div class="q-hist-changes">${changeLines}</div>` : ''}
+    </div>`;
 }
 
 /* =====================================================
@@ -2190,6 +2326,7 @@ async function handleAction(action, dataset) {
   if (action === 'del-q') {
     const confirmed = await showConfirm('Delete Question', 'Are you sure you want to delete this question?');
     if (!confirmed) return;
+    DB.logQuestionChange(dataset.qId, 'deleted').catch(() => {});
     list.questions = list.questions.filter(q => q.questionId !== dataset.qId && q.GamesQuestion?.id !== dataset.qId);
     appState.selectedIds.delete(dataset.qId);
     await persistList(); renderCategoriesBar(); renderQuestions();
@@ -2365,6 +2502,7 @@ async function confirmMoveQuestion() {
     const destCatName = destCats.find(c => c.id === destCatId)?.name || destCatId;
 
     toast(`Question moved to "${destCatName}" ${destList && destList.id !== appState.activeListId ? `in "${destList.title}"` : ''}`, 'success');
+    DB.logQuestionChange(questionId, 'moved', { category: { to: destCatName }, list: destList?.id !== appState.activeListId ? { to: destList?.title } : undefined }).catch(() => {});
     closeMoveQuestionModal();
     renderCategoriesBar();
     renderQuestions();
@@ -2557,6 +2695,7 @@ function wireButtons() {
 
   document.getElementById('btnCloseDrawer').onclick  = () => closeDrawer(!appState.editingQuestionId);
   document.getElementById('btnCancelDrawer').onclick = () => closeDrawer(!appState.editingQuestionId);
+  document.getElementById('btnToggleHistory').onclick = toggleQuestionHistory;
   document.getElementById('drawerOverlay').onclick   = () => closeDrawer(!appState.editingQuestionId);
   document.getElementById('btnSaveQuestion').onclick = saveQuestion;
 
@@ -2627,6 +2766,10 @@ async function init() {
   wireButtons();
   updateConnBadge();
   await DB.ping();
+  // Load user directory in background — resolveUserName() returns null until it resolves
+  DB.getUserDirectory().then(users => {
+    users.forEach(u => { appState.userDir[u.id] = u; });
+  }).catch(() => {});
   loadListsScreen();
 }
 
