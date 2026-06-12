@@ -347,7 +347,8 @@
 .view-btn.active { background: var(--surface2); color: var(--text); }
 
 /* ── Bulk Actions ────────────────────────────────────────────────── */
-.bulk-actions { display: flex; gap: 6px; }
+.bulk-actions { display: flex; align-items: center; gap: 6px; }
+.bulk-count { font-size: 12px; font-weight: 600; color: var(--text3); padding: 0 4px; white-space: nowrap; }
 .cb { width: 15px; height: 15px; accent-color: var(--gold-500); cursor: pointer; }
 
 /* ── Drag States ─────────────────────────────────────────────────── */

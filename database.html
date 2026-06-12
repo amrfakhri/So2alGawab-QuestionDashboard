@@ -121,6 +121,8 @@
       <div class="questions-toolbar">
         <span class="q-count" id="qCount">0 questions</span>
         <div class="bulk-actions" id="bulkActions" style="display:none;">
+          <span class="bulk-count" id="bulkCount"></span>
+          <button class="btn btn-ghost" id="btnBulkMove"><i data-lucide="folder-input" class="icon-sm"></i> Move to Category</button>
           <button class="btn btn-danger" id="btnBulkDelete"><i data-lucide="trash-2" class="icon-sm"></i> Delete Selected</button>
         </div>
         <div class="cat-view-toggle" title="Toggle categories view">
@@ -548,6 +550,54 @@
       <button class="btn btn-primary" id="moveQConfirmBtn">
         <span class="spinner spinner-sm" id="moveQSpinner" style="display:none;"></span>
         Move Question
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Move Questions Modal -->
+<div class="modal-overlay" id="bulkMoveQModal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <h3>Move Questions</h3>
+      <button class="icon-btn" id="btnCloseBulkMoveQ"><i data-lucide="x" class="icon-sm"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="move-cat-info" style="margin-bottom:16px;">
+        <div class="move-cat-row">
+          <span class="move-cat-label">Selected</span>
+          <strong class="move-cat-value" id="bulkMoveQCount">—</strong>
+        </div>
+        <div class="move-cat-row">
+          <span class="move-cat-label">From list</span>
+          <span class="move-cat-value" id="bulkMoveQFromList">—</span>
+        </div>
+        <div class="move-cat-row">
+          <span class="move-cat-label">From cat.</span>
+          <span class="move-cat-value" id="bulkMoveQFromCat">—</span>
+        </div>
+      </div>
+      <div class="move-cat-warning">
+        <i data-lucide="info" class="icon-sm"></i>
+        All media, metadata, and settings are preserved. Only the category assignment changes.
+      </div>
+      <div style="margin-top:16px;">
+        <label class="modal-label"><span class="move-q-step">1</span> Destination List</label>
+        <select class="modal-input" id="bulkMoveQDestList"></select>
+      </div>
+      <div style="margin-top:12px;">
+        <label class="modal-label"><span class="move-q-step">2</span> Destination Category</label>
+        <select class="modal-input" id="bulkMoveQDestCat"></select>
+        <div class="move-q-cat-loading" id="bulkMoveQCatLoading" style="display:none;">
+          <div class="spinner spinner-sm"></div><span>Loading categories…</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btnCancelBulkMoveQ">Cancel</button>
+      <button class="btn btn-primary" id="bulkMoveQConfirmBtn" disabled>
+        <span class="spinner spinner-sm" id="bulkMoveQSpinner" style="display:none;"></span>
+        Move Questions
       </button>
     </div>
   </div>
@@ -1060,7 +1110,136 @@ function renderQCard(q, list) {
 }
 
 function updateBulkActions() {
-  document.getElementById('bulkActions').style.display = appState.selectedIds.size > 0 ? 'flex' : 'none';
+  const n = appState.selectedIds.size;
+  document.getElementById('bulkActions').style.display = n > 0 ? 'flex' : 'none';
+  document.getElementById('bulkCount').textContent = n > 0 ? `${n} selected` : '';
+}
+
+/* =====================================================
+   BULK MOVE QUESTIONS
+===================================================== */
+async function openBulkMoveModal() {
+  const list = appState.activeListData;
+  if (!appState.selectedIds.size || !list) return;
+
+  // Determine source category label
+  const selectedQs  = (list.questions || []).filter(q =>
+    appState.selectedIds.has(q.questionId) || appState.selectedIds.has(q.GamesQuestion?.id));
+  const catIds      = [...new Set(selectedQs.map(q => q.categoryId).filter(Boolean))];
+  const catNames    = catIds.map(id => (list.categories || []).find(c => c.id === id)?.name).filter(Boolean);
+  const fromCatText = catNames.length === 0 ? '—'
+    : catNames.length === 1 ? catNames[0]
+    : `${catNames.length} categories`;
+
+  document.getElementById('bulkMoveQCount').textContent    = `${appState.selectedIds.size} question${appState.selectedIds.size !== 1 ? 's' : ''}`;
+  document.getElementById('bulkMoveQFromList').textContent = list.title;
+  document.getElementById('bulkMoveQFromCat').textContent  = fromCatText;
+
+  if (!appState.cachedLists.length) appState.cachedLists = await DB.getLists();
+
+  const destListSel = document.getElementById('bulkMoveQDestList');
+  destListSel.innerHTML = appState.cachedLists
+    .map(l => `<option value="${escHtml(l.id)}"${l.id === appState.activeListId ? ' selected' : ''}>${escHtml(l.title)}</option>`)
+    .join('');
+
+  document.getElementById('bulkMoveQModal').classList.add('open');
+  lucide.createIcons();
+
+  // Use first selected question's category as the "current" to pre-exclude
+  await loadBulkMoveCategories(destListSel.value, catIds.length === 1 ? catIds[0] : null);
+}
+
+async function loadBulkMoveCategories(listId, currentCatId) {
+  const loading    = document.getElementById('bulkMoveQCatLoading');
+  const destCatSel = document.getElementById('bulkMoveQDestCat');
+  const confirmBtn = document.getElementById('bulkMoveQConfirmBtn');
+
+  loading.style.display    = 'flex';
+  destCatSel.style.display = 'none';
+  destCatSel.innerHTML     = '';
+  confirmBtn.disabled      = true;
+
+  try {
+    let cats;
+    if (listId === appState.activeListId) {
+      cats = appState.activeListData.categories || [];
+    } else {
+      cats = await DB.getCategories(listId);
+    }
+
+    // Only exclude source category when moving within the same list and all questions share one category
+    const filtered = (listId === appState.activeListId && currentCatId)
+      ? cats.filter(c => c.id !== currentCatId)
+      : cats;
+
+    if (filtered.length) {
+      destCatSel.innerHTML = filtered
+        .map(c => `<option value="${escHtml(c.id)}">${escHtml(c.name)}</option>`)
+        .join('');
+      confirmBtn.disabled = false;
+    } else {
+      destCatSel.innerHTML = '<option value="" disabled selected>No categories available</option>';
+    }
+  } catch {
+    destCatSel.innerHTML = '<option value="" disabled selected>Failed to load categories</option>';
+  } finally {
+    loading.style.display    = 'none';
+    destCatSel.style.display = '';
+  }
+}
+
+function closeBulkMoveModal() {
+  document.getElementById('bulkMoveQModal').classList.remove('open');
+}
+
+async function confirmBulkMoveQuestions() {
+  if (!appState.selectedIds.size) return;
+
+  const destListId = document.getElementById('bulkMoveQDestList').value;
+  const destCatId  = document.getElementById('bulkMoveQDestCat').value;
+  if (!destListId || !destCatId) { toast('Please select a destination list and category', 'error'); return; }
+
+  const list       = appState.activeListData;
+  const ids        = [...appState.selectedIds];
+  const btn        = document.getElementById('bulkMoveQConfirmBtn');
+  const spinner    = document.getElementById('bulkMoveQSpinner');
+
+  btn.disabled        = true;
+  spinner.style.display = 'inline-block';
+
+  let moved = 0, failed = 0;
+  for (const id of ids) {
+    const q = (list?.questions || []).find(q => q.questionId === id || q.GamesQuestion?.id === id);
+    if (!q) continue;
+    // Skip questions already in the destination
+    if (destListId === appState.activeListId && destCatId === q.categoryId) continue;
+    try {
+      await DB.moveQuestion(id, destListId, destCatId);
+      if (destListId === appState.activeListId) {
+        q.categoryId = destCatId;
+        if (q.GamesQuestion) q.GamesQuestion.categoryId = destCatId;
+      } else {
+        list.questions = list.questions.filter(q2 => q2.questionId !== id);
+      }
+      moved++;
+    } catch { failed++; }
+  }
+
+  spinner.style.display = 'none';
+
+  const destCats    = destListId === appState.activeListId ? list.categories : await DB.getCategories(destListId).catch(() => []);
+  const destCatName = destCats.find(c => c.id === destCatId)?.name || destCatId;
+  const destList    = appState.cachedLists.find(l => l.id === destListId);
+
+  if (moved > 0) {
+    toast(`${moved} question${moved !== 1 ? 's' : ''} moved to "${destCatName}"${destList && destList.id !== appState.activeListId ? ` in "${destList.title}"` : ''}`, 'success');
+  }
+  if (failed > 0) toast(`${failed} question${failed !== 1 ? 's' : ''} could not be moved`, 'error');
+
+  appState.selectedIds.clear();
+  closeBulkMoveModal();
+  renderCategoriesBar();
+  renderQuestions();
 }
 
 /* =====================================================
@@ -2351,6 +2530,18 @@ function wireButtons() {
     const merge = confirm(`Merge into current list?\n\nOK = Merge here\nCancel = Create new list`);
     await handleImport(this.files[0], merge ? appState.activeListId : null);
     this.value = '';
+  });
+
+  document.getElementById('btnBulkMove').onclick = openBulkMoveModal;
+  document.getElementById('bulkMoveQConfirmBtn').onclick  = confirmBulkMoveQuestions;
+  document.getElementById('btnCancelBulkMoveQ').onclick   = closeBulkMoveModal;
+  document.getElementById('btnCloseBulkMoveQ').onclick    = closeBulkMoveModal;
+  document.getElementById('bulkMoveQModal').addEventListener('click', e => { if (e.target.id === 'bulkMoveQModal') closeBulkMoveModal(); });
+  document.getElementById('bulkMoveQDestList').addEventListener('change', async function() {
+    const list      = appState.activeListData;
+    const selectedQs = (list?.questions || []).filter(q => appState.selectedIds.has(q.questionId) || appState.selectedIds.has(q.GamesQuestion?.id));
+    const catIds    = [...new Set(selectedQs.map(q => q.categoryId).filter(Boolean))];
+    await loadBulkMoveCategories(this.value, catIds.length === 1 ? catIds[0] : null);
   });
 
   document.getElementById('btnBulkDelete').onclick = async () => {
