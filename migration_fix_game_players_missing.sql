@@ -47,7 +47,6 @@ BEGIN
       coalesce(h.top_categories, '[]'::json)    AS top_categories
     FROM auth.users u
     LEFT JOIN profiles       p ON p.id        = u.id
-    LEFT JOIN user_roles     r ON r.user_id   = u.id
     LEFT JOIN user_stats     s ON s.user_id   = u.id
     LEFT JOIN LATERAL (
       SELECT
@@ -67,9 +66,7 @@ BEGIN
       FROM game_history gh
       WHERE gh.user_id = u.id
     ) h ON true
-    -- Exclude dashboard admins/editors; exclude anonymous Supabase accounts (no email)
-    WHERE r.user_id  IS NULL
-      AND u.email    IS NOT NULL
+    -- All accounts shown — registered (with or without email) and admins are all game players
   ),
   guests AS (
     SELECT
