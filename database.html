@@ -2770,7 +2770,17 @@ async function init() {
   DB.getUserDirectory().then(users => {
     users.forEach(u => { appState.userDir[u.id] = u; });
   }).catch(() => {});
-  loadListsScreen();
+
+  // Deep-link: ?list=<id> opens that list; adding &question=<id> opens the drawer
+  const _params = new URLSearchParams(location.search);
+  const _deepList = _params.get('list');
+  const _deepQuestion = _params.get('question');
+  if (_deepList) {
+    await openListEditor(_deepList);
+    if (_deepQuestion) openDrawer(_deepQuestion);
+  } else {
+    loadListsScreen();
+  }
 }
 
 /* Wire global category context menu buttons */

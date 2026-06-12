@@ -61,6 +61,14 @@
     font-size:10px; font-weight:700; color:#fff; flex-shrink:0;
   }
   .act-who { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text2); }
+  .act-target-link {
+    color: var(--text); font-weight: 600; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 3px;
+    border-bottom: 1px solid transparent;
+    transition: border-color .15s, color .15s;
+  }
+  .act-target-link:hover { color: var(--gold); border-bottom-color: var(--gold); }
+  .act-link-icon { width: 11px; height: 11px; opacity: .5; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -193,7 +201,7 @@ async function loadActivity() {
 
     let events;
     if (!feedRes.error) {
-      // RPC returns: { ts, user_id, action, type, target, detail }
+      // RPC returns: { ts, user_id, action, type, target, detail, item_id, list_id }
       events = (feedRes.data || []).map(r => ({
         ts:     r.ts,
         userId: r.user_id,
@@ -201,6 +209,8 @@ async function loadActivity() {
         type:   r.type,
         target: r.target,
         detail: r.detail || null,
+        itemId: r.item_id || null,
+        listId: r.list_id || null,
       }));
     } else {
       // Legacy fallback: synthesize from lists + media (no question events)
@@ -307,6 +317,16 @@ function renderChanges(detail) {
   return `<div class="act-changes">${rows}</div>`;
 }
 
+function navUrl(e) {
+  if (e.type === 'list' && e.itemId)
+    return `./database.html?list=${encodeURIComponent(e.itemId)}`;
+  if (e.type === 'question' && e.itemId && e.listId)
+    return `./database.html?list=${encodeURIComponent(e.listId)}&question=${encodeURIComponent(e.itemId)}`;
+  if (e.type === 'question' && e.listId)
+    return `./database.html?list=${encodeURIComponent(e.listId)}`;
+  return null;
+}
+
 function renderFeed(events) {
   const el = document.getElementById('activityFeed');
 
@@ -330,13 +350,18 @@ function renderFeed(events) {
       ? `<span class="act-avatar" style="background:${avatarColor(user.role)}">${escHtml(getInitials(user.name, user.email))}</span><span>${escHtml(whoName)}</span>`
       : `${icon('server', 'icon-xs')}<span>System</span>`;
 
+    const url = navUrl(e);
+    const targetHtml = url
+      ? `<a class="act-target-link" href="${url}">${escHtml(e.target)}${icon('external-link', 'act-link-icon')}</a>`
+      : `<strong>${escHtml(e.target)}</strong>`;
+
     return `
       <div class="act-row">
         <div class="act-bullet" style="background:${tone.bg};color:${tone.c}">
           ${icon(tone.icon, 'icon-sm')}
         </div>
         <div class="act-main">
-          <div class="act-text">${verb} <strong>${escHtml(e.target)}</strong></div>
+          <div class="act-text">${verb} ${targetHtml}</div>
           <div class="act-meta">
             <span class="act-who">${whoChip}</span>
             <span class="act-tag ${e.type}">${e.type}</span>
