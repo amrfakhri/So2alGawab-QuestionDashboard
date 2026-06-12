@@ -800,7 +800,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  overflow: hidden;
+  /* overflow: hidden; */
   aspect-ratio: 16/9;
   display: flex;
   align-items: center;
