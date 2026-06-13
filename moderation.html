@@ -385,7 +385,7 @@ async function openQrPanel(questionId) {
               <div class="qr-report-reason">${esc(REASON_LABELS[r.reason] || r.reason)}</div>
               ${r.comment ? `<div class="qr-report-comment">"${esc(r.comment)}"</div>` : ''}
               <div class="qr-report-meta">
-                ${esc(r.reporter || 'Anonymous')} · ${fmt(r.created_at)}
+                ${esc(r.reporter || 'Anonymous')}${r.reporter_email ? ` <span style="color:var(--text3);">(${esc(r.reporter_email)})</span>` : ''} · ${fmt(r.created_at)}
                 <span class="badge badge-gray" style="margin-left:6px;">${esc(r.status)}</span>
               </div>
             </div>`).join('') : '<p style="color:var(--text3);font-size:13px;">No reports yet.</p>'}
