@@ -23,7 +23,7 @@
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="./services/supabase.js?v=20260612"></script>
 <script src="./services/auth.js?v=20260612"></script>
-<script src="./services/mediaService.js?v=20260606"></script>
+<script src="./services/mediaService.js?v=20260613"></script>
 <script src="./services/sidebar.js?v=20260612"></script>
 <style>
 /* ── Multi-select ─────────────────────────────────────── */
@@ -803,17 +803,20 @@ async function openDetailDrawer(id) {
     `<div style="padding:60px 0;text-align:center;"><div class="spinner" style="margin:0 auto;"></div></div>`;
   lucide.createIcons();
 
-  // Fetch all category links + all question links in parallel
-  const [linkedCategories, linkedQuestions] = await Promise.all([
+  // Fetch all category links + question links + badge links in parallel
+  const [linkedCategories, linkedQuestions, linkedBadges] = await Promise.all([
     item.media_type === 'image' && item.file_path
       ? MediaService.getCategoryByFilePath(item.file_path).catch(() => [])
       : Promise.resolve([]),
     item.media_purpose === 'question'
       ? MediaService.getLinkedQuestionsForMedia(item.id).catch(() => [])
+      : Promise.resolve([]),
+    item.media_purpose === 'game_ui' && item.media_type === 'image'
+      ? MediaService.getLinkedBadgesForMedia(item.media_url).catch(() => [])
       : Promise.resolve([])
   ]);
 
-  const isLinked = linkedQuestions.length > 0 || linkedCategories.length > 0;
+  const isLinked = linkedQuestions.length > 0 || linkedCategories.length > 0 || linkedBadges.length > 0;
 
   // Preview
   let previewEl = '';
@@ -909,6 +912,41 @@ async function openDetailDrawer(id) {
        </div>`
     : '';
 
+  // Linked badges section
+  const linkedBadgesHtml = linkedBadges.length > 0
+    ? `<div>
+         <div class="md-section-title">${icon('award','icon-xs')} Used as Badge Image
+           <span style="font-weight:400;margin-left:4px;">(${linkedBadges.length})</span>
+         </div>
+         ${linkedBadges.map(b => `
+           <div class="md-question-card" style="margin-top:8px;">
+             <div class="md-question-text">${escHtml(b.name_en || b.name_ar || b.key)}</div>
+             ${b.name_ar ? `<div class="md-question-answer" dir="rtl" style="font-family:var(--font-ar)">${escHtml(b.name_ar)}</div>` : ''}
+             <div class="md-question-meta"><span>${icon('key','icon-xs')} ${escHtml(b.key)}</span></div>
+             ${canUpload()
+               ? `<button class="btn btn-ghost btn-sm md-btn-unlink-badge" data-badge-key="${escHtml(b.key)}" style="margin-top:8px;">
+                    ${icon('unlink','icon-xs')} Remove from this badge
+                  </button>`
+               : ''}
+           </div>`).join('')}
+       </div>`
+    : '';
+
+  // "Set as badge image" picker — for game_ui images
+  const badgePickerHtml = item.media_purpose === 'game_ui' && item.media_type === 'image' && canUpload()
+    ? `<div>
+         <div class="md-section-title">${icon('award','icon-xs')} Set as Badge Image</div>
+         <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+           <select id="mdBadgeSelect" style="flex:1;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface);color:var(--text2);">
+             <option value="">Loading…</option>
+           </select>
+           <button class="btn btn-primary btn-sm" id="mdBtnSetBadgeImage">
+             ${icon('check','icon-sm')} Set
+           </button>
+         </div>
+       </div>`
+    : '';
+
   // "Link to question" picker — always shown for question-purpose media
   const questionPickerHtml = item.media_purpose === 'question' && canUpload()
     ? `<div>
@@ -984,7 +1022,9 @@ async function openDetailDrawer(id) {
 
     ${linkedQHtml}
     ${linkedCatHtml}
+    ${linkedBadgesHtml}
     ${catPickerHtml}
+    ${badgePickerHtml}
     ${questionPickerHtml}
   `;
   lucide.createIcons();
@@ -1066,6 +1106,45 @@ async function openDetailDrawer(id) {
       }
     });
   });
+
+  // Unlink from badge
+  document.getElementById('mdDrawerBody').querySelectorAll('.md-btn-unlink-badge').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const badgeKey  = btn.dataset.badgeKey;
+      const badgeName = btn.closest('.md-question-card')?.querySelector('.md-question-text')?.textContent?.trim() || badgeKey;
+      const confirmed = await showConfirm('Remove Badge Image', `Remove this image from badge "${badgeName}"?`);
+      if (!confirmed) return;
+      btn.disabled = true;
+      try {
+        await MediaService.unlinkBadgeIcon(badgeKey);
+        toast('Removed as badge image');
+        openDetailDrawer(id);
+      } catch(e) {
+        toast('Unlink failed: ' + e.message, 'error');
+        btn.disabled = false;
+      }
+    });
+  });
+
+  // Set as badge image picker
+  const badgeSelect = document.getElementById('mdBadgeSelect');
+  if (badgeSelect) {
+    MediaService.getBadges().then(badges => {
+      badgeSelect.innerHTML = `<option value="">Select a badge…</option>` +
+        badges.map(b => `<option value="${escHtml(b.key)}">${escHtml(b.name_en || b.name_ar || b.key)}</option>`).join('');
+    }).catch(() => { badgeSelect.innerHTML = '<option value="">Failed to load badges</option>'; });
+    document.getElementById('mdBtnSetBadgeImage')?.addEventListener('click', async () => {
+      const badgeKey = badgeSelect.value;
+      if (!badgeKey) { toast('Select a badge first', 'error'); return; }
+      try {
+        await MediaService.setBadgeImage(badgeKey, item.media_url);
+        toast('Badge image updated');
+        openDetailDrawer(id);
+      } catch(e) {
+        toast('Failed: ' + e.message, 'error');
+      }
+    });
+  }
 
   // Set as category image picker
   const catSelect = document.getElementById('mdCatSelect');

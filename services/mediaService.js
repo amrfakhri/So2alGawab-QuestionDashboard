@@ -490,6 +490,47 @@ const MediaService = {
     } catch {
       return false;
     }
+  },
+
+  /* ---- Find badges that use this media URL as their icon_ref ---- */
+  async getLinkedBadgesForMedia(mediaUrl) {
+    if (!mediaUrl) return [];
+    const { data, error } = await window._sb
+      .from('badges')
+      .select('key, name_ar, name_en, icon_ref')
+      .eq('icon_ref', mediaUrl);
+    if (error) return [];
+    return data || [];
+  },
+
+  /* ---- Remove icon_ref from a single badge ---- */
+  async unlinkBadgeIcon(badgeKey) {
+    const { error } = await window._sb
+      .from('badges')
+      .update({ icon_ref: null })
+      .eq('key', badgeKey);
+    if (error) throw new Error(`Failed to unlink badge: ${error.message}`);
+    return true;
+  },
+
+  /* ---- Set icon_ref on a badge to this media URL ---- */
+  async setBadgeImage(badgeKey, mediaUrl) {
+    const { error } = await window._sb
+      .from('badges')
+      .update({ icon_ref: mediaUrl })
+      .eq('key', badgeKey);
+    if (error) throw new Error(`Failed to set badge image: ${error.message}`);
+    return true;
+  },
+
+  /* ---- Fetch all badges for the picker ---- */
+  async getBadges() {
+    const { data, error } = await window._sb
+      .from('badges')
+      .select('key, name_ar, name_en')
+      .order('name_en');
+    if (error) throw error;
+    return data || [];
   }
 };
 
