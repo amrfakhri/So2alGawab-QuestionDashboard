@@ -536,6 +536,18 @@ async function uploadBadgeIcon(input) {
     if (error) throw error;
     const { data: urlData } = window._sb.storage.from('question-media').getPublicUrl(filePath);
     const publicUrl = urlData.publicUrl;
+    // Register in media library so it appears under game_ui assets
+    await window._sb.from('question_media').insert({
+      question_id:   null,
+      media_url:     publicUrl,
+      media_type:    'image',
+      file_path:     filePath,
+      file_name:     file.name,
+      mime_type:     file.type || `image/${ext}`,
+      file_size:     file.size,
+      media_purpose: 'game_ui',
+      sort_order:    0
+    });
     document.getElementById('fIcon').value = publicUrl;
     setIconPreview(publicUrl);
     hint.textContent = 'Uploaded successfully.';
