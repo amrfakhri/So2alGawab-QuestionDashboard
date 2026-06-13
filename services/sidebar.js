@@ -27,7 +27,7 @@ const _NAV = [
   { id: 'badges',   label: 'Badges',          icon: 'award',            href: './badges.html',
     gateId: 'sbNavBadges', roles: ['admin','super_admin'] },
   { id: 'moderation',label:'Moderation',       icon: 'shield-alert',     href: './moderation.html',
-    gateId: 'sbNavModeration', roles: ['admin','super_admin'] },
+    gateId: 'sbNavModeration', roles: ['admin','super_admin'], badgeId: 'sbBadgeModeration' },
   { id: 'pools',    label: 'Category Pools',  icon: 'layers',           href: './pools.html',
     gateId: 'sbNavPools', roles: ['admin','super_admin'] },
   { id: 'settings', label: 'Game Settings',   icon: 'sliders-horizontal', href: './settings.html',
@@ -89,11 +89,14 @@ const Sidebar = {
   _html(activeId) {
     const navItems = _NAV.map(n => {
       if (n.sep) return '<div class="sb-sep"></div>';
-      const active  = n.id === activeId ? ' active' : '';
-      const hidden  = n.gateId         ? ' style="display:none"' : '';
-      const idAttr  = n.gateId         ? ` id="${n.gateId}"`     : '';
+      const active   = n.id === activeId ? ' active' : '';
+      const hidden   = n.gateId         ? ' style="display:none"' : '';
+      const idAttr   = n.gateId         ? ` id="${n.gateId}"`     : '';
+      const badgeHtml = n.badgeId
+        ? `<span class="sb-item-badge sb-item-badge-alert" id="${n.badgeId}" style="display:none">0</span>`
+        : '';
       return `<a class="sb-item${active}" href="${n.href}"${idAttr}${hidden}>
-        <i data-lucide="${n.icon}" class="icon-sm"></i>${n.label}</a>`;
+        <i data-lucide="${n.icon}" class="icon-sm"></i>${n.label}${badgeHtml}</a>`;
     }).join('');
 
     return `
@@ -112,6 +115,27 @@ const Sidebar = {
           <span class="conn-dot"></span>
           <span id="connLabel">Connecting…</span>
         </a>
+
+        <!-- Notification bell (shown only for admin/super_admin after loadBadges) -->
+        <div class="sb-notif-wrap" id="sbNotifWrap" style="display:none">
+          <button class="sb-notif-btn" id="sbNotifBtn" type="button">
+            <i data-lucide="bell" class="icon-xs"></i>
+            <span>Notifications</span>
+            <span class="sb-notif-dot" id="sbNotifDot" style="display:none"></span>
+          </button>
+          <div class="sb-notif-panel" id="sbNotifPanel">
+            <div class="sb-notif-hd">
+              <span class="sb-notif-title">Needs Attention</span>
+              <button type="button" class="sb-notif-close" id="sbNotifClose">
+                <i data-lucide="x" class="icon-xs"></i>
+              </button>
+            </div>
+            <div class="sb-notif-list" id="sbNotifList">
+              <div class="sb-notif-loading"><div class="spinner spinner-sm"></div></div>
+            </div>
+            <div class="sb-notif-ft" id="sbNotifFt">Last checked: —</div>
+          </div>
+        </div>
 
         <!-- User profile button -->
         <button class="sb-user" id="sbUserBtn" type="button">
@@ -161,6 +185,25 @@ const Sidebar = {
       if (window.Auth) Auth.signOut();
     });
 
+    /* Notification bell toggle */
+    const notifBtn   = document.getElementById('sbNotifBtn');
+    const notifPanel = document.getElementById('sbNotifPanel');
+    const notifClose = document.getElementById('sbNotifClose');
+    if (notifBtn && notifPanel) {
+      notifBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const opening = !notifPanel.classList.contains('open');
+        notifPanel.classList.toggle('open');
+        userMenu?.classList.remove('open');
+        if (opening) this._markNotifSeen();
+      });
+      notifClose?.addEventListener('click', e => {
+        e.stopPropagation();
+        notifPanel.classList.remove('open');
+      });
+      document.addEventListener('click', () => notifPanel.classList.remove('open'), { passive: true });
+    }
+
     /* Mobile: toggle sidebar open/closed */
     const toggle  = document.getElementById('sbToggle');
     const overlay = document.getElementById('sbOverlay');
@@ -175,6 +218,123 @@ const Sidebar = {
   _close() {
     document.getElementById('appSidebar')?.classList.remove('open');
     document.getElementById('sbOverlay')?.classList.remove('open');
+  },
+
+  /* ---- Notification badge + bell logic ---- */
+  _userId: null,
+  _counts: null,
+
+  _notifKey() { return `lammah_notif_${this._userId || 'anon'}`; },
+
+  _notifState() {
+    try { return JSON.parse(localStorage.getItem(this._notifKey()) || '{}'); } catch { return {}; }
+  },
+
+  _saveNotifState(state) {
+    try { localStorage.setItem(this._notifKey(), JSON.stringify(state)); } catch {}
+  },
+
+  _notifTotal(c) {
+    return (c.open_question_reports || 0) + (c.open_player_reports || 0);
+  },
+
+  _markNotifSeen() {
+    if (!this._counts) return;
+    this._saveNotifState({ baseline: this._notifTotal(this._counts), checkedAt: new Date().toISOString() });
+    const dot = document.getElementById('sbNotifDot');
+    if (dot) dot.style.display = 'none';
+    this._renderNotifFooter(new Date());
+  },
+
+  _renderNotifFooter(date) {
+    const ft = document.getElementById('sbNotifFt');
+    if (!ft) return;
+    if (!date) { ft.textContent = 'Never checked'; return; }
+    const diff = Math.round((Date.now() - new Date(date).getTime()) / 1000);
+    const label = diff < 60  ? 'just now'
+                : diff < 3600 ? `${Math.round(diff / 60)} min ago`
+                : `${Math.round(diff / 3600)} hr ago`;
+    ft.textContent = `Last checked: ${label}`;
+  },
+
+  async loadBadges(userId) {
+    if (!window._sb) return;
+    this._userId = userId;
+    try {
+      const { data, error } = await window._sb.rpc('get_admin_dashboard_counts');
+      if (error || !data) return;
+      this._counts = data;
+
+      const totalOpen = (data.open_question_reports || 0) + (data.open_player_reports || 0);
+
+      /* Moderation nav badge */
+      const badge = document.getElementById('sbBadgeModeration');
+      if (badge) {
+        if (totalOpen > 0) {
+          badge.textContent = totalOpen > 99 ? '99+' : String(totalOpen);
+          badge.style.display = '';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+
+      /* Bell unread dot: show when total exceeds what user last acknowledged */
+      const wrap = document.getElementById('sbNotifWrap');
+      if (wrap) wrap.style.display = '';
+
+      const state = this._notifState();
+      const baseline = state.baseline ?? -1;
+      const dot = document.getElementById('sbNotifDot');
+      if (dot) dot.style.display = (this._notifTotal(data) > baseline) ? '' : 'none';
+
+      /* Pre-render panel content so it's ready when bell is clicked */
+      this._renderNotifItems(data);
+      this._renderNotifFooter(state.checkedAt ? new Date(state.checkedAt) : null);
+
+      window.lucide && lucide.createIcons({ nodes: [document.getElementById('sbNotifPanel')] });
+    } catch { /* silent — badge is purely cosmetic */ }
+  },
+
+  _renderNotifItems(counts) {
+    const list = document.getElementById('sbNotifList');
+    if (!list) return;
+
+    const items = [];
+    if (counts.open_question_reports > 0) {
+      const n = counts.open_question_reports;
+      items.push({ icon: 'flag',       dot: 'amber', href: './moderation.html',
+        label: `${n} open question report${n !== 1 ? 's' : ''}` });
+    }
+    if (counts.open_player_reports > 0) {
+      const n = counts.open_player_reports;
+      items.push({ icon: 'user-x',    dot: 'amber', href: './moderation.html',
+        label: `${n} open player report${n !== 1 ? 's' : ''}` });
+    }
+    if (counts.under_review > 0) {
+      const n = counts.under_review;
+      items.push({ icon: 'clock',      dot: 'gold',  href: './moderation.html',
+        label: `${n} question${n !== 1 ? 's' : ''} under review` });
+    }
+    if (counts.disabled > 0) {
+      const n = counts.disabled;
+      items.push({ icon: 'ban',        dot: 'red',   href: './moderation.html',
+        label: `${n} question${n !== 1 ? 's' : ''} disabled` });
+    }
+
+    if (items.length === 0) {
+      list.innerHTML = `<div class="sb-notif-empty">
+        <i data-lucide="check-circle" class="icon-lg"></i>
+        <span>All clear — nothing needs attention</span>
+      </div>`;
+    } else {
+      list.innerHTML = items.map(it => `
+        <a class="sb-notif-item" href="${it.href}">
+          <span class="sb-notif-dot-item ${it.dot}"></span>
+          <i data-lucide="${it.icon}" class="icon-xs"></i>
+          <span>${it.label}</span>
+          <i data-lucide="chevron-right" class="icon-xs sb-notif-chevron"></i>
+        </a>`).join('');
+    }
   },
 
   /* ---- Populate user profile after auth resolves ---- */
@@ -228,6 +388,11 @@ const Sidebar = {
       const el = document.getElementById(n.gateId);
       if (el) el.style.display = n.roles.includes(role) ? 'flex' : 'none';
     });
+
+    /* Load notification badges for admin roles */
+    if (role === 'admin' || role === 'super_admin') {
+      this.loadBadges(user.id);
+    }
   }
 };
 

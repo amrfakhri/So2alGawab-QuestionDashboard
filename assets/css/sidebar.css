@@ -33,13 +33,8 @@ body.no-sidebar {
   display: flex;
   flex-direction: column;
   z-index: 200;
-  overflow-y: auto;
-  overflow-x: visible;
+  overflow: hidden;
 }
-
-.sidebar::-webkit-scrollbar          { width: 3px; }
-.sidebar::-webkit-scrollbar-track    { background: transparent; }
-.sidebar::-webkit-scrollbar-thumb    { background: var(--surface3); border-radius: var(--r-pill); }
 
 /* ── Logo ───────────────────────────────────────────────────────── */
 .sb-logo {
@@ -51,10 +46,13 @@ body.no-sidebar {
   justify-content: center;
   width: 100%;
   flex-shrink: 0;
+  background:  var(--panel);
   border-bottom: 1px solid var(--border);
   text-decoration: none;
   color: inherit;
   transition: background var(--t-fast, .12s);
+  position: relative;
+  z-index: 1;
 }
 .sb-logo:hover      { background: rgba(255,255,255,0.03); }
 .sb-logo-icon       {
@@ -72,12 +70,19 @@ body.no-sidebar {
 
 /* ── Navigation ─────────────────────────────────────────────────── */
 .sb-nav {
-  flex:    1;
+  flex:       1;
+  min-height: 0;        /* lets flex child shrink below content height */
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px 12px;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
+
+.sb-nav::-webkit-scrollbar          { width: 3px; }
+.sb-nav::-webkit-scrollbar-track    { background: transparent; }
+.sb-nav::-webkit-scrollbar-thumb    { background: var(--surface3); border-radius: var(--r-pill); }
 
 .sb-section-label {
   font-size:      10px;
@@ -136,13 +141,15 @@ body.no-sidebar {
 
 /* ── Footer ─────────────────────────────────────────────────────── */
 .sb-footer {
-  padding:   10px 12px;
+  padding:    10px 12px;
   border-top: 1px solid var(--border);
-  display:   flex;
+  background: var(--panel);
+  display:    flex;
   flex-direction: column;
-  gap:       4px;
+  gap:        4px;
   flex-shrink: 0;
-  position:  relative; /* anchor for sb-user-menu absolute positioning */
+  position:   relative; /* anchor for sb-user-menu + notification panel */
+  z-index:    1;
 }
 
 /* Connection status pill */
@@ -377,4 +384,150 @@ body.no-sidebar {
 
 /* Image-based brand logo */
 img.sb-logo-icon { object-fit: cover; background: transparent; box-shadow: var(--glow-gold-sm); padding: 0; }
+
+/* ── Nav item badge (alert variant) ─────────────────────────────────────── */
+.sb-item-badge-alert {
+  background: rgba(239, 68, 68, 0.15);
+  color:      var(--red);
+}
+.sb-item.active .sb-item-badge-alert {
+  background: var(--red);
+  color:      #fff;
+}
+
+/* ── Notification bell ───────────────────────────────────────────────────── */
+.sb-notif-wrap {
+  position: relative;
+}
+.sb-notif-btn {
+  display:      flex;
+  align-items:  center;
+  gap:          8px;
+  width:        100%;
+  padding:      7px 10px;
+  background:   none;
+  border:       none;
+  border-radius: var(--r-sm);
+  cursor:       pointer;
+  color:        var(--text2);
+  font-size:    12px;
+  font-weight:  500;
+  text-align:   left;
+  transition:   background .15s, color .15s;
+}
+.sb-notif-btn:hover        { background: var(--surface2); color: var(--text); }
+.sb-notif-btn i            { flex-shrink: 0; color: var(--text3); }
+.sb-notif-btn:hover i      { color: var(--text2); }
+.sb-notif-btn span:first-of-type { flex: 1; }
+
+.sb-notif-dot {
+  width:         8px;
+  height:        8px;
+  background:    var(--red);
+  border-radius: 50%;
+  flex-shrink:   0;
+  border:        2px solid var(--surface);
+  animation:     pulseDot 1.5s ease-in-out infinite;
+}
+
+/* ── Notification panel (pops up above the bell) ─────────────────────────── */
+.sb-notif-panel {
+  position:      absolute;
+  bottom:        calc(100% + 6px);
+  left:          0;
+  right:         0;
+  background:    var(--surface);
+  border:        1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow:    0 -4px 16px rgba(0,0,0,.20), 0 8px 16px rgba(0,0,0,.12);
+  display:       none;
+  flex-direction: column;
+  overflow:      hidden;
+  z-index:       100;
+  max-height:    340px;
+}
+.sb-notif-panel.open { display: flex; }
+
+.sb-notif-hd {
+  display:        flex;
+  align-items:    center;
+  justify-content: space-between;
+  padding:        10px 12px 8px;
+  border-bottom:  1px solid var(--border);
+  flex-shrink:    0;
+}
+.sb-notif-title {
+  font-size:      10px;
+  font-weight:    700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color:          var(--text3);
+}
+.sb-notif-close {
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  width:         22px;
+  height:        22px;
+  background:    none;
+  border:        none;
+  border-radius: var(--r-sm);
+  cursor:        pointer;
+  color:         var(--text3);
+}
+.sb-notif-close:hover { background: var(--surface2); color: var(--text); }
+
+.sb-notif-list {
+  flex:       1;
+  overflow-y: auto;
+}
+.sb-notif-loading {
+  display:         flex;
+  justify-content: center;
+  padding:         20px;
+}
+.sb-notif-empty {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            8px;
+  padding:        24px 16px;
+  color:          var(--text3);
+  font-size:      12px;
+  text-align:     center;
+}
+.sb-notif-item {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  padding:     10px 12px;
+  font-size:   13px;
+  color:       var(--text2);
+  text-decoration: none;
+  border-bottom:   1px solid var(--border);
+  transition:  background .15s, color .15s;
+}
+.sb-notif-item:last-child   { border-bottom: none; }
+.sb-notif-item:hover        { background: var(--surface2); color: var(--text); }
+.sb-notif-item i            { flex-shrink: 0; color: var(--text3); }
+.sb-notif-item:hover i      { color: var(--text2); }
+.sb-notif-chevron           { margin-left: auto; opacity: .4; }
+
+.sb-notif-dot-item {
+  width:         7px;
+  height:        7px;
+  border-radius: 50%;
+  flex-shrink:   0;
+}
+.sb-notif-dot-item.amber { background: var(--amber, #f59e0b); }
+.sb-notif-dot-item.red   { background: var(--red); }
+.sb-notif-dot-item.gold  { background: var(--gold); }
+
+.sb-notif-ft {
+  padding:     8px 12px;
+  font-size:   11px;
+  color:       var(--text4, var(--text3));
+  border-top:  1px solid var(--border);
+  flex-shrink: 0;
+}
 .sb-logo-wordmark { height: 124px; width: auto; display: block; }
