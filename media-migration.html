@@ -274,32 +274,64 @@ async function scan() {
   setEmpty('scanning');
 
   try {
-    const [mediaResult, metaResult] = await Promise.all([
-      _sb.from('question_media')
-        .select('id, question_id, media_url, media_type, media_purpose, sort_order, questions!question_id(id, question, correct_answer)')
-        .is('file_path', null)
-        .not('media_url', 'is', null)
-        .not('question_id', 'is', null),
-      _sb.from('question_metadata')
-        .select('question_id, hints, questions!question_metadata_question_id_fkey(id, question, correct_answer)'),
-    ]);
+    // ── Step 1: Raw queries — no joins to avoid FK-hint PostgREST errors ──
 
-    if (mediaResult.error) throw new Error('question_media: ' + mediaResult.error.message);
-    if (metaResult.error)  throw new Error('question_metadata: ' + metaResult.error.message);
+    // question_media: rows with no storage file (file_path NULL) linked to a question
+    const { data: mediaRows, error: mediaErr } = await _sb
+      .from('question_media')
+      .select('id, question_id, media_url, media_type, media_purpose, sort_order')
+      .is('file_path', null)
+      .not('media_url', 'is', null)
+      .not('question_id', 'is', null);
+    if (mediaErr) throw new Error('question_media scan failed: ' + mediaErr.message);
+
+    // question_metadata: all rows — we filter hints.correctAnswerMedia in JS
+    const { data: metaRows, error: metaErr } = await _sb
+      .from('question_metadata')
+      .select('question_id, hints');
+    if (metaErr) throw new Error('question_metadata scan failed: ' + metaErr.message);
+
+    // ── Step 2: Filter for external URLs ──────────────────────────────────
+
+    const externalMedia = (mediaRows || []).filter(r =>
+      (r.media_url || '') && !r.media_url.includes('supabase.co')
+    );
+
+    const externalAnswer = (metaRows || []).filter(r => {
+      const url = r.hints?.correctAnswerMedia || '';
+      return url && !url.includes('supabase.co');
+    });
+
+    // ── Step 3: Batch-fetch question text for all affected IDs ────────────
+
+    const allIds = [...new Set([
+      ...externalMedia.map(r => r.question_id),
+      ...externalAnswer.map(r => r.question_id),
+    ])];
+
+    let qMap = new Map();
+    if (allIds.length) {
+      const { data: qs } = await _sb
+        .from('questions')
+        .select('id, question, correct_answer')
+        .in('id', allIds);
+      (qs || []).forEach(q => qMap.set(q.id, q));
+    }
+
+    // ── Step 4: Build item list ────────────────────────────────────────────
 
     const found = [];
 
-    // question_media rows with external URLs
-    for (const row of (mediaResult.data || [])) {
-      const url = row.media_url || '';
-      if (!url || url.includes('supabase.co')) continue;
+    // question_media rows (question image/video/audio)
+    for (const row of externalMedia) {
+      const q = qMap.get(row.question_id);
       found.push({
         id:           row.id + '-qm',
         source:       'question_media',
         rowId:        row.id,
         questionId:   row.question_id,
-        questionText: row.questions?.question || '—',
-        url,
+        questionText: q?.question || '—',
+        url:          row.media_url,
         mediaType:    row.media_type || 'image',
         purpose:      row.media_purpose || 'question',
         sortOrder:    row.sort_order || 0,
@@ -309,16 +341,16 @@ async function scan() {
       });
     }
 
-    // question_metadata.hints.correctAnswerMedia rows with external URLs
-    for (const row of (metaResult.data || [])) {
-      const url = (row.hints && row.hints.correctAnswerMedia) || '';
-      if (!url || url.includes('supabase.co')) continue;
+    // question_metadata answer media (hints.correctAnswerMedia)
+    for (const row of externalAnswer) {
+      const q = qMap.get(row.question_id);
+      const url = row.hints.correctAnswerMedia;
       found.push({
         id:           row.question_id + '-am',
         source:       'answer_media',
         rowId:        null,
         questionId:   row.question_id,
-        questionText: row.questions?.question || '—',
+        questionText: q?.question || '—',
         url,
         mediaType:    inferMediaType(url),
         purpose:      'answer',
@@ -333,10 +365,14 @@ async function scan() {
     renderAll();
     updateStats();
     showActions();
-    toast(`Found ${found.length} external media item${found.length !== 1 ? 's' : ''}`);
+
+    const qmCount = externalMedia.length;
+    const amCount = externalAnswer.length;
+    toast(`Found ${found.length} external items — ${qmCount} question media, ${amCount} answer media`);
   } catch (e) {
     toast('Scan failed: ' + e.message, 'error');
     setEmpty('error');
+    console.error('[scan]', e);
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i data-lucide="scan-search" class="icon-sm"></i> Scan Database';
