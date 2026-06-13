@@ -530,11 +530,11 @@ function toast(msg, type = 'success') {
   _toastTimer = setTimeout(() => { el.className = ''; }, 3500);
 }
 
-lucide.createIcons();
+window.lucide && lucide.createIcons();
 init().catch(e => {
   document.getElementById('qrBody').innerHTML =
     `<tr><td colspan="7"><div class="table-state">${icon('triangle-alert','icon-xl')}<h3>Couldn't load</h3><p class="text-error">${esc(e?.message ?? String(e))}</p></div></td></tr>`;
-  lucide.createIcons();
+  window.lucide && lucide.createIcons();
 });
 </script>
 </body>
