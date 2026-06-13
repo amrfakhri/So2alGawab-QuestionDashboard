@@ -287,12 +287,25 @@ async function scan() {
       .limit(5000);
     if (mediaErr) throw new Error('question_media scan failed: ' + mediaErr.message);
 
-    // question_metadata: all rows — we filter hints.correctAnswerMedia in JS
-    const { data: metaRows, error: metaErr } = await _sb
+    // question_metadata: use PostgREST JSONB path filter so we only pull rows
+    // where correctAnswerMedia is actually set. Falls back to full table scan
+    // if the column-path filter isn't supported.
+    let metaRows = null, metaErr = null;
+    ({ data: metaRows, error: metaErr } = await _sb
       .from('question_metadata')
       .select('question_id, hints')
-      .limit(5000);
-    if (metaErr) throw new Error('question_metadata scan failed: ' + metaErr.message);
+      .not('hints->>correctAnswerMedia', 'is', null)
+      .not('hints->>correctAnswerMedia', 'eq', '')
+      .limit(5000));
+    if (metaErr) {
+      // Fallback: fetch all rows and filter in JS
+      console.warn('[scan] JSONB filter not supported, falling back to full scan:', metaErr.message);
+      ({ data: metaRows, error: metaErr } = await _sb
+        .from('question_metadata')
+        .select('question_id, hints')
+        .limit(5000));
+      if (metaErr) throw new Error('question_metadata scan failed: ' + metaErr.message);
+    }
 
     // ── Step 2: Filter for external URLs ──────────────────────────────────
 
@@ -300,10 +313,24 @@ async function scan() {
       (r.media_url || '') && !r.media_url.includes('supabase.co')
     );
 
+    // Parse hints safely — handles both object and raw JSON string
+    function parseHints(h) {
+      if (!h) return {};
+      if (typeof h === 'string') { try { return JSON.parse(h); } catch { return {}; } }
+      return (typeof h === 'object' && !Array.isArray(h)) ? h : {};
+    }
+
     const externalAnswer = (metaRows || []).filter(r => {
-      const url = r.hints?.correctAnswerMedia || '';
+      const url = parseHints(r.hints).correctAnswerMedia || '';
       return url && !url.includes('supabase.co');
     });
+
+    console.log('[scan] metaRows fetched:', metaRows?.length,
+      '| externalAnswer:', externalAnswer.length,
+      '| items:', externalAnswer.map(r => ({
+        qid: r.question_id,
+        url: parseHints(r.hints).correctAnswerMedia,
+      })));
 
     // ── Step 3: Batch-fetch question text for all affected IDs ────────────
 
@@ -347,7 +374,7 @@ async function scan() {
     // question_metadata answer media (hints.correctAnswerMedia)
     for (const row of externalAnswer) {
       const q = qMap.get(row.question_id);
-      const url = row.hints.correctAnswerMedia;
+      const url = parseHints(row.hints).correctAnswerMedia;
       found.push({
         id:           row.question_id + '-am',
         source:       'answer_media',
@@ -491,30 +518,37 @@ async function migrateItem(item) {
 
     // ── Step 2: Update the DB record from the browser ──────────────────────────
     if (item.source === 'question_media') {
-      const { error: updErr } = await _sb.from('question_media').update({
+      const { data: qmUpd, error: updErr } = await _sb.from('question_media').update({
         media_url: newUrl,
         file_path: result.storagePath,
         file_name: result.fileName,
         mime_type: result.mimeType,
         file_size: result.fileSize,
-      }).eq('id', item.rowId);
+      }).eq('id', item.rowId).select('id');
       if (updErr) throw new Error('db_update: ' + updErr.message);
+      if (!qmUpd?.length) throw new Error('db_update: 0 rows matched id=' + item.rowId);
 
     } else {
-      // answer_media: fetch current hints first so we only change correctAnswerMedia
+      // answer_media: fetch current hints to spread, then update only correctAnswerMedia
       const { data: meta, error: metaErr } = await _sb
         .from('question_metadata')
         .select('hints')
         .eq('question_id', item.questionId)
         .maybeSingle();
       if (metaErr) throw new Error('hints_fetch: ' + metaErr.message);
-      if (!meta) throw new Error('hints_not_found for question_id ' + item.questionId);
-      const existing = (meta.hints && typeof meta.hints === 'object' && !Array.isArray(meta.hints))
-        ? meta.hints : {};
-      const { error: updErr } = await _sb.from('question_metadata')
+      if (!meta) throw new Error('hints_not_found: no question_metadata row for ' + item.questionId.slice(0,8));
+
+      const parseHintsLocal = h => (!h ? {} : typeof h === 'string' ? JSON.parse(h) : (typeof h === 'object' && !Array.isArray(h) ? h : {}));
+      const existing = parseHintsLocal(meta.hints);
+      console.log('[migrate-answer] current correctAnswerMedia:', existing.correctAnswerMedia);
+
+      const { data: amUpd, error: updErr } = await _sb.from('question_metadata')
         .update({ hints: { ...existing, correctAnswerMedia: newUrl } })
-        .eq('question_id', item.questionId);
+        .eq('question_id', item.questionId)
+        .select('question_id');
       if (updErr) throw new Error('hints_update: ' + updErr.message);
+      if (!amUpd?.length) throw new Error('hints_update: 0 rows matched — RLS may be blocking the update for question_id=' + item.questionId.slice(0,8));
+      console.log('[migrate-answer] updated to:', newUrl);
     }
 
     item.newUrl = newUrl;
