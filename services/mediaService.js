@@ -492,45 +492,47 @@ const MediaService = {
     }
   },
 
+  /* ---- Fetch all badges via admin RPC (badges table has RLS) ---- */
+  async _getAllBadges() {
+    const { data, error } = await window._sb.rpc('admin_list_badges');
+    if (error) throw new Error(`Failed to load badges: ${error.message}`);
+    return data || [];
+  },
+
   /* ---- Find badges that use this media URL as their icon_ref ---- */
   async getLinkedBadgesForMedia(mediaUrl) {
     if (!mediaUrl) return [];
-    const { data, error } = await window._sb
-      .from('badges')
-      .select('key, name_ar, name_en, icon_ref')
-      .eq('icon_ref', mediaUrl);
-    if (error) return [];
-    return data || [];
+    const all = await this._getAllBadges();
+    return all.filter(b => b.icon_ref === mediaUrl);
   },
 
   /* ---- Remove icon_ref from a single badge ---- */
   async unlinkBadgeIcon(badgeKey) {
-    const { error } = await window._sb
-      .from('badges')
-      .update({ icon_ref: null })
-      .eq('key', badgeKey);
+    const all = await this._getAllBadges();
+    const badge = all.find(b => b.key === badgeKey);
+    if (!badge) throw new Error(`Badge "${badgeKey}" not found`);
+    const { error } = await window._sb.rpc('admin_save_badge', {
+      p: { ...badge, icon_ref: null, condition_params: badge.condition_params || {} }
+    });
     if (error) throw new Error(`Failed to unlink badge: ${error.message}`);
     return true;
   },
 
   /* ---- Set icon_ref on a badge to this media URL ---- */
   async setBadgeImage(badgeKey, mediaUrl) {
-    const { error } = await window._sb
-      .from('badges')
-      .update({ icon_ref: mediaUrl })
-      .eq('key', badgeKey);
+    const all = await this._getAllBadges();
+    const badge = all.find(b => b.key === badgeKey);
+    if (!badge) throw new Error(`Badge "${badgeKey}" not found`);
+    const { error } = await window._sb.rpc('admin_save_badge', {
+      p: { ...badge, icon_ref: mediaUrl, condition_params: badge.condition_params || {} }
+    });
     if (error) throw new Error(`Failed to set badge image: ${error.message}`);
     return true;
   },
 
   /* ---- Fetch all badges for the picker ---- */
   async getBadges() {
-    const { data, error } = await window._sb
-      .from('badges')
-      .select('key, name_ar, name_en')
-      .order('name_en');
-    if (error) throw error;
-    return data || [];
+    return this._getAllBadges();
   }
 };
 
