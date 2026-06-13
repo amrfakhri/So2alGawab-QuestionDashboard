@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Game — Database</title>
+<title>Questions List — Lammah Game</title>
 <link rel="icon" href="./favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="./assets/logo/favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="./assets/logo/favicon-32x32.png">
@@ -35,7 +35,7 @@
   <button class="sb-hamburger" id="sbToggle" type="button">
     <i data-lucide="menu" class="icon-md"></i>
   </button>
-  <span class="sb-mobile-title" id="sbMobileTitle">Database</span>
+  <span class="sb-mobile-title" id="sbMobileTitle">Questions List</span>
 </div>
 
 <!-- =====================================================
@@ -83,7 +83,7 @@
 
   <div class="editor-topbar">
     <div class="breadcrumb">
-      <span class="bc-home" id="breadcrumbHome">Database</span>
+      <span class="bc-home" id="breadcrumbHome">Questions List</span>
       <span class="bc-sep">/</span>
       <span class="bc-current" id="breadcrumbCurrent">—</span>
     </div>
@@ -92,13 +92,8 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input class="search-input" id="searchInput" type="text" placeholder="Search questions…">
     </div>
-    <select class="select-filter" id="filterClass">
-      <option value="all">All Classes</option>
-      <option value="CLASS_200">CLASS_200</option>
-      <option value="CLASS_400">CLASS_400</option>
-      <option value="CLASS_600">CLASS_600</option>
-      <option value="CLASS_800">CLASS_800</option>
-      <option value="CLASS_1000">CLASS_1000</option>
+    <select class="select-filter" id="filterPoints">
+      <option value="all">All Points</option>
     </select>
     <select class="select-filter" id="filterStatus">
       <option value="all">All Status</option>
@@ -176,8 +171,11 @@
           <div class="form-section-title">Settings</div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label" for="fPoints">Points</label>
-              <input class="form-input" id="fPoints" type="number" value="200" min="0" step="100">
+              <label class="form-label" for="fPoints" style="display:flex;align-items:center;justify-content:space-between;">
+                Points
+                <button type="button" class="btn-link-sm" id="btnManagePoints" style="display:none;">Manage</button>
+              </label>
+              <select class="form-select" id="fPoints"></select>
             </div>
             <div class="form-group">
               <label class="form-label" for="fCategoryId">Category <span class="text-required">*</span></label>
@@ -331,18 +329,36 @@
 
           </div><!-- /mu-section -->
 
-          <!-- Correct Answer Media (URL) — unchanged for backward compat -->
+          <!-- Correct Answer Media -->
           <div class="form-group" style="margin-top:14px;">
-            <label class="form-label">Correct Answer Media (URL)</label>
-            <div class="media-row">
-              <div class="media-preview-wrap" id="ansMediaPreviewWrap" style="display:none;">
+            <label class="form-label">Correct Answer Media</label>
+            <div class="ans-media-wrap">
+              <div class="ans-media-preview" id="ansMediaPreviewWrap" style="display:none;">
                 <img class="media-preview-img" id="ansMediaPreview" src="" alt="">
                 <button type="button" class="media-remove" id="btnRemoveAnsMedia" aria-label="Remove"><i data-lucide="x" class="icon-sm"></i></button>
               </div>
-              <div class="form-input-wrap">
-                <input class="form-input" id="fCorrectAnswerMedia" type="text" placeholder="https://…">
+              <input class="form-input" id="fCorrectAnswerMedia" type="text" placeholder="Paste URL or pick below…" style="margin-bottom:6px;">
+              <div class="ans-media-actions">
+                <label class="btn btn-ghost btn-sm" for="ansMediaFileInput" style="cursor:pointer;">
+                  <i data-lucide="upload" class="icon-xs"></i> Upload
+                </label>
+                <input type="file" id="ansMediaFileInput" accept="image/*,video/*,audio/*" style="display:none;">
+                <button type="button" class="btn btn-ghost btn-sm" id="btnAnsMediaLibrary">
+                  <i data-lucide="images" class="icon-xs"></i> Library
+                </button>
+                <span class="ans-media-uploading" id="ansMediaUploading" style="display:none;">
+                  <span class="spinner spinner-xs"></span> Uploading…
+                </span>
               </div>
             </div>
+          </div>
+          <!-- Ans Media Library Picker (inline panel) -->
+          <div class="ans-media-library" id="ansMediaLibrary" style="display:none;">
+            <div class="aml-header">
+              <input class="form-input aml-search" id="amlSearch" type="text" placeholder="Search media…">
+              <button type="button" class="btn btn-ghost btn-sm" id="btnAmlClose"><i data-lucide="x" class="icon-xs"></i></button>
+            </div>
+            <div class="aml-grid" id="amlGrid"></div>
           </div>
         </div>
 
@@ -613,6 +629,27 @@
   </div>
 </div>
 
+<!-- Manage Points Modal -->
+<div class="modal-overlay" id="managePointsOverlay" style="display:none;" onclick="if(event.target===this)closeManagePoints()">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-header">
+      <h3 class="modal-title">Manage Point Values</h3>
+      <button class="modal-close" onclick="closeManagePoints()"><i data-lucide="x" class="icon-sm"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text3);margin-bottom:12px;">These values appear in the Points dropdown for every question.</p>
+      <div id="pointsValuesList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;"></div>
+      <div style="display:flex;gap:6px;">
+        <input class="form-input" id="newPointsValue" type="number" min="1" step="1" placeholder="e.g. 800" style="flex:1;">
+        <button class="btn btn-primary btn-sm" onclick="addPointsValue()">Add</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeManagePoints()">Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toastContainer"></div>
 
 <!-- Global category contextual menu (portal — position:fixed via JS) -->
@@ -735,6 +772,82 @@ function uid()          { return crypto.randomUUID(); }
 function fakeObjectId() { return crypto.randomUUID(); }
 function nowISO()       { return new Date().toISOString(); }
 
+// ── Points values (stored in localStorage, default 200/400/600) ──────
+const POINTS_KEY = 'lammah_points_values';
+function getPointsValues() {
+  try { return JSON.parse(localStorage.getItem(POINTS_KEY)) || [200, 400, 600]; }
+  catch { return [200, 400, 600]; }
+}
+function savePointsValues(vals) {
+  localStorage.setItem(POINTS_KEY, JSON.stringify([...new Set(vals.map(Number))].filter(n => n > 0).sort((a,b)=>a-b)));
+}
+function setPointsSelect(currentValue) {
+  const sel  = document.getElementById('fPoints');
+  const vals = getPointsValues();
+  // Include current value even if not in list (e.g., legacy 800 points)
+  const all  = [...new Set([...vals, currentValue].map(Number))].sort((a,b)=>a-b);
+  sel.innerHTML = all.map(v => `<option value="${v}"${v===Number(currentValue)?' selected':''}>${v} pts</option>`).join('');
+}
+function openManagePoints() {
+  renderPointsValuesList();
+  document.getElementById('managePointsOverlay').style.display = 'flex';
+  lucide.createIcons({ nodes: [document.getElementById('managePointsOverlay')] });
+}
+function closeManagePoints() {
+  document.getElementById('managePointsOverlay').style.display = 'none';
+  // Refresh the select with updated values
+  const cur = parseInt(document.getElementById('fPoints').value) || 200;
+  setPointsSelect(cur);
+}
+function renderPointsValuesList() {
+  const list = document.getElementById('pointsValuesList');
+  const vals = getPointsValues();
+  list.innerHTML = vals.map(v => `
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="flex:1;font-size:14px;font-weight:600;">${v} pts</span>
+      <button class="btn btn-danger btn-sm" onclick="removePointsValue(${v})" ${vals.length<=1?'disabled':''}>
+        <i data-lucide="trash-2" class="icon-xs"></i>
+      </button>
+    </div>`).join('');
+  lucide.createIcons({ nodes: [list] });
+}
+function addPointsValue() {
+  const input = document.getElementById('newPointsValue');
+  const val   = parseInt(input.value);
+  if (!val || val < 1) { toast('Enter a valid number', 'error'); return; }
+  const vals = getPointsValues();
+  if (vals.includes(val)) { toast('Value already exists'); return; }
+  savePointsValues([...vals, val]);
+  input.value = '';
+  renderPointsValuesList();
+}
+function removePointsValue(v) {
+  const vals = getPointsValues();
+  if (vals.length <= 1) { toast('Need at least one value', 'error'); return; }
+  savePointsValues(vals.filter(x => x !== v));
+  renderPointsValuesList();
+}
+
+function populatePointsFilter() {
+  const list = appState.activeListData;
+  const pts  = [...new Set((list?.questions || []).map(q => q.points).filter(p => p != null))].sort((a,b)=>a-b);
+  const sel  = document.getElementById('filterPoints');
+  sel.innerHTML = '<option value="all">All Points</option>' +
+    pts.map(p => `<option value="${p}">${p} pts</option>`).join('');
+  appState.filterPoints = 'all';
+}
+
+function syncViewButtons() {
+  const isGrid = appState.viewMode === 'grid';
+  document.getElementById('viewGrid').classList.toggle('active', isGrid);
+  document.getElementById('viewTable').classList.toggle('active', !isGrid);
+}
+function syncCatViewButtons() {
+  const isSide = appState.catViewMode === 'sidenav';
+  document.getElementById('catViewSidenav').classList.toggle('active', isSide);
+  document.getElementById('catViewTabs').classList.toggle('active', !isSide);
+}
+
 /* =====================================================
    APP STATE
 ===================================================== */
@@ -742,10 +855,10 @@ let appState = {
   activeListId: null,
   activeCategoryId: 'all',
   search: '',
-  filterClass: 'all',
+  filterPoints: 'all',
   filterStatus: 'all',
-  viewMode: 'table',
-  catViewMode: localStorage.getItem('catViewMode') || 'tabs',
+  viewMode: localStorage.getItem('viewMode') || 'grid',
+  catViewMode: localStorage.getItem('catViewMode') || 'sidenav',
   selectedIds: new Set(),
   editingQuestionId: null,
   listsSearch: '',
@@ -867,6 +980,9 @@ async function openListEditor(listId) {
   appState.selectedIds.clear();
   document.getElementById('breadcrumbCurrent').textContent = list.title;
   showScreen('editorScreen');
+  syncViewButtons();
+  syncCatViewButtons();
+  populatePointsFilter();
   renderCategoriesBar();
   renderQuestions();
 }
@@ -1011,7 +1127,7 @@ function filteredQuestions() {
       return (gq.question||'').toLowerCase().includes(s) || (gq.correctAnswer||'').toLowerCase().includes(s) || (gq.label||'').toLowerCase().includes(s);
     });
   }
-  if (appState.filterClass  !== 'all') qs = qs.filter(q => q.class === appState.filterClass);
+  if (appState.filterPoints !== 'all') qs = qs.filter(q => String(q.points) === appState.filterPoints);
   if (appState.filterStatus !== 'all') qs = qs.filter(q => (q.GamesQuestion?.status||'') === appState.filterStatus);
   return qs;
 }
@@ -1028,7 +1144,12 @@ function renderQuestions() {
   }
 
   const list = appState.activeListData;
-  if (appState.viewMode === 'grid') {
+
+  // When "All" is selected, group questions by category with section headers
+  if (appState.activeCategoryId === 'all') {
+    container.innerHTML = renderGroupedQuestions(qs, list);
+    if (appState.viewMode === 'table') setupTableDrag();
+  } else if (appState.viewMode === 'grid') {
     container.innerHTML = `<div class="q-grid">${qs.map(q => renderQCard(q, list)).join('')}</div>`;
   } else {
     container.innerHTML = renderQTable(qs, list);
@@ -1036,6 +1157,56 @@ function renderQuestions() {
   }
   updateBulkActions();
   lucide.createIcons();
+}
+
+function renderGroupedQuestions(qs, list) {
+  // Build ordered category list from list.categories, then append uncategorized
+  const cats      = [...(list.categories || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const catIndex  = new Map(cats.map(c => [c.id, c]));
+
+  // Group questions preserving category order
+  const groups = new Map(); // catId → { cat, qs[] }
+  cats.forEach(c => groups.set(c.id, { cat: c, qs: [] }));
+  groups.set('__none__', { cat: null, qs: [] }); // uncategorized bucket
+
+  qs.forEach(q => {
+    const key = (q.categoryId && groups.has(q.categoryId)) ? q.categoryId : '__none__';
+    groups.get(key).qs.push(q);
+  });
+
+  const parts = [];
+  groups.forEach(({ cat, qs: groupQs }, catId) => {
+    if (!groupQs.length) return;
+
+    // Category header
+    const img    = cat?.imagePath;
+    const imgSrc = img ? (img.startsWith('http') ? img : `${window.SUPABASE_URL}/storage/v1/object/public/question-media/${img}`) : null;
+    const thumb  = imgSrc
+      ? `<img src="${escHtml(imgSrc)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+         <span class="q-group-initial" style="display:none;">${escHtml((cat?.name||'?')[0])}</span>`
+      : `<span class="q-group-initial">${escHtml(catId === '__none__' ? '?' : (cat?.name||'?')[0])}</span>`;
+    const name   = catId === '__none__' ? 'Uncategorized' : (cat?.name || 'Unknown');
+
+    const header = `
+      <div class="q-group-header" data-cat-id="${catId}">
+        <div class="q-group-thumb">${thumb}</div>
+        <div class="q-group-info">
+          <span class="q-group-name">${escHtml(name)}</span>
+          <span class="q-group-count">${groupQs.length} question${groupQs.length !== 1 ? 's' : ''}</span>
+        </div>
+        ${catId !== '__none__' ? `<button class="btn btn-ghost btn-sm q-group-filter-btn" onclick="appState.activeCategoryId='${catId}';renderQuestions();renderCategoriesBar();" title="Show only this category">` : `<button class="btn btn-ghost btn-sm q-group-filter-btn" style="visibility:hidden;">`}
+          ${icon('filter', 'icon-xs')} Filter
+        </button>
+      </div>`;
+
+    const body = appState.viewMode === 'grid'
+      ? `<div class="q-grid q-group-grid">${groupQs.map(q => renderQCard(q, list)).join('')}</div>`
+      : renderQTable(groupQs, list, true); // pass grouped=true to omit category column
+
+    parts.push(`<div class="q-group">${header}${body}</div>`);
+  });
+
+  return parts.join('') || `<div class="empty-state"><div class="empty-icon">${icon('inbox','icon-xl')}</div><p>No questions yet.</p></div>`;
 }
 
 function getCatName(list, catId) {
@@ -1059,12 +1230,19 @@ function catPill(list, catId, size = 'sm') {
   </span>`;
 }
 
+function pointsBadgeClass(pts) {
+  if (pts >= 1000) return 'badge-green';
+  if (pts >= 800)  return 'badge-red';
+  if (pts >= 600)  return 'badge-purple';
+  if (pts >= 400)  return 'badge-amber';
+  return 'badge-blue';
+}
 function badgeForClass(cls) {
   const map = { CLASS_200:'badge-blue', CLASS_400:'badge-amber', CLASS_600:'badge-purple', CLASS_800:'badge-red', CLASS_1000:'badge-green' };
   return `<span class="badge ${map[cls]||'badge-gray'}">${cls||'—'}</span>`;
 }
 
-function renderQTable(qs, list) {
+function renderQTable(qs, list, grouped = false) {
   const rows = qs.map(q => {
     const gq  = q.GamesQuestion || {};
     const sel = appState.selectedIds.has(q.questionId);
@@ -1083,9 +1261,8 @@ function renderQTable(qs, list) {
           <div class="q-answer">${escHtml(gq.correctAnswer||'')}</div>
           ${resolveUserName(q.createdBy) ? `<div class="q-creator">${icon('user','icon-xs')} ${escHtml(resolveUserName(q.createdBy))}</div>` : ''}
         </td>
-        <td>${catPill(list, q.categoryId)}</td>
-        <td>${badgeForClass(q.class)}</td>
-        <td><span class="badge badge-blue">${q.points||0} pts</span></td>
+        ${grouped ? '' : `<td>${catPill(list, q.categoryId)}</td>`}
+        <td><span class="badge ${pointsBadgeClass(q.points||0)}">${q.points||0} pts</span></td>
         <td>${mediaCell}</td>
         <td>${statusBadge}</td>
         <td>
@@ -1102,11 +1279,30 @@ function renderQTable(qs, list) {
     <table class="q-table">
       <thead><tr>
         <th style="width:28px;"></th>
-        <th style="width:28px;"><input class="cb" type="checkbox" id="selectAll"></th>
-        <th>#</th><th>Question / Answer</th><th>Category</th><th>Class</th><th>Points</th><th>Media</th><th>Status</th><th>Actions</th>
+        <th style="width:28px;"><input type="checkbox" class="${grouped ? 'cb cb-all-grouped' : 'cb'}" ${grouped ? '' : 'id="selectAll"'}></th>
+        <th>#</th><th>Question / Answer</th>${grouped ? '' : '<th>Category</th>'}<th>Points</th><th>Media</th><th>Status</th><th>Actions</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
+}
+
+function mediaTypeFromUrl(url) {
+  if (!url) return null;
+  const ext = url.split('?')[0].split('.').pop().toLowerCase();
+  if (['jpg','jpeg','png','gif','webp','svg','avif'].includes(ext)) return 'image';
+  if (['mp4','webm','mov','ogv'].includes(ext)) return 'video';
+  if (['mp3','wav','ogg','m4a','aac','flac'].includes(ext)) return 'audio';
+  return 'image'; // default fallback — treat unknown URLs as images
+}
+
+function renderAnsMediaCard(url) {
+  if (!url) return '';
+  const type = mediaTypeFromUrl(url);
+  const safe = escHtml(url);
+  if (type === 'image') return `<img class="q-card-ans-media-img" src="${safe}" loading="lazy" onerror="this.style.display='none'">`;
+  if (type === 'video') return `<video class="q-card-ans-media-video" src="${safe}" controls preload="none"></video>`;
+  if (type === 'audio') return `<audio class="q-card-ans-media-audio" src="${safe}" controls preload="none"></audio>`;
+  return '';
 }
 
 function renderQCard(q, list) {
@@ -1114,15 +1310,16 @@ function renderQCard(q, list) {
   const sel = appState.selectedIds.has(q.questionId);
   let media = '';
   if (gq.image?.[0]) media = `<img src="${escHtml(gq.image[0])}" loading="lazy" onerror="this.style.display='none'">`;
-  else if (gq.video?.[0]) media = `<div class="media-center-icon">${icon('video', 'icon-xl')}</div>`;
-  else if (gq.audio?.[0]) media = `<div class="media-center-icon">${icon('music', 'icon-xl')}</div>`;
+  else if (gq.video?.[0]) media = `<div class="q-card-play-wrap" data-media-type="video" data-media-src="${escHtml(gq.video[0])}"><div class="media-center-icon">${icon('video', 'icon-xl')}</div><button class="q-card-play-btn" title="Play">${icon('play', 'icon-lg')}</button></div>`;
+  else if (gq.audio?.[0]) media = `<div class="q-card-play-wrap" data-media-type="audio" data-media-src="${escHtml(gq.audio[0])}"><div class="media-center-icon">${icon('music', 'icon-xl')}</div><button class="q-card-play-btn" title="Play">${icon('play', 'icon-lg')}</button></div>`;
+  const ansMedia = renderAnsMediaCard(gq.correctAnswerMedia);
   return `
     <div class="q-card ${sel?'selected':''}" data-q-id="${q.questionId}">
       <div class="q-card-media">${media}</div>
       <div class="q-card-body">
-        <div class="q-card-badges">${catPill(list, q.categoryId, 'lg')}${badgeForClass(q.class)}<span class="badge badge-blue">${q.points||0} pts</span></div>
+        <div class="q-card-badges">${catPill(list, q.categoryId, 'lg')}<span class="badge ${pointsBadgeClass(q.points||0)}">${q.points||0} pts</span></div>
         <div class="q-card-question">${escHtml(gq.question||'—')}</div>
-        <div class="q-card-answer"><small>Correct Answer</small><span>${escHtml(gq.correctAnswer||'—')}</span></div>
+        <div class="q-card-answer"><small>Correct Answer</small><span>${escHtml(gq.correctAnswer||'—')}</span>${ansMedia ? `<div class="q-card-ans-media">${ansMedia}</div>` : ''}</div>
         <div class="q-card-actions">
           <button class="btn btn-ghost btn-block btn-sm" data-action="edit-q" data-q-id="${q.questionId}">${icon('pencil', 'icon-sm')} Edit</button>
           <button class="icon-btn" data-action="move-q" data-q-id="${q.questionId}" title="Move to category">${icon('folder-input', 'icon-sm')}</button>
@@ -1286,6 +1483,7 @@ function openDrawer(questionId) {
     document.getElementById('questionForm').reset();
     document.getElementById('fHintQuestion').value = '{}';
     setLayoutThumb(2);
+    setPointsSelect(getPointsValues()[0] || 200);
     if (appState.activeCategoryId !== 'all' && list?.categories.find(c => c.id === appState.activeCategoryId)) catSel.value = appState.activeCategoryId;
     clearMediaFields();
     clearNotes([]);
@@ -1308,7 +1506,7 @@ function openDrawer(questionId) {
 }
 
 function populateDrawer(q, gq) {
-  document.getElementById('fPoints').value           = q.points || 200;
+  setPointsSelect(q.points || 200);
   document.getElementById('fTeamIndex').value        = q.teamIndex || 1;
   document.getElementById('fCategoryId').value       = q.categoryId || '';
   document.getElementById('fQuestion').value         = gq.question || '';
@@ -1345,6 +1543,20 @@ function populateDrawer(q, gq) {
 
 /* ── Media upload state for the active drawer ── */
 const _muOrphanPaths = []; // storage paths uploaded in this session, cleaned if cancelled
+
+/* ── Card media playback ── */
+let _activeMedia = null; // currently playing <audio>/<video> element in a q-card
+
+function stopCardMedia() {
+  if (_activeMedia) {
+    const wrap = _activeMedia._playWrap;
+    _activeMedia.pause();
+    _activeMedia.currentTime = 0;
+    _activeMedia.remove();
+    _activeMedia = null;
+    if (wrap) wrap.style.display = '';
+  }
+}
 
 function _muContainerIdForType(type) {
   return type === 'image' ? 'imageItems' : type === 'video' ? 'videoItems' : 'audioItems';
@@ -1562,12 +1774,70 @@ function updateAnsMediaPreview(url) {
   if (url) { wrap.style.display = 'block'; img.src = url; }
   else      { wrap.style.display = 'none'; }
 }
+
+// ── Answer Media Library Picker ───────────────────────────────────
+let _amlItems = [];
+
+async function toggleAmlPanel() {
+  const panel = document.getElementById('ansMediaLibrary');
+  const isOpen = panel.style.display !== 'none';
+  if (isOpen) { closeAmlPanel(); return; }
+  panel.style.display = 'block';
+  if (!_amlItems.length) await loadAmlItems();
+  renderAmlGrid('');
+}
+function closeAmlPanel() {
+  document.getElementById('ansMediaLibrary').style.display = 'none';
+}
+async function loadAmlItems() {
+  try {
+    const { data } = await _sb.from('question_media')
+      .select('id, media_url, file_path, media_type, file_name')
+      .in('media_type', ['image', 'video', 'audio'])
+      .not('media_url', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    _amlItems = data || [];
+  } catch { _amlItems = []; }
+}
+function renderAmlGrid(search) {
+  const grid = document.getElementById('amlGrid');
+  const q = search.toLowerCase();
+  const items = q
+    ? _amlItems.filter(m => (m.file_name||'').toLowerCase().includes(q) || (m.media_type||'').includes(q))
+    : _amlItems;
+
+  if (!items.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text3);padding:20px;font-size:12px;">No media found</div>';
+    return;
+  }
+  grid.innerHTML = items.map(m => {
+    const url   = m.media_url || '';
+    const thumb = m.media_type === 'image' ? `<img src="${escHtml(url)}" loading="lazy" onerror="this.style.display='none'">` : `<div class="aml-icon"><i data-lucide="${m.media_type === 'video' ? 'video' : 'music'}"></i></div>`;
+    return `<div class="aml-item" data-url="${escHtml(url)}" title="${escHtml(m.file_name||url)}">
+      ${thumb}
+      <span class="aml-type">${escHtml(m.media_type||'')}</span>
+    </div>`;
+  }).join('');
+  lucide.createIcons({ nodes: [grid] });
+
+  grid.querySelectorAll('.aml-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const url = el.dataset.url;
+      document.getElementById('fCorrectAnswerMedia').value = url;
+      updateAnsMediaPreview(url);
+      document.getElementById('unsavedDot').style.display = 'inline-block';
+      closeAmlPanel();
+    });
+  });
+}
 function closeDrawer(cancelledNew = false) {
   // If drawer was cancelled without saving a new question, clean up orphan storage files
   if (cancelledNew && _muOrphanPaths.length) {
     MediaService.cleanupOrphanFiles([..._muOrphanPaths]).catch(() => {});
   }
   _muOrphanPaths.length = 0;
+  stopCardMedia();
   appState.editingQuestionId = null;
   document.getElementById('drawerOverlay').classList.remove('open');
   document.getElementById('questionDrawer').classList.remove('open');
@@ -2363,10 +2633,17 @@ document.addEventListener('click', async e => {
     await persistList(); renderCategoriesBar(); renderQuestions();
     toast(`Category "${name}" created`); return;
   }
-  if (e.target.id === 'selectAll') {
-    const qs = filteredQuestions();
-    if (e.target.checked) qs.forEach(q => appState.selectedIds.add(q.questionId));
-    else appState.selectedIds.clear();
+  if (e.target.id === 'selectAll' || e.target.classList.contains('cb-all-grouped')) {
+    // "Select all" inside a grouped table selects only that group's rows
+    const table = e.target.closest('table');
+    if (table) {
+      const groupQIds = [...table.querySelectorAll('tbody [data-q-id]')].map(r => r.dataset.qId);
+      groupQIds.forEach(id => e.target.checked ? appState.selectedIds.add(id) : appState.selectedIds.delete(id));
+    } else {
+      const qs = filteredQuestions();
+      if (e.target.checked) qs.forEach(q => appState.selectedIds.add(q.questionId));
+      else appState.selectedIds.clear();
+    }
     renderQuestions(); return;
   }
   if (e.target.classList.contains('cb') && e.target.dataset.qId) {
@@ -2375,8 +2652,41 @@ document.addEventListener('click', async e => {
     updateBulkActions();
     const row = e.target.closest('tr'); if (row) row.classList.toggle('selected', e.target.checked); return;
   }
+  const playBtn = e.target.closest('.q-card-play-btn');
+  if (playBtn) {
+    const wrap = playBtn.closest('.q-card-play-wrap');
+    if (!wrap) return;
+    const type = wrap.dataset.mediaType;
+    const src  = wrap.dataset.mediaSrc;
+    // Stop and visually reset the previously playing card
+    if (_activeMedia) {
+      const prevWrap = _activeMedia._playWrap;
+      _activeMedia.pause();
+      _activeMedia.currentTime = 0;
+      _activeMedia = null;
+      if (prevWrap) {
+        prevWrap.style.display = '';
+        prevWrap.closest('.q-card-media')?.querySelector('.q-card-inline-player')?.remove();
+      }
+    }
+    const mediaEl = document.createElement(type === 'video' ? 'video' : 'audio');
+    mediaEl.src      = src;
+    mediaEl.controls = true;
+    mediaEl.autoplay = true;
+    mediaEl.className = 'q-card-inline-player';
+    mediaEl._playWrap = wrap;
+    wrap.style.display = 'none';
+    wrap.closest('.q-card-media').appendChild(mediaEl);
+    _activeMedia = mediaEl;
+    mediaEl.addEventListener('ended', () => {
+      if (_activeMedia === mediaEl) _activeMedia = null;
+      wrap.style.display = '';
+      mediaEl.remove();
+    });
+    return;
+  }
   const card = e.target.closest('.q-card[data-q-id]');
-  if (card && !e.target.closest('[data-action]') && !e.target.closest('.icon-btn')) { openDrawer(card.dataset.qId); return; }
+  if (card && !e.target.closest('[data-action]') && !e.target.closest('.icon-btn') && !e.target.closest('.q-card-play-wrap') && !e.target.closest('.q-card-inline-player')) { openDrawer(card.dataset.qId); return; }
   const overlay = e.target;
   if (overlay.id === 'newListModal') closeNewListModal();
 });
@@ -2640,19 +2950,21 @@ function wireButtons() {
   document.getElementById('breadcrumbHome').onclick = () => loadListsScreen();
 
   document.getElementById('searchInput').addEventListener('input', function() { appState.search = this.value; renderQuestions(); });
-  document.getElementById('filterClass').addEventListener('change', function() { appState.filterClass = this.value; renderQuestions(); });
+  document.getElementById('filterPoints').addEventListener('change', function() { appState.filterPoints = this.value; renderQuestions(); });
   document.getElementById('filterStatus').addEventListener('change', function() { appState.filterStatus = this.value; renderQuestions(); });
-  document.getElementById('viewTable').onclick = () => { appState.viewMode = 'table'; document.getElementById('viewTable').classList.add('active'); document.getElementById('viewGrid').classList.remove('active'); renderQuestions(); };
-  document.getElementById('viewGrid').onclick  = () => { appState.viewMode = 'grid';  document.getElementById('viewGrid').classList.add('active'); document.getElementById('viewTable').classList.remove('active'); renderQuestions(); };
+  document.getElementById('viewTable').onclick = () => { appState.viewMode = 'table'; localStorage.setItem('viewMode','table'); syncViewButtons(); renderQuestions(); };
+  document.getElementById('viewGrid').onclick  = () => { appState.viewMode = 'grid';  localStorage.setItem('viewMode','grid');  syncViewButtons(); renderQuestions(); };
 
   document.getElementById('catViewTabs').onclick = () => {
     appState.catViewMode = 'tabs';
     localStorage.setItem('catViewMode', 'tabs');
+    syncCatViewButtons();
     renderCategoriesBar();
   };
   document.getElementById('catViewSidenav').onclick = () => {
     appState.catViewMode = 'sidenav';
     localStorage.setItem('catViewMode', 'sidenav');
+    syncCatViewButtons();
     renderCategoriesBar();
   };
   document.getElementById('btnAddQuestion').onclick = () => {
@@ -2719,6 +3031,34 @@ function wireButtons() {
     updateAnsMediaPreview('');
     document.getElementById('unsavedDot').style.display = 'inline-block';
   };
+
+  // ── Answer Media: upload ──────────────────────────────────────────
+  document.getElementById('ansMediaFileInput').addEventListener('change', async function() {
+    const file = this.files[0];
+    if (!file) return;
+    const uploading = document.getElementById('ansMediaUploading');
+    uploading.style.display = 'flex';
+    try {
+      const ext  = file.name.split('.').pop().toLowerCase();
+      const path = `answer-media/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await _sb.storage.from('question-media').upload(path, file, { upsert: false });
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = _sb.storage.from('question-media').getPublicUrl(path);
+      document.getElementById('fCorrectAnswerMedia').value = publicUrl;
+      updateAnsMediaPreview(publicUrl);
+      document.getElementById('unsavedDot').style.display = 'inline-block';
+    } catch (e) {
+      toast('Upload failed: ' + e.message, 'error');
+    } finally {
+      uploading.style.display = 'none';
+      this.value = '';
+    }
+  });
+
+  // ── Answer Media: library picker ─────────────────────────────────
+  document.getElementById('btnAnsMediaLibrary').onclick = () => toggleAmlPanel();
+  document.getElementById('btnAmlClose').onclick        = () => closeAmlPanel();
+  document.getElementById('amlSearch').addEventListener('input', function() { renderAmlGrid(this.value.trim()); });
   // URL-fallback toggles
   document.getElementById('btnAddImageUrl').onclick = () => _muAddUrlRow('image');
   document.getElementById('btnAddVideoUrl').onclick = () => _muAddUrlRow('video');
@@ -2759,11 +3099,17 @@ async function init() {
   const session = await Auth.requireAuth(['super_admin', 'admin', 'editor']);
   if (!session) return;
 
-  Sidebar.init('database');
+  Sidebar.init('database'); // sidebar id stays 'database' to match sidebar.js nav entry
   const role = await Auth.getRole();
   Sidebar.setUser(session.user, role);
 
   wireButtons();
+  // Show "Manage" points button only for super_admin
+  if (role === 'super_admin') {
+    const btn = document.getElementById('btnManagePoints');
+    btn.style.display = 'inline-flex';
+    btn.onclick = openManagePoints;
+  }
   updateConnBadge();
   await DB.ping();
   // Load user directory in background — resolveUserName() returns null until it resolves

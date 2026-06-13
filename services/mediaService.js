@@ -169,7 +169,7 @@ const MediaService = {
     const [rowsRes, catRes] = await Promise.all([
       window._sb
         .from('question_media')
-        .select('id, question_id, questions(id, question, correct_answer, list_id, category_id)')
+        .select('id, question_id, questions(id, question, correct_answer, list_id, category_id, lists(title))')
         .eq(matchField, matchValue)
         .not('question_id', 'is', null),
       window._sb.from('categories').select('id, name')
@@ -183,6 +183,7 @@ const MediaService = {
       question:      r.questions?.question       || '',
       answer:        r.questions?.correct_answer || '',
       listId:        r.questions?.list_id        || '',
+      listTitle:     r.questions?.lists?.title   || '',
       categoryId:    r.questions?.category_id    || '',
       categoryName:  catMap.get(r.questions?.category_id) || ''
     }));

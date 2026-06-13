@@ -848,14 +848,25 @@ async function openDetailDrawer(id) {
                  <div class="md-question-text">${escHtml(lq.question || '—')}</div>
                  ${lq.answer ? `<div class="md-question-answer">${icon('check-circle','icon-xs')} ${escHtml(lq.answer)}</div>` : ''}
                  <div class="md-question-meta">
-                   ${lq.listId     ? `<span>${icon('list','icon-xs')} ${escHtml(lq.listId)}</span>` : ''}
+                   ${lq.listTitle   ? `<span>${icon('list','icon-xs')} ${escHtml(lq.listTitle)}</span>` : (lq.listId ? `<span>${icon('list','icon-xs')} ${escHtml(lq.listId)}</span>` : '')}
                    ${lq.categoryName ? `<span>${icon('tag','icon-xs')} ${escHtml(lq.categoryName)}</span>` : ''}
                  </div>
-                 ${canUpload()
-                   ? `<button class="btn btn-ghost btn-sm md-btn-unlink-q" data-q-id="${escHtml(lq.linkId)}" style="margin-top:8px;">
-                        ${icon('unlink','icon-xs')} Unlink
-                      </button>`
-                   : ''}
+                 <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                   ${lq.listId && lq.questionId
+                     ? `<a class="btn btn-ghost btn-sm" href="./database.html?list=${encodeURIComponent(lq.listId)}&question=${encodeURIComponent(lq.questionId)}" target="_blank">
+                          ${icon('external-link','icon-xs')} Open Question
+                        </a>`
+                     : lq.listId
+                       ? `<a class="btn btn-ghost btn-sm" href="./database.html?list=${encodeURIComponent(lq.listId)}" target="_blank">
+                            ${icon('external-link','icon-xs')} Open List
+                          </a>`
+                       : ''}
+                   ${canUpload()
+                     ? `<button class="btn btn-ghost btn-sm md-btn-unlink-q" data-q-id="${escHtml(lq.linkId)}">
+                          ${icon('unlink','icon-xs')} Unlink
+                        </button>`
+                     : ''}
+                 </div>
                </div>`).join('')
            : `<div class="md-no-links">${icon('unlink','icon-sm')} Not linked to any question</div>`
          }
