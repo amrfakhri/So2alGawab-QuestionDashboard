@@ -2098,6 +2098,10 @@ async function saveQuestion() {
   await persistList();
   // Log change in the background — don't block the save
   if (questionId) DB.logQuestionChange(questionId, logAction, logChanges).catch(() => {});
+  // Clear is_under_review when an admin edits a question that was flagged
+  if (appState.editingQuestionId) {
+    _sb.from('questions').update({ is_under_review: false }).eq('id', appState.editingQuestionId).then(() => {}).catch(() => {});
+  }
   closeDrawer();
   renderCategoriesBar();
   renderQuestions();

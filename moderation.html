@@ -18,17 +18,76 @@
 <link rel="stylesheet" href="./assets/css/forms.css">
 <link rel="stylesheet" href="./assets/css/sidebar.css">
 <link rel="stylesheet" href="./assets/css/responsive.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-<script src="./services/supabase.js?v=20260612"></script>
-<script src="./services/auth.js?v=20260612"></script>
-<script src="./services/sidebar.js?v=20260612"></script>
 <style>
-  .sec-title { font-size: 16px; margin: 22px 0 12px; }
-  .term-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .term-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--border); border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 13px; }
-  .term-chip button { border: none; background: var(--red-bg); color: var(--red); border-radius: 50%; width: 20px; height: 20px; cursor: pointer; line-height: 1; }
-  .add-row { display: flex; gap: 8px; margin-bottom: 14px; max-width: 420px; }
+/* ── Tab strip ───────────────────────────────────────────────────────────── */
+.mod-tabs      { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.mod-tab       { padding: 8px 16px; font-size: 13px; font-weight: 600; color: var(--text2);
+                 background: none; border: none; border-bottom: 2px solid transparent;
+                 cursor: pointer; transition: color .15s, border-color .15s; white-space: nowrap; }
+.mod-tab.active{ color: var(--gold); border-bottom-color: var(--gold); }
+.mod-tab-panel { display: none; }
+.mod-tab-panel.active { display: block; }
+
+/* ── Stats cards ─────────────────────────────────────────────────────────── */
+.mod-stats     { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 12px; margin-bottom: 20px; }
+.mod-stat      { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-sm);
+                 padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.mod-stat-val  { font-size: 26px; font-weight: 700; color: var(--text1); line-height: 1.1; }
+.mod-stat-lbl  { font-size: 11px; color: var(--text3); font-weight: 500; }
+.mod-stat.warn .mod-stat-val { color: var(--amber, #f59e0b); }
+.mod-stat.danger .mod-stat-val { color: var(--red); }
+
+/* ── Question reports table ──────────────────────────────────────────────── */
+.qr-reason     { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px;
+                 font-weight: 600; background: var(--surface2); color: var(--text2); }
+
+/* ── Detail panel (slide-in drawer) ─────────────────────────────────────── */
+.qr-panel-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 90; }
+.qr-panel-overlay.open { display: block; }
+.qr-panel      { position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100vw);
+                 background: var(--surface); border-left: 1px solid var(--border);
+                 display: flex; flex-direction: column; z-index: 91;
+                 transform: translateX(100%); transition: transform .25s ease; overflow: hidden; }
+.qr-panel.open { transform: none; }
+.qr-panel-head { padding: 16px 20px; border-bottom: 1px solid var(--border);
+                 display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.qr-panel-head h2 { font-size: 15px; font-weight: 700; margin: 0; }
+.qr-panel-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+.qr-q-block    { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-sm);
+                 padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.qr-q-text     { font-size: 14px; color: var(--text1); font-weight: 600; line-height: 1.5; }
+.qr-q-answer   { font-size: 12px; color: var(--text2); }
+.qr-q-meta     { display: flex; flex-wrap: wrap; gap: 6px; }
+.qr-section-title { font-size: 12px; font-weight: 700; color: var(--text3); text-transform: uppercase;
+                    letter-spacing: .04em; margin: 0; }
+.qr-report-row { padding: 10px 0; border-bottom: 1px solid var(--border); display: flex;
+                 flex-direction: column; gap: 4px; }
+.qr-report-row:last-child { border-bottom: none; }
+.qr-report-reason { font-size: 13px; font-weight: 600; color: var(--text1); }
+.qr-report-comment { font-size: 12px; color: var(--text2); font-style: italic; }
+.qr-report-meta { font-size: 11px; color: var(--text3); }
+.qr-event-row  { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0;
+                 border-bottom: 1px solid var(--border); }
+.qr-event-row:last-child { border-bottom: none; }
+.qr-event-dot  { width: 8px; height: 8px; border-radius: 50%; background: var(--text3);
+                 flex-shrink: 0; margin-top: 4px; }
+.qr-event-dot.needs_edit { background: var(--amber, #f59e0b); }
+.qr-event-dot.disabled   { background: var(--red); }
+.qr-event-dot.rejected   { background: var(--text3); }
+.qr-event-dot.edited     { background: var(--green); }
+.qr-actions    { padding: 16px 20px; border-top: 1px solid var(--border);
+                 display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.qr-actions-row { display: flex; gap: 8px; }
+
+/* ── Misc ────────────────────────────────────────────────────────────────── */
+.term-chips    { display: flex; flex-wrap: wrap; gap: 8px; }
+.term-chip     { display: inline-flex; align-items: center; gap: 6px; background: var(--card);
+                 border: 1px solid var(--border); border-radius: 999px; padding: 4px 6px 4px 12px;
+                 font-size: 13px; }
+.term-chip button { border: none; background: var(--red-bg); color: var(--red); border-radius: 50%;
+                    width: 20px; height: 20px; cursor: pointer; line-height: 1; }
+.add-row       { display: flex; gap: 8px; margin-bottom: 14px; max-width: 420px; }
+.sec-title     { font-size: 16px; margin: 0 0 12px; }
 </style>
 </head>
 <body>
@@ -44,55 +103,351 @@
   <div class="page-header">
     <div>
       <h1>Moderation</h1>
-      <p>Review player reports and curate the username/answer denylist (enforced server-side on usernames).</p>
+      <p>Review question reports and manage the player denylist.</p>
     </div>
-    <button class="btn btn-ghost" onclick="loadAll()"><i data-lucide="refresh-cw" class="icon-sm"></i> Refresh</button>
+    <button class="btn btn-ghost" onclick="loadActiveTab()"><i data-lucide="refresh-cw" class="icon-sm"></i> Refresh</button>
   </div>
 
-  <!-- Reports -->
-  <h2 class="sec-title">Reports</h2>
-  <div class="filters">
-    <select class="filter-select" id="statusFilter" onchange="loadReports()">
-      <option value="open">Open</option>
-      <option value="reviewed">Reviewed</option>
-      <option value="actioned">Actioned</option>
-      <option value="dismissed">Dismissed</option>
-      <option value="all">All</option>
-    </select>
-  </div>
-  <div class="table-wrap">
-    <table class="users-table">
-      <thead><tr><th>When</th><th>Reporter → Target</th><th>Context</th><th>Status</th><th>Actions</th></tr></thead>
-      <tbody id="reportsBody"><tr><td colspan="5"><div class="table-state"><div class="spinner"></div></div></td></tr></tbody>
-    </table>
+  <!-- Tab strip -->
+  <div class="mod-tabs">
+    <button class="mod-tab active" data-tab="questions">Question Reports</button>
+    <button class="mod-tab" data-tab="players">Player Reports</button>
+    <button class="mod-tab" data-tab="terms">Banned Terms</button>
   </div>
 
-  <!-- Banned terms -->
-  <h2 class="sec-title">Banned terms (username / answer denylist)</h2>
-  <div class="add-row">
-    <input class="form-input" id="newTerm" type="text" placeholder="add a term…">
-    <button class="btn btn-primary" onclick="addTerm()">Add</button>
+  <!-- ── Tab 1: Question Reports ────────────────────────────────────────── -->
+  <div class="mod-tab-panel active" id="tabQuestions">
+
+    <!-- Stats cards -->
+    <div class="mod-stats" id="qrStats">
+      <div class="mod-stat"><span class="mod-stat-val" id="statTotal">—</span><span class="mod-stat-lbl">Total reports</span></div>
+      <div class="mod-stat warn"><span class="mod-stat-val" id="statOpen">—</span><span class="mod-stat-lbl">Open</span></div>
+      <div class="mod-stat"><span class="mod-stat-val" id="statResolved">—</span><span class="mod-stat-lbl">Resolved</span></div>
+      <div class="mod-stat"><span class="mod-stat-val" id="statReview">—</span><span class="mod-stat-lbl">Under review</span></div>
+      <div class="mod-stat danger"><span class="mod-stat-val" id="statDisabled">—</span><span class="mod-stat-lbl">Disabled</span></div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters" style="margin-bottom:12px;">
+      <select class="filter-select" id="qrStatusFilter" onchange="loadQuestionReports()">
+        <option value="open">Open</option>
+        <option value="resolved">Resolved</option>
+        <option value="rejected">Rejected</option>
+        <option value="all">All</option>
+      </select>
+      <select class="filter-select" id="qrReasonFilter" onchange="loadQuestionReports()">
+        <option value="">All reasons</option>
+        <option value="incorrect_info">Incorrect info</option>
+        <option value="wrong_answer">Wrong answer</option>
+        <option value="unclear">Unclear question</option>
+        <option value="typo">Typo / grammar</option>
+        <option value="offensive">Offensive</option>
+        <option value="sensitive">Sensitive</option>
+        <option value="wrong_category">Wrong category</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table class="users-table">
+        <thead><tr>
+          <th>Question</th>
+          <th>Category</th>
+          <th>Top Reason</th>
+          <th>Reports</th>
+          <th>Status</th>
+          <th>Last Report</th>
+          <th>Actions</th>
+        </tr></thead>
+        <tbody id="qrBody">
+          <tr><td colspan="7"><div class="table-state"><div class="spinner"></div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
-  <div class="term-chips" id="terms"></div>
+
+  <!-- ── Tab 2: Player Reports ──────────────────────────────────────────── -->
+  <div class="mod-tab-panel" id="tabPlayers">
+    <div class="filters" style="margin-bottom:12px;">
+      <select class="filter-select" id="statusFilter" onchange="loadReports()">
+        <option value="open">Open</option>
+        <option value="reviewed">Reviewed</option>
+        <option value="actioned">Actioned</option>
+        <option value="dismissed">Dismissed</option>
+        <option value="all">All</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table class="users-table">
+        <thead><tr><th>When</th><th>Reporter → Target</th><th>Context</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="reportsBody">
+          <tr><td colspan="5"><div class="table-state"><div class="spinner"></div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Tab 3: Banned Terms ────────────────────────────────────────────── -->
+  <div class="mod-tab-panel" id="tabTerms">
+    <h2 class="sec-title">Banned terms (username / answer denylist)</h2>
+    <div class="add-row">
+      <input class="form-input" id="newTerm" type="text" placeholder="add a term…">
+      <button class="btn btn-primary" onclick="addTerm()">Add</button>
+    </div>
+    <div class="term-chips" id="terms"></div>
+  </div>
+</div>
+
+<!-- ── Question report detail panel ────────────────────────────────────── -->
+<div class="qr-panel-overlay" id="qrPanelOverlay" onclick="closeQrPanel()"></div>
+<div class="qr-panel" id="qrPanel">
+  <div class="qr-panel-head">
+    <h2>Report Details</h2>
+    <button class="icon-btn" onclick="closeQrPanel()"><i data-lucide="x" class="icon-sm"></i></button>
+  </div>
+  <div class="qr-panel-body" id="qrPanelBody">
+    <div class="table-state"><div class="spinner"></div></div>
+  </div>
+  <div class="qr-actions">
+    <div class="qr-actions-row">
+      <button class="btn btn-primary" style="flex:1;" id="btnQrNeedsEdit" onclick="resolveQr('needs_edit')">
+        <i data-lucide="pencil" class="icon-sm"></i> Mark for Edit
+      </button>
+      <button class="btn btn-danger" style="flex:1;" id="btnQrDisable" onclick="resolveQr('disabled')">
+        <i data-lucide="eye-off" class="icon-sm"></i> Disable
+      </button>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;" id="btnQrReject" onclick="resolveQr('rejected')">
+      <i data-lucide="shield-x" class="icon-sm"></i> Reject Reports
+    </button>
+  </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
 'use strict';
-function icon(n,c=''){ return `<i data-lucide="${n}"${c?` class="${c}"`:''}></i>`; }
-function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-async function init(){
-  const session = await Auth.requireAuth(['admin','super_admin']);
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function icon(n, c='') { return `<i data-lucide="${n}"${c ? ` class="${c}"` : ''}></i>`; }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmt(d) { return d ? new Date(d).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'; }
+
+const REASON_LABELS = {
+  incorrect_info: 'Incorrect info', wrong_answer: 'Wrong answer', unclear: 'Unclear',
+  typo: 'Typo / grammar', offensive: 'Offensive', sensitive: 'Sensitive',
+  wrong_category: 'Wrong category', other: 'Other',
+};
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+let _activeTab = 'questions';
+
+document.querySelectorAll('.mod-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mod-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.mod-tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    _activeTab = btn.dataset.tab;
+    document.getElementById('tab' + _activeTab.charAt(0).toUpperCase() + _activeTab.slice(1))?.classList.add('active');
+    closeQrPanel();
+    loadActiveTab();
+  });
+});
+
+function loadActiveTab() {
+  if (_activeTab === 'questions') { loadQrStats(); loadQuestionReports(); }
+  else if (_activeTab === 'players')  loadReports();
+  else if (_activeTab === 'terms')    loadTerms();
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+async function init() {
+  const session = await Auth.requireAuth(['admin', 'super_admin']);
   if (!session) return;
   Sidebar.init('moderation');
   Sidebar.setUser(session.user, await Auth.getRole());
-  await loadAll();
+  loadQrStats();
+  loadQuestionReports();
 }
-async function loadAll(){ await Promise.all([loadReports(), loadTerms()]); }
 
-async function loadReports(){
+// ── Question report stats ─────────────────────────────────────────────────────
+async function loadQrStats() {
+  try {
+    const { data, error } = await window._sb.rpc('get_question_report_stats');
+    if (error) throw error;
+    const s = data || {};
+    document.getElementById('statTotal').textContent    = s.total_reports    ?? '—';
+    document.getElementById('statOpen').textContent     = s.open_reports      ?? '—';
+    document.getElementById('statResolved').textContent = s.resolved_reports  ?? '—';
+    document.getElementById('statReview').textContent   = s.under_review      ?? '—';
+    document.getElementById('statDisabled').textContent = s.disabled_questions ?? '—';
+  } catch { /* silent */ }
+}
+
+// ── Question reports list ─────────────────────────────────────────────────────
+async function loadQuestionReports() {
+  const tb = document.getElementById('qrBody');
+  tb.innerHTML = `<tr><td colspan="7"><div class="table-state"><div class="spinner"></div></div></td></tr>`;
+  try {
+    const status = document.getElementById('qrStatusFilter').value;
+    const reason = document.getElementById('qrReasonFilter').value;
+    const { data, error } = await window._sb.rpc('admin_list_question_reports', {
+      p_status: status, p_reason: reason || null, p_limit: 100, p_offset: 0,
+    });
+    if (error) throw error;
+    const rows = data || [];
+    if (!rows.length) {
+      tb.innerHTML = `<tr><td colspan="7"><div class="table-state">${icon('shield-check','icon-xl')}<h3>No reports</h3></div></td></tr>`;
+      lucide.createIcons(); return;
+    }
+    tb.innerHTML = rows.map(r => {
+      const flags = [];
+      if (r.is_under_review) flags.push(`<span class="badge badge-amber">Under Review</span>`);
+      if (r.is_disabled)     flags.push(`<span class="badge badge-red">Disabled</span>`);
+      const statusBadge = r.is_disabled
+        ? `<span class="badge badge-red">Disabled</span>`
+        : r.is_under_review
+          ? `<span class="badge badge-amber">Under Review</span>`
+          : `<span class="badge badge-gray">Open</span>`;
+      return `<tr>
+        <td>
+          <div style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.question_text)}">
+            ${esc(r.question_text || '—')}
+          </div>
+        </td>
+        <td><span class="badge badge-gray">${esc(r.category_name || '—')}</span></td>
+        <td><span class="qr-reason">${esc(REASON_LABELS[r.top_reason] || r.top_reason || '—')}</span></td>
+        <td style="font-weight:700;">${esc(String(r.open_count || 0))}</td>
+        <td>${statusBadge}</td>
+        <td class="date-cell">${fmt(r.latest_at)}</td>
+        <td class="action-cell">
+          <button class="btn btn-ghost btn-sm" onclick='openQrPanel("${esc(r.question_id)}")'>
+            ${icon('eye','icon-xs')} Review
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+    lucide.createIcons();
+  } catch (e) {
+    tb.innerHTML = `<tr><td colspan="7"><div class="table-state"><p class="text-error">${esc(e.message)}</p></div></td></tr>`;
+  }
+}
+
+// ── Question report detail panel ──────────────────────────────────────────────
+let _qrCurrentQuestionId = null;
+
+async function openQrPanel(questionId) {
+  _qrCurrentQuestionId = questionId;
+  const body = document.getElementById('qrPanelBody');
+  body.innerHTML = `<div class="table-state"><div class="spinner"></div></div>`;
+  document.getElementById('qrPanel').classList.add('open');
+  document.getElementById('qrPanelOverlay').classList.add('open');
+  lucide.createIcons();
+
+  try {
+    const { data, error } = await window._sb.rpc('admin_get_question_report_detail', { p_question_id: questionId });
+    if (error) throw error;
+
+    const d = data || {};
+    const q = d.question || {};
+    const reports = d.reports || [];
+    const events  = d.events  || [];
+
+    body.innerHTML = `
+      <!-- Question block -->
+      <div class="qr-q-block">
+        <div class="qr-q-text">${esc(q.question || '—')}</div>
+        <div class="qr-q-answer">${icon('check','icon-xs')} ${esc(q.correct_answer || '—')}</div>
+        <div class="qr-q-meta">
+          ${q.category_name ? `<span class="badge badge-gray">${esc(q.category_name)}</span>` : ''}
+          ${q.is_under_review ? `<span class="badge badge-amber">Under Review</span>` : ''}
+          ${q.is_disabled    ? `<span class="badge badge-red">Disabled</span>`       : ''}
+        </div>
+        <div style="margin-top:6px;">
+          <a href="./database.html?highlight=${esc(questionId)}" target="_blank" class="btn btn-ghost btn-sm">
+            ${icon('external-link','icon-xs')} Open in Editor
+          </a>
+        </div>
+      </div>
+
+      <!-- Reports list -->
+      <div>
+        <p class="qr-section-title">Reports (${reports.length})</p>
+        <div style="margin-top:8px;">
+          ${reports.length ? reports.map(r => `
+            <div class="qr-report-row">
+              <div class="qr-report-reason">${esc(REASON_LABELS[r.reason] || r.reason)}</div>
+              ${r.comment ? `<div class="qr-report-comment">"${esc(r.comment)}"</div>` : ''}
+              <div class="qr-report-meta">
+                ${esc(r.reporter || 'Anonymous')} · ${fmt(r.created_at)}
+                <span class="badge badge-gray" style="margin-left:6px;">${esc(r.status)}</span>
+              </div>
+            </div>`).join('') : '<p style="color:var(--text3);font-size:13px;">No reports yet.</p>'}
+        </div>
+      </div>
+
+      <!-- Moderation history -->
+      ${events.length ? `
+      <div>
+        <p class="qr-section-title">Moderation History</p>
+        <div style="margin-top:8px;">
+          ${events.map(e => `
+            <div class="qr-event-row">
+              <div class="qr-event-dot ${esc(e.action)}"></div>
+              <div>
+                <div style="font-size:13px;font-weight:600;">${esc(e.action.replace(/_/g,' '))}</div>
+                ${e.notes ? `<div style="font-size:12px;color:var(--text2);">${esc(e.notes)}</div>` : ''}
+                <div style="font-size:11px;color:var(--text3);">${esc(e.moderator || '?')} · ${fmt(e.created_at)}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
+    `;
+    lucide.createIcons({ nodes: [body] });
+  } catch (e) {
+    body.innerHTML = `<p class="text-error">${esc(e.message)}</p>`;
+  }
+}
+
+function closeQrPanel() {
+  _qrCurrentQuestionId = null;
+  document.getElementById('qrPanel').classList.remove('open');
+  document.getElementById('qrPanelOverlay').classList.remove('open');
+}
+
+async function resolveQr(action) {
+  if (!_qrCurrentQuestionId) return;
+  const labels = { needs_edit: 'Mark for Edit', disabled: 'Disable this question', rejected: 'Reject all reports' };
+  if (!confirm(`${labels[action]}?`)) return;
+
+  // Optional note for context
+  const notes = action !== 'rejected' ? (prompt('Add a note (optional):') || null) : null;
+
+  try {
+    const { error } = await window._sb.rpc('admin_resolve_question_reports', {
+      p_question_id: _qrCurrentQuestionId,
+      p_action:      action,
+      p_notes:       notes,
+    });
+    if (error) throw error;
+
+    toast(`Done — ${labels[action]}`, 'success');
+    closeQrPanel();
+    loadQrStats();
+    loadQuestionReports();
+
+    // If marked for edit, also open the question editor
+    if (action === 'needs_edit') {
+      window.open(`./database.html?highlight=${_qrCurrentQuestionId}`, '_blank');
+    }
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+// ── Player reports (unchanged) ────────────────────────────────────────────────
+async function loadReports() {
   const tb = document.getElementById('reportsBody');
   tb.innerHTML = `<tr><td colspan="5"><div class="table-state"><div class="spinner"></div></div></td></tr>`;
   try {
@@ -100,35 +455,41 @@ async function loadReports(){
     const { data, error } = await window._sb.rpc('admin_list_reports', { p_status: status });
     if (error) throw error;
     const rows = data || [];
-    if (!rows.length){
-      tb.innerHTML = `<tr><td colspan="5"><div class="table-state"><div class="icon">${icon('shield-check','icon-xl')}</div><h3>No reports</h3></div></td></tr>`;
-      window.lucide && lucide.createIcons(); return;
+    if (!rows.length) {
+      tb.innerHTML = `<tr><td colspan="5"><div class="table-state">${icon('shield-check','icon-xl')}<h3>No reports</h3></div></td></tr>`;
+      lucide.createIcons(); return;
     }
     tb.innerHTML = rows.map(r => `<tr>
-      <td class="date-cell">${new Date(r.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
+      <td class="date-cell">${fmt(r.created_at)}</td>
       <td><span class="user-name">${esc(r.reporter||'?')}</span> → <span class="user-name">${esc(r.target||'?')}</span></td>
       <td><span class="badge badge-gray">${esc(r.context)}</span></td>
-      <td>${statusBadge(r.status)}</td>
+      <td>${playerStatusBadge(r.status)}</td>
       <td class="action-cell" style="white-space:nowrap;">
-        <button class="btn btn-ghost btn-sm" onclick="resolve('${r.id}','actioned')">Action</button>
-        <button class="btn btn-ghost btn-sm" onclick="resolve('${r.id}','dismissed')">Dismiss</button>
+        <button class="btn btn-ghost btn-sm" onclick="resolvePlayer('${r.id}','actioned')">Action</button>
+        <button class="btn btn-ghost btn-sm" onclick="resolvePlayer('${r.id}','dismissed')">Dismiss</button>
       </td>
     </tr>`).join('');
-    window.lucide && lucide.createIcons();
-  } catch (e){
-    tb.innerHTML = `<tr><td colspan="5"><div class="table-state"><p class="text-error">${esc(/not_authorized/.test(e.message||'')?'Not authorized.':e.message)}</p></div></td></tr>`;
+    lucide.createIcons();
+  } catch (e) {
+    tb.innerHTML = `<tr><td colspan="5"><div class="table-state"><p class="text-error">${esc(e.message)}</p></div></td></tr>`;
   }
 }
-function statusBadge(s){
+
+function playerStatusBadge(s) {
   const m = { open:'badge-amber', reviewed:'badge-blue', actioned:'badge-green', dismissed:'badge-gray' };
   return `<span class="badge ${m[s]||'badge-gray'}">${esc(s)}</span>`;
 }
-async function resolve(id, status){
-  try { const { error } = await window._sb.rpc('admin_resolve_report', { p_id: id, p_status: status }); if (error) throw error; toast('Updated','success'); loadReports(); }
-  catch (e){ toast(e.message,'error'); }
+
+async function resolvePlayer(id, status) {
+  try {
+    const { error } = await window._sb.rpc('admin_resolve_report', { p_id: id, p_status: status });
+    if (error) throw error;
+    toast('Updated', 'success'); loadReports();
+  } catch (e) { toast(e.message, 'error'); }
 }
 
-async function loadTerms(){
+// ── Banned terms (unchanged) ──────────────────────────────────────────────────
+async function loadTerms() {
   try {
     const { data, error } = await window._sb.rpc('admin_list_banned_terms');
     if (error) throw error;
@@ -136,32 +497,44 @@ async function loadTerms(){
     document.getElementById('terms').innerHTML = terms.length
       ? terms.map(t => `<span class="term-chip">${esc(t.term)}<button title="remove" onclick="removeTerm('${esc(t.term).replace(/'/g,"\\'")}')">×</button></span>`).join('')
       : '<span class="text-muted">No terms yet.</span>';
-  } catch (e){ document.getElementById('terms').innerHTML = `<span class="text-error">${esc(e.message)}</span>`; }
+  } catch (e) {
+    document.getElementById('terms').innerHTML = `<span class="text-error">${esc(e.message)}</span>`;
+  }
 }
-async function addTerm(){
+async function addTerm() {
   const term = document.getElementById('newTerm').value.trim();
   if (!term) return;
-  try { const { error } = await window._sb.rpc('admin_add_banned_term', { p_term: term, p_lang: null }); if (error) throw error; document.getElementById('newTerm').value=''; toast('Added','success'); loadTerms(); }
-  catch (e){ toast(e.message,'error'); }
+  try {
+    const { error } = await window._sb.rpc('admin_add_banned_term', { p_term: term, p_lang: null });
+    if (error) throw error;
+    document.getElementById('newTerm').value = '';
+    toast('Added', 'success'); loadTerms();
+  } catch (e) { toast(e.message, 'error'); }
 }
-async function removeTerm(term){
-  try { const { error } = await window._sb.rpc('admin_remove_banned_term', { p_term: term }); if (error) throw error; toast('Removed','success'); loadTerms(); }
-  catch (e){ toast(e.message,'error'); }
+async function removeTerm(term) {
+  try {
+    const { error } = await window._sb.rpc('admin_remove_banned_term', { p_term: term });
+    if (error) throw error;
+    toast('Removed', 'success'); loadTerms();
+  } catch (e) { toast(e.message, 'error'); }
 }
 
-let toastTimer;
-function toast(msg, type='success'){
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let _toastTimer;
+function toast(msg, type = 'success') {
   const el = document.getElementById('toast');
-  el.innerHTML = `${icon(type==='success'?'check-circle':'x-circle','icon-sm')} ${msg}`;
-  el.className = 'show ' + type; window.lucide && lucide.createIcons();
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className=''; }, 3000);
+  el.innerHTML = `${icon(type === 'success' ? 'check-circle' : 'x-circle', 'icon-sm')} ${msg}`;
+  el.className = 'show ' + type;
+  lucide.createIcons({ nodes: [el] });
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.className = ''; }, 3500);
 }
 
-window.lucide && lucide.createIcons();
-init().catch((e) => {
-  document.getElementById('reportsBody').innerHTML =
-    `<tr><td colspan="5"><div class="table-state"><div class="icon">${icon('triangle-alert','icon-xl')}</div><h3>Couldn't load</h3><p class="text-error">${esc(e && e.message ? e.message : String(e))}</p></div></td></tr>`;
-  window.lucide && lucide.createIcons();
+lucide.createIcons();
+init().catch(e => {
+  document.getElementById('qrBody').innerHTML =
+    `<tr><td colspan="7"><div class="table-state">${icon('triangle-alert','icon-xl')}<h3>Couldn't load</h3><p class="text-error">${esc(e?.message ?? String(e))}</p></div></td></tr>`;
+  lucide.createIcons();
 });
 </script>
 </body>
