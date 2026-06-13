@@ -277,18 +277,21 @@ async function scan() {
     // ── Step 1: Raw queries — no joins to avoid FK-hint PostgREST errors ──
 
     // question_media: rows with no storage file (file_path NULL) linked to a question
+    // .limit(5000) avoids PostgREST's default 1000-row cap silently truncating results
     const { data: mediaRows, error: mediaErr } = await _sb
       .from('question_media')
       .select('id, question_id, media_url, media_type, media_purpose, sort_order')
       .is('file_path', null)
       .not('media_url', 'is', null)
-      .not('question_id', 'is', null);
+      .not('question_id', 'is', null)
+      .limit(5000);
     if (mediaErr) throw new Error('question_media scan failed: ' + mediaErr.message);
 
     // question_metadata: all rows — we filter hints.correctAnswerMedia in JS
     const { data: metaRows, error: metaErr } = await _sb
       .from('question_metadata')
-      .select('question_id, hints');
+      .select('question_id, hints')
+      .limit(5000);
     if (metaErr) throw new Error('question_metadata scan failed: ' + metaErr.message);
 
     // ── Step 2: Filter for external URLs ──────────────────────────────────
@@ -467,10 +470,13 @@ async function migrateItem(item) {
   setItemStatus(item, 'migrating');
   try {
     const { data: { session } } = await _sb.auth.getSession();
+
+    // ── Step 1: Edge function fetches the external file and uploads to storage ──
+    // The edge function only does fetch + upload and returns the new URL.
+    // DB updates are done here in the browser so errors are clearly attributable.
     const resp = await _sb.functions.invoke('media-migrate', {
       body: {
         source:     item.source,
-        rowId:      item.rowId,
         questionId: item.questionId,
         url:        item.url,
       },
@@ -479,11 +485,41 @@ async function migrateItem(item) {
 
     if (resp.error) throw new Error(resp.error.message || JSON.stringify(resp.error));
     const result = resp.data;
-    if (!result?.ok) throw new Error(result?.error || 'unknown error');
+    if (!result?.ok) throw new Error(result?.error || 'upload_failed');
 
-    item.newUrl  = result.newUrl;
-    item.status  = 'done';
-    item.error   = null;
+    const newUrl = result.newUrl;
+
+    // ── Step 2: Update the DB record from the browser ──────────────────────────
+    if (item.source === 'question_media') {
+      const { error: updErr } = await _sb.from('question_media').update({
+        media_url: newUrl,
+        file_path: result.storagePath,
+        file_name: result.fileName,
+        mime_type: result.mimeType,
+        file_size: result.fileSize,
+      }).eq('id', item.rowId);
+      if (updErr) throw new Error('db_update: ' + updErr.message);
+
+    } else {
+      // answer_media: fetch current hints first so we only change correctAnswerMedia
+      const { data: meta, error: metaErr } = await _sb
+        .from('question_metadata')
+        .select('hints')
+        .eq('question_id', item.questionId)
+        .maybeSingle();
+      if (metaErr) throw new Error('hints_fetch: ' + metaErr.message);
+      if (!meta) throw new Error('hints_not_found for question_id ' + item.questionId);
+      const existing = (meta.hints && typeof meta.hints === 'object' && !Array.isArray(meta.hints))
+        ? meta.hints : {};
+      const { error: updErr } = await _sb.from('question_metadata')
+        .update({ hints: { ...existing, correctAnswerMedia: newUrl } })
+        .eq('question_id', item.questionId);
+      if (updErr) throw new Error('hints_update: ' + updErr.message);
+    }
+
+    item.newUrl = newUrl;
+    item.status = 'done';
+    item.error  = null;
     updateRow(item);
     updateStats();
     return true;
