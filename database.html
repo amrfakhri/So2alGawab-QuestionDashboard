@@ -1569,6 +1569,21 @@ function _muUpdateCount(type) {
   if (count > 0) { badge.textContent = count; badge.style.display = 'flex'; }
   else { badge.style.display = 'none'; }
   updateLivePreview();
+  syncQuestionTypeDropdown();
+}
+
+function syncQuestionTypeDropdown() {
+  const sel = document.getElementById('fQuestionTypeView');
+  if (!sel) return;
+  // MultiChoice has no media equivalent — never auto-overwrite it
+  if (sel.value === 'MultiChoice_Question') return;
+  const hasVideo = document.querySelectorAll('#videoItems .mu-item').length > 0;
+  const hasAudio = document.querySelectorAll('#audioItems .mu-item').length > 0;
+  const hasImage = document.querySelectorAll('#imageItems .mu-item').length > 0;
+  if (hasVideo)      sel.value = 'Video_Question';
+  else if (hasAudio) sel.value = 'Audio_Question';
+  else if (hasImage) sel.value = 'Image_Question';
+  else               sel.value = 'Regular_Question';
 }
 
 /* Clear all media items (used when opening drawer) */
