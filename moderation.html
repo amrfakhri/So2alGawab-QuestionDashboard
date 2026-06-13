@@ -89,6 +89,11 @@
 .add-row       { display: flex; gap: 8px; margin-bottom: 14px; max-width: 420px; }
 .sec-title     { font-size: 16px; margin: 0 0 12px; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="./services/supabase.js?v=20260612"></script>
+<script src="./services/auth.js?v=20260612"></script>
+<script src="./services/sidebar.js?v=20260612"></script>
 </head>
 <body>
 
@@ -299,7 +304,7 @@ async function loadQuestionReports() {
     const rows = data || [];
     if (!rows.length) {
       tb.innerHTML = `<tr><td colspan="7"><div class="table-state">${icon('shield-check','icon-xl')}<h3>No reports</h3></div></td></tr>`;
-      lucide.createIcons(); return;
+      window.lucide && lucide.createIcons(); return;
     }
     tb.innerHTML = rows.map(r => {
       const flags = [];
@@ -328,7 +333,7 @@ async function loadQuestionReports() {
         </td>
       </tr>`;
     }).join('');
-    lucide.createIcons();
+    window.lucide && lucide.createIcons();
   } catch (e) {
     tb.innerHTML = `<tr><td colspan="7"><div class="table-state"><p class="text-error">${esc(e.message)}</p></div></td></tr>`;
   }
@@ -343,7 +348,7 @@ async function openQrPanel(questionId) {
   body.innerHTML = `<div class="table-state"><div class="spinner"></div></div>`;
   document.getElementById('qrPanel').classList.add('open');
   document.getElementById('qrPanelOverlay').classList.add('open');
-  lucide.createIcons();
+  window.lucide && lucide.createIcons();
 
   try {
     const { data, error } = await window._sb.rpc('admin_get_question_report_detail', { p_question_id: questionId });
@@ -404,7 +409,7 @@ async function openQrPanel(questionId) {
         </div>
       </div>` : ''}
     `;
-    lucide.createIcons({ nodes: [body] });
+    window.lucide && lucide.createIcons({ nodes: [body] });
   } catch (e) {
     body.innerHTML = `<p class="text-error">${esc(e.message)}</p>`;
   }
@@ -457,7 +462,7 @@ async function loadReports() {
     const rows = data || [];
     if (!rows.length) {
       tb.innerHTML = `<tr><td colspan="5"><div class="table-state">${icon('shield-check','icon-xl')}<h3>No reports</h3></div></td></tr>`;
-      lucide.createIcons(); return;
+      window.lucide && lucide.createIcons(); return;
     }
     tb.innerHTML = rows.map(r => `<tr>
       <td class="date-cell">${fmt(r.created_at)}</td>
@@ -469,7 +474,7 @@ async function loadReports() {
         <button class="btn btn-ghost btn-sm" onclick="resolvePlayer('${r.id}','dismissed')">Dismiss</button>
       </td>
     </tr>`).join('');
-    lucide.createIcons();
+    window.lucide && lucide.createIcons();
   } catch (e) {
     tb.innerHTML = `<tr><td colspan="5"><div class="table-state"><p class="text-error">${esc(e.message)}</p></div></td></tr>`;
   }
@@ -525,7 +530,7 @@ function toast(msg, type = 'success') {
   const el = document.getElementById('toast');
   el.innerHTML = `${icon(type === 'success' ? 'check-circle' : 'x-circle', 'icon-sm')} ${msg}`;
   el.className = 'show ' + type;
-  lucide.createIcons({ nodes: [el] });
+  window.lucide && lucide.createIcons({ nodes: [el] });
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(() => { el.className = ''; }, 3500);
 }
