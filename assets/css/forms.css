@@ -213,8 +213,10 @@
 .ans-media-actions  { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .ans-media-uploading { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text3); }
 .spinner-xs         { width: 12px; height: 12px; border-width: 2px; border-style: solid; border-color: var(--text3) transparent transparent transparent; border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
-/* Library inline panel */
+/* Library inline panel — shared by answer-media and question-media pickers */
 .ans-media-library  { border: 1px solid var(--border); border-radius: var(--r-sm); margin-top: 8px; overflow: hidden; }
+.qml-panel          { border: 1px solid var(--border); border-radius: var(--r-sm); margin-top: 8px; overflow: hidden; }
+.qml-type-badge     { font-size: 11px; font-weight: 700; color: var(--gold); padding: 2px 7px; background: rgba(245, 200, 75, 0.12); border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
 .aml-header         { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--surface); }
 .aml-search         { flex: 1; font-size: 12px; padding: 5px 8px; height: 30px; }
 .aml-grid           { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; padding: 8px; max-height: 200px; overflow-y: auto; }

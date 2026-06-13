@@ -91,6 +91,14 @@
 /* Hidden file input */
 .mu-file-input { display: none; }
 
+/* Row that holds the URL-toggle and library-picker buttons */
+.mu-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 /* URL fallback toggle */
 .mu-url-toggle {
   font-size: 11px;

@@ -288,9 +288,14 @@
                        accept=".jpg,.jpeg,.png,.webp" multiple>
               </div>
               <div class="mu-items" id="imageItems" data-type="image"></div>
-              <button type="button" class="mu-url-toggle" id="btnAddImageUrl">
-                <i data-lucide="link" class="icon-xs"></i> Add image URL instead
-              </button>
+              <div class="mu-panel-actions">
+                <button type="button" class="mu-url-toggle" id="btnAddImageUrl">
+                  <i data-lucide="link" class="icon-xs"></i> Add image URL
+                </button>
+                <button type="button" class="mu-url-toggle mu-lib-btn" id="btnPickImageLib">
+                  <i data-lucide="images" class="icon-xs"></i> Select from library
+                </button>
+              </div>
             </div>
 
             <!-- VIDEO panel -->
@@ -305,9 +310,14 @@
                        accept=".mp4,.webm,.mov" multiple>
               </div>
               <div class="mu-items" id="videoItems" data-type="video"></div>
-              <button type="button" class="mu-url-toggle" id="btnAddVideoUrl">
-                <i data-lucide="link" class="icon-xs"></i> Add video URL instead
-              </button>
+              <div class="mu-panel-actions">
+                <button type="button" class="mu-url-toggle" id="btnAddVideoUrl">
+                  <i data-lucide="link" class="icon-xs"></i> Add video URL
+                </button>
+                <button type="button" class="mu-url-toggle mu-lib-btn" id="btnPickVideoLib">
+                  <i data-lucide="images" class="icon-xs"></i> Select from library
+                </button>
+              </div>
             </div>
 
             <!-- AUDIO panel -->
@@ -322,9 +332,26 @@
                        accept=".mp3,.wav,.m4a" multiple>
               </div>
               <div class="mu-items" id="audioItems" data-type="audio"></div>
-              <button type="button" class="mu-url-toggle" id="btnAddAudioUrl">
-                <i data-lucide="link" class="icon-xs"></i> Add audio URL instead
-              </button>
+              <div class="mu-panel-actions">
+                <button type="button" class="mu-url-toggle" id="btnAddAudioUrl">
+                  <i data-lucide="link" class="icon-xs"></i> Add audio URL
+                </button>
+                <button type="button" class="mu-url-toggle mu-lib-btn" id="btnPickAudioLib">
+                  <i data-lucide="images" class="icon-xs"></i> Select from library
+                </button>
+              </div>
+            </div>
+
+            <!-- Question Media Library picker (shared across all three tabs) -->
+            <div class="qml-panel" id="qmLibrary" style="display:none;">
+              <div class="aml-header">
+                <span class="qml-type-badge" id="qmlTypeBadge">Images</span>
+                <input class="form-input aml-search" id="qmlSearch" type="text" placeholder="Search by filename…">
+                <button type="button" class="btn btn-ghost btn-sm" id="btnQmlClose">
+                  <i data-lucide="x" class="icon-xs"></i>
+                </button>
+              </div>
+              <div class="aml-grid" id="qmlGrid"></div>
             </div>
 
           </div><!-- /mu-section -->
@@ -1739,8 +1766,8 @@ function _muAddUrlRow(type) {
   cancelBtn.addEventListener('click', () => row.remove());
   input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } });
 
-  const toggle = panel.querySelector('.mu-url-toggle');
-  panel.insertBefore(row, toggle);
+  const actions = panel.querySelector('.mu-panel-actions');
+  panel.insertBefore(row, actions);
   lucide.createIcons({ nodes: [row] });
   input.focus();
 }
@@ -1807,11 +1834,11 @@ function closeAmlPanel() {
 async function loadAmlItems() {
   try {
     const { data } = await _sb.from('question_media')
-      .select('id, media_url, file_path, media_type, file_name')
+      .select('id, media_url, file_path, media_type, file_name, mime_type, file_size')
       .in('media_type', ['image', 'video', 'audio'])
       .not('media_url', 'is', null)
       .order('created_at', { ascending: false })
-      .limit(200);
+      .limit(400);
     _amlItems = data || [];
   } catch { _amlItems = []; }
 }
@@ -1846,6 +1873,71 @@ function renderAmlGrid(search) {
     });
   });
 }
+// ── Question Media Library Picker ─────────────────────────────────
+let _qmlActiveType = 'image';
+
+async function openQmLibrary(type) {
+  const panel = document.getElementById('qmLibrary');
+  if (panel.style.display !== 'none' && _qmlActiveType === type) {
+    closeQmLibrary();
+    return;
+  }
+  _qmlActiveType = type;
+  panel.style.display = 'block';
+  const badge = document.getElementById('qmlTypeBadge');
+  if (badge) badge.textContent = type.charAt(0).toUpperCase() + type.slice(1) + 's';
+  if (!_amlItems.length) await loadAmlItems();
+  document.getElementById('qmlSearch').value = '';
+  renderQmlGrid('');
+}
+function closeQmLibrary() {
+  document.getElementById('qmLibrary').style.display = 'none';
+}
+function renderQmlGrid(search) {
+  const grid = document.getElementById('qmlGrid');
+  const q = search.toLowerCase();
+  let items = _amlItems.filter(m => m.media_type === _qmlActiveType);
+  if (q) items = items.filter(m => (m.file_name||'').toLowerCase().includes(q));
+
+  if (!items.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text3);padding:20px;font-size:12px;">No ' + _qmlActiveType + ' files found in library</div>';
+    return;
+  }
+  grid.innerHTML = items.map(m => {
+    const url   = m.media_url || '';
+    const thumb = m.media_type === 'image'
+      ? `<img src="${escHtml(url)}" loading="lazy" onerror="this.style.display='none'">`
+      : `<div class="aml-icon"><i data-lucide="${m.media_type === 'video' ? 'video' : 'music'}"></i></div>`;
+    return `<div class="aml-item"
+      data-url="${escHtml(url)}"
+      data-file-path="${escHtml(m.file_path||'')}"
+      data-file-name="${escHtml(m.file_name||'')}"
+      data-mime-type="${escHtml(m.mime_type||'')}"
+      data-file-size="${escHtml(String(m.file_size||''))}"
+      data-media-type="${escHtml(m.media_type||'')}"
+      title="${escHtml(m.file_name||url)}">
+      ${thumb}
+      <span class="aml-type">${escHtml(m.media_type||'')}</span>
+    </div>`;
+  }).join('');
+  lucide.createIcons({ nodes: [grid] });
+
+  grid.querySelectorAll('.aml-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const type = el.dataset.mediaType;
+      _muAddItem(type + 'Items', {
+        url:      el.dataset.url,
+        filePath: el.dataset.filePath || null,
+        fileName: el.dataset.fileName || null,
+        mimeType: el.dataset.mimeType || null,
+        fileSize: el.dataset.fileSize ? Number(el.dataset.fileSize) : null,
+        type,
+      });
+      closeQmLibrary();
+    });
+  });
+}
+
 function closeDrawer(cancelledNew = false) {
   // If drawer was cancelled without saving a new question, clean up orphan storage files
   if (cancelledNew && _muOrphanPaths.length) {
@@ -1853,6 +1945,8 @@ function closeDrawer(cancelledNew = false) {
   }
   _muOrphanPaths.length = 0;
   stopCardMedia();
+  closeAmlPanel();
+  closeQmLibrary();
   appState.editingQuestionId = null;
   document.getElementById('drawerOverlay').classList.remove('open');
   document.getElementById('questionDrawer').classList.remove('open');
@@ -3078,9 +3172,15 @@ function wireButtons() {
   document.getElementById('btnAddImageUrl').onclick = () => _muAddUrlRow('image');
   document.getElementById('btnAddVideoUrl').onclick = () => _muAddUrlRow('video');
   document.getElementById('btnAddAudioUrl').onclick = () => _muAddUrlRow('audio');
+  // Question media library picker
+  document.getElementById('btnPickImageLib').onclick = () => openQmLibrary('image');
+  document.getElementById('btnPickVideoLib').onclick = () => openQmLibrary('video');
+  document.getElementById('btnPickAudioLib').onclick = () => openQmLibrary('audio');
+  document.getElementById('btnQmlClose').onclick     = () => closeQmLibrary();
+  document.getElementById('qmlSearch').addEventListener('input', function() { renderQmlGrid(this.value.trim()); });
   document.getElementById('btnAddNote').onclick     = () => addNoteField('');
 
-  // Media tab switching
+  // Media tab switching — close the library picker when switching tabs
   document.querySelectorAll('.mu-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.mu-tab').forEach(b => b.classList.remove('active'));
@@ -3088,6 +3188,7 @@ function wireButtons() {
       btn.classList.add('active');
       const type = btn.dataset.muTab;
       document.getElementById('muPanel' + type.charAt(0).toUpperCase() + type.slice(1))?.classList.add('active');
+      closeQmLibrary();
     });
   });
 
