@@ -237,9 +237,10 @@
 
 /* ── Auth + sidebar ──────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
+  const session = await Auth.requireAuth(['admin', 'super_admin']);
+  if (!session) return;
   Sidebar.init('media-migrate');
-  const { user, role } = await Auth.requireAuth(['admin', 'super_admin']);
-  Sidebar.setUser(user, role);
+  Sidebar.setUser(session.user, await Auth.getRole());
   lucide.createIcons();
   wire();
 });
