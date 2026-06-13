@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>External Media Migration — Lammah Game</title>
+<link rel="icon" href="./favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="./assets/logo/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="./assets/logo/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="./assets/logo/favicon-16x16.png">
+<link rel="apple-touch-icon" href="./assets/logo/apple-touch-icon.png">
+<link rel="manifest" href="./site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/global.css">
+<link rel="stylesheet" href="./assets/css/layout.css">
+<link rel="stylesheet" href="./assets/css/components.css">
+<link rel="stylesheet" href="./assets/css/forms.css">
+<link rel="stylesheet" href="./assets/css/sidebar.css">
+<link rel="stylesheet" href="./assets/css/responsive.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="./services/supabase.js?v=20260612"></script>
+<script src="./services/auth.js?v=20260612"></script>
+<script src="./services/sidebar.js?v=20260612"></script>
+<style>
+/* ── Layout ─────────────────────────────────────────────────────── */
+.mig-body  { padding: 28px 28px 60px; max-width: 1200px; margin: 0 auto; }
+.mig-head  { margin-bottom: 24px; }
+.mig-head h1 { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.mig-head p  { font-size: 14px; color: var(--text3); max-width: 600px; line-height: 1.6; }
+
+/* ── Summary bar ─────────────────────────────────────────────────── */
+.mig-summary {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.mig-stat {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 8px 14px;
+  font-size: 13px; font-weight: 600;
+}
+.mig-stat .num { font-size: 18px; font-weight: 700; min-width: 28px; }
+.mig-stat.done   .num { color: var(--green); }
+.mig-stat.failed .num { color: var(--red); }
+.mig-stat.total  .num { color: var(--gold-500); }
+.mig-stat.pending .num { color: var(--text2); }
+
+/* ── Progress bar ────────────────────────────────────────────────── */
+.mig-progress-wrap {
+  display: none; align-items: center; gap: 10px;
+  margin-bottom: 16px;
+}
+.mig-progress-wrap.visible { display: flex; }
+.mig-progress-track {
+  flex: 1; height: 6px; background: var(--border);
+  border-radius: 999px; overflow: hidden;
+}
+.mig-progress-fill {
+  height: 100%; background: var(--gold-500);
+  border-radius: 999px; transition: width .3s ease;
+}
+.mig-progress-label { font-size: 12px; color: var(--text3); white-space: nowrap; min-width: 80px; text-align: right; }
+
+/* ── Action bar ──────────────────────────────────────────────────── */
+.mig-actions {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;
+}
+
+/* ── Table ───────────────────────────────────────────────────────── */
+.mig-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-md); }
+.mig-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.mig-table th {
+  text-align: left; padding: 10px 14px;
+  background: var(--surface); color: var(--text3);
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.mig-table td {
+  padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle;
+}
+.mig-table tbody tr:last-child td { border-bottom: none; }
+.mig-table tbody tr:hover { background: rgba(255,255,255,.025); }
+
+/* ── Table cell variants ─────────────────────────────────────────── */
+.mig-url {
+  max-width: 240px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; font-size: 11px; font-family: var(--font-mono);
+  color: var(--text3);
+}
+.mig-question-text {
+  max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  direction: rtl; text-align: right; font-size: 12px; color: var(--text2);
+}
+.mig-thumb {
+  width: 40px; height: 40px; object-fit: cover;
+  border-radius: 6px; border: 1px solid var(--border);
+  flex-shrink: 0; display: block;
+}
+.mig-thumb-wrap { display: flex; align-items: center; gap: 8px; }
+.mig-new-url {
+  max-width: 220px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; font-size: 11px; font-family: var(--font-mono);
+  color: var(--green);
+}
+
+/* ── Status badge variants ───────────────────────────────────────── */
+.status-pending  { background: rgba(255,255,255,.06); color: var(--text3);  border-color: var(--border); }
+.status-migrating{ background: var(--amber-bg);       color: var(--amber);  border-color: rgba(245,158,11,.25); }
+.status-done     { background: var(--green-bg);        color: var(--green);  border-color: var(--green-br); }
+.status-error    { background: var(--red-bg);          color: var(--red);    border-color: rgba(255,92,122,.25); }
+
+/* ── Empty + scanning states ────────────────────────────────────── */
+.mig-empty {
+  text-align: center; padding: 60px 24px; color: var(--text3);
+}
+.mig-empty .icon-wrap { margin-bottom: 14px; opacity: .4; }
+.mig-empty h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; color: var(--text2); }
+
+/* ── Error detail tooltip ────────────────────────────────────────── */
+.mig-err-detail {
+  font-size: 11px; color: var(--red); margin-top: 3px;
+  max-width: 200px; word-break: break-all;
+}
+
+/* ── Section header inside table (source separator) ─────────────── */
+.mig-section-row td {
+  background: var(--surface2);
+  font-size: 11px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .06em;
+  padding: 7px 14px;
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="appSidebar"></aside>
+<div class="sb-overlay" id="sbOverlay"></div>
+<div class="sb-mobile-bar">
+  <button class="sb-hamburger" id="sbToggle" type="button">
+    <i data-lucide="menu" class="icon-md"></i>
+  </button>
+  <span class="sb-mobile-title" id="sbMobileTitle">Media Migration</span>
+</div>
+
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1><i data-lucide="cloud-upload" class="icon-xl"></i> External Media Migration</h1>
+      <p>
+        Find all question media stored on the external CDN and move it into
+        Supabase Storage. Every question link is preserved — only the URL changes.
+      </p>
+    </div>
+    <button class="btn btn-ghost" id="btnScan">
+      <i data-lucide="scan-search" class="icon-sm"></i> Scan Database
+    </button>
+  </div>
+
+  <!-- Summary stats -->
+  <div class="mig-summary" id="migSummary" style="display:none;">
+    <div class="mig-stat total">
+      <span class="num" id="statFound">0</span> found
+    </div>
+    <div class="mig-stat done">
+      <i data-lucide="check-circle" class="icon-xs"></i>
+      <span class="num" id="statDone">0</span> migrated
+    </div>
+    <div class="mig-stat failed">
+      <i data-lucide="alert-circle" class="icon-xs"></i>
+      <span class="num" id="statFailed">0</span> failed
+    </div>
+    <div class="mig-stat pending">
+      <i data-lucide="clock" class="icon-xs"></i>
+      <span class="num" id="statPending">0</span> pending
+    </div>
+  </div>
+
+  <!-- Progress bar (shown while migrating) -->
+  <div class="mig-progress-wrap" id="migProgressWrap">
+    <div class="mig-progress-track">
+      <div class="mig-progress-fill" id="migProgressFill" style="width:0%"></div>
+    </div>
+    <div class="mig-progress-label" id="migProgressLabel">0 / 0</div>
+  </div>
+
+  <!-- Action buttons (shown after scan) -->
+  <div class="mig-actions" id="migActions" style="display:none;">
+    <button class="btn btn-primary" id="btnMigrateAll">
+      <i data-lucide="play" class="icon-sm"></i> Migrate All
+    </button>
+    <button class="btn btn-ghost" id="btnRetryFailed" style="display:none;">
+      <i data-lucide="refresh-cw" class="icon-sm"></i> Retry Failed
+    </button>
+    <button class="btn btn-ghost" id="btnExport" style="display:none;">
+      <i data-lucide="download" class="icon-sm"></i> Export Report
+    </button>
+    <button class="btn btn-ghost" id="btnRescan">
+      <i data-lucide="scan-search" class="icon-sm"></i> Re-scan
+    </button>
+  </div>
+
+  <!-- Table -->
+  <div id="migTableWrap">
+    <div class="mig-empty" id="migEmpty">
+      <div class="icon-wrap"><i data-lucide="scan-search" style="width:40px;height:40px;"></i></div>
+      <h3>No scan yet</h3>
+      <p>Click "Scan Database" to find external media that needs to be migrated.</p>
+    </div>
+    <div class="mig-table-wrap" id="migTable" style="display:none;">
+      <table class="mig-table">
+        <thead>
+          <tr>
+            <th style="width:40px;"></th><!-- thumb -->
+            <th>Question</th>
+            <th>Source</th>
+            <th>Type</th>
+            <th>Current URL</th>
+            <th>New URL</th>
+            <th>Status</th>
+            <th style="text-align:right;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="migTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+'use strict';
+
+/* ── Auth + sidebar ──────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', async () => {
+  Sidebar.init('media-migrate');
+  const { user, role } = await Auth.requireAuth(['admin', 'super_admin']);
+  Sidebar.setUser(user, role);
+  lucide.createIcons();
+  wire();
+});
+
+/* ── State ───────────────────────────────────────────────────────── */
+let items = [];        // { id, source, rowId, questionId, questionText, url, mediaType, purpose, sortOrder, status, newUrl, error }
+let isMigrating = false;
+
+/* ── Toast ───────────────────────────────────────────────────────── */
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+/* ── Wire UI ─────────────────────────────────────────────────────── */
+function wire() {
+  document.getElementById('btnScan').addEventListener('click', scan);
+  document.getElementById('btnRescan').addEventListener('click', scan);
+  document.getElementById('btnMigrateAll').addEventListener('click', migrateAll);
+  document.getElementById('btnRetryFailed').addEventListener('click', retryFailed);
+  document.getElementById('btnExport').addEventListener('click', exportReport);
+}
+
+/* ── Scan ────────────────────────────────────────────────────────── */
+async function scan() {
+  const btn = document.getElementById('btnScan');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner spinner-sm"></span> Scanning…';
+  setEmpty('scanning');
+
+  try {
+    const [mediaResult, metaResult] = await Promise.all([
+      _sb.from('question_media')
+        .select('id, question_id, media_url, media_type, media_purpose, sort_order, questions!question_id(id, question, correct_answer)')
+        .is('file_path', null)
+        .not('media_url', 'is', null)
+        .not('question_id', 'is', null),
+      _sb.from('question_metadata')
+        .select('question_id, hints, questions!question_metadata_question_id_fkey(id, question, correct_answer)'),
+    ]);
+
+    if (mediaResult.error) throw new Error('question_media: ' + mediaResult.error.message);
+    if (metaResult.error)  throw new Error('question_metadata: ' + metaResult.error.message);
+
+    const found = [];
+
+    // question_media rows with external URLs
+    for (const row of (mediaResult.data || [])) {
+      const url = row.media_url || '';
+      if (!url || url.includes('supabase.co')) continue;
+      found.push({
+        id:           row.id + '-qm',
+        source:       'question_media',
+        rowId:        row.id,
+        questionId:   row.question_id,
+        questionText: row.questions?.question || '—',
+        url,
+        mediaType:    row.media_type || 'image',
+        purpose:      row.media_purpose || 'question',
+        sortOrder:    row.sort_order || 0,
+        status:       'pending',
+        newUrl:       null,
+        error:        null,
+      });
+    }
+
+    // question_metadata.hints.correctAnswerMedia rows with external URLs
+    for (const row of (metaResult.data || [])) {
+      const url = (row.hints && row.hints.correctAnswerMedia) || '';
+      if (!url || url.includes('supabase.co')) continue;
+      found.push({
+        id:           row.question_id + '-am',
+        source:       'answer_media',
+        rowId:        null,
+        questionId:   row.question_id,
+        questionText: row.questions?.question || '—',
+        url,
+        mediaType:    inferMediaType(url),
+        purpose:      'answer',
+        sortOrder:    0,
+        status:       'pending',
+        newUrl:       null,
+        error:        null,
+      });
+    }
+
+    items = found;
+    renderAll();
+    updateStats();
+    showActions();
+    toast(`Found ${found.length} external media item${found.length !== 1 ? 's' : ''}`);
+  } catch (e) {
+    toast('Scan failed: ' + e.message, 'error');
+    setEmpty('error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="scan-search" class="icon-sm"></i> Scan Database';
+    lucide.createIcons({ nodes: [btn] });
+  }
+}
+
+function inferMediaType(url) {
+  const ext = url.split('?')[0].split('.').pop()?.toLowerCase() || '';
+  if (['mp4','webm','mov','ogv'].includes(ext)) return 'video';
+  if (['mp3','wav','ogg','m4a','aac','flac'].includes(ext)) return 'audio';
+  return 'image';
+}
+
+/* ── Render ──────────────────────────────────────────────────────── */
+function renderAll() {
+  const tbody = document.getElementById('migTableBody');
+  if (!items.length) { setEmpty('none'); return; }
+
+  document.getElementById('migEmpty').style.display  = 'none';
+  document.getElementById('migTable').style.display  = '';
+
+  const qmItems = items.filter(i => i.source === 'question_media');
+  const amItems = items.filter(i => i.source === 'answer_media');
+
+  let html = '';
+  if (qmItems.length) {
+    html += `<tr class="mig-section-row"><td colspan="8"><i data-lucide="image" class="icon-xs" style="vertical-align:-2px;margin-right:5px;"></i> Question Media (${qmItems.length} rows in question_media table)</td></tr>`;
+    html += qmItems.map(rowHtml).join('');
+  }
+  if (amItems.length) {
+    html += `<tr class="mig-section-row"><td colspan="8"><i data-lucide="star" class="icon-xs" style="vertical-align:-2px;margin-right:5px;"></i> Answer Media (${amItems.length} rows in question_metadata.hints)</td></tr>`;
+    html += amItems.map(rowHtml).join('');
+  }
+  tbody.innerHTML = html;
+  lucide.createIcons({ nodes: [tbody] });
+
+  // Wire per-row buttons
+  tbody.querySelectorAll('[data-action="migrate-row"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = items.find(i => i.id === btn.dataset.id);
+      if (item) migrateItem(item);
+    });
+  });
+}
+
+function rowHtml(item) {
+  const isImg    = item.mediaType === 'image';
+  const thumbHtml = isImg
+    ? `<img class="mig-thumb" src="${escHtml(item.newUrl || item.url)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+    : `<i data-lucide="${item.mediaType === 'video' ? 'video' : 'music'}" class="icon-md" style="color:var(--text3);"></i>`;
+
+  const sourceBadge = item.source === 'answer_media'
+    ? `<span class="badge badge-gold" style="font-size:10px;">answer</span>`
+    : `<span class="badge badge-blue" style="font-size:10px;">question</span>`;
+
+  const statusBadge = `<span class="badge status-${item.status}" id="status-${item.id}">${statusLabel(item.status)}</span>`;
+
+  const newUrlHtml = item.newUrl
+    ? `<span class="mig-new-url" title="${escHtml(item.newUrl)}">${escHtml(shortUrl(item.newUrl))}</span>`
+    : '<span style="color:var(--text4);font-size:11px;">—</span>';
+
+  const errorHtml = item.error
+    ? `<div class="mig-err-detail">${escHtml(item.error)}</div>` : '';
+
+  const canMigrate = item.status === 'pending' || item.status === 'error';
+  const actionBtn = `<button class="btn btn-ghost btn-sm" data-action="migrate-row" data-id="${item.id}" ${canMigrate ? '' : 'disabled'} style="white-space:nowrap;">
+    <i data-lucide="upload-cloud" class="icon-xs"></i> Migrate
+  </button>`;
+
+  return `<tr id="row-${item.id}">
+    <td><div class="mig-thumb-wrap">${thumbHtml}</div></td>
+    <td>
+      <div class="mig-question-text" title="${escHtml(item.questionText)}">${escHtml(item.questionText)}</div>
+      <div style="font-size:10px;color:var(--text4);margin-top:2px;font-family:var(--font-mono);">${escHtml(item.questionId.slice(0,8))}…</div>
+    </td>
+    <td>${sourceBadge}</td>
+    <td><span class="badge badge-gray" style="font-size:10px;">${escHtml(item.mediaType)}</span></td>
+    <td><div class="mig-url" title="${escHtml(item.url)}">${escHtml(shortUrl(item.url))}</div></td>
+    <td>${newUrlHtml}</td>
+    <td><div>${statusBadge}${errorHtml}</div></td>
+    <td style="text-align:right;">${actionBtn}</td>
+  </tr>`;
+}
+
+function statusLabel(s) {
+  return s === 'migrating' ? 'migrating…' : s;
+}
+
+/* ── Migrate single item ─────────────────────────────────────────── */
+async function migrateItem(item) {
+  setItemStatus(item, 'migrating');
+  try {
+    const { data: { session } } = await _sb.auth.getSession();
+    const resp = await _sb.functions.invoke('media-migrate', {
+      body: {
+        source:     item.source,
+        rowId:      item.rowId,
+        questionId: item.questionId,
+        url:        item.url,
+      },
+      headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
+    });
+
+    if (resp.error) throw new Error(resp.error.message || JSON.stringify(resp.error));
+    const result = resp.data;
+    if (!result?.ok) throw new Error(result?.error || 'unknown error');
+
+    item.newUrl  = result.newUrl;
+    item.status  = 'done';
+    item.error   = null;
+    updateRow(item);
+    updateStats();
+    return true;
+  } catch (e) {
+    item.status = 'error';
+    item.error  = e.message;
+    updateRow(item);
+    updateStats();
+    return false;
+  }
+}
+
+/* ── Migrate all ─────────────────────────────────────────────────── */
+async function migrateAll() {
+  if (isMigrating) return;
+  const pending = items.filter(i => i.status === 'pending');
+  if (!pending.length) { toast('Nothing pending to migrate'); return; }
+
+  isMigrating = true;
+  setBusy(true);
+  showProgress(true);
+
+  let done = 0;
+  for (const item of pending) {
+    await migrateItem(item);
+    done++;
+    setProgress(done, pending.length);
+  }
+
+  isMigrating = false;
+  setBusy(false);
+  showProgress(false);
+
+  const failed = items.filter(i => i.status === 'error').length;
+  const migrated = items.filter(i => i.status === 'done').length;
+
+  if (!failed) {
+    toast(`All ${migrated} items migrated successfully!`);
+    document.getElementById('btnExport').style.display = '';
+  } else {
+    toast(`${migrated} migrated, ${failed} failed — click "Retry Failed" to try again`, 'error');
+    document.getElementById('btnRetryFailed').style.display = '';
+    document.getElementById('btnExport').style.display = '';
+  }
+}
+
+/* ── Retry failed ────────────────────────────────────────────────── */
+async function retryFailed() {
+  if (isMigrating) return;
+  const failed = items.filter(i => i.status === 'error');
+  if (!failed.length) { toast('No failed items to retry'); return; }
+
+  // Reset error items back to pending
+  failed.forEach(i => { i.status = 'pending'; i.error = null; updateRow(i); });
+  updateStats();
+  await migrateAll();
+}
+
+/* ── Export report ───────────────────────────────────────────────── */
+function exportReport() {
+  const report = {
+    generatedAt: new Date().toISOString(),
+    total:    items.length,
+    migrated: items.filter(i => i.status === 'done').length,
+    failed:   items.filter(i => i.status === 'error').length,
+    pending:  items.filter(i => i.status === 'pending').length,
+    items: items.map(i => ({
+      source:       i.source,
+      questionId:   i.questionId,
+      questionText: i.questionText,
+      oldUrl:       i.url,
+      newUrl:       i.newUrl,
+      status:       i.status,
+      error:        i.error,
+    })),
+  };
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob),
+    download: `media-migration-${new Date().toISOString().slice(0,10)}.json`,
+  });
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ── DOM helpers ─────────────────────────────────────────────────── */
+function updateRow(item) {
+  const row = document.getElementById(`row-${item.id}`);
+  if (!row) return;
+  // Status badge
+  const badge = row.querySelector(`#status-${item.id}`);
+  if (badge) {
+    badge.className = `badge status-${item.status}`;
+    badge.textContent = statusLabel(item.status);
+  }
+  // Error detail
+  const existing = row.querySelector('.mig-err-detail');
+  if (existing) existing.remove();
+  if (item.error) {
+    const d = document.createElement('div');
+    d.className = 'mig-err-detail';
+    d.textContent = item.error;
+    badge?.parentElement?.appendChild(d);
+  }
+  // New URL cell (6th td = index 5)
+  const cells = row.querySelectorAll('td');
+  if (cells[5]) {
+    cells[5].innerHTML = item.newUrl
+      ? `<span class="mig-new-url" title="${escHtml(item.newUrl)}">${escHtml(shortUrl(item.newUrl))}</span>`
+      : '<span style="color:var(--text4);font-size:11px;">—</span>';
+  }
+  // Thumbnail — update src if image and now have a new URL
+  if (item.mediaType === 'image' && item.newUrl) {
+    const img = row.querySelector('img.mig-thumb');
+    if (img) img.src = item.newUrl;
+  }
+  // Action button
+  const btn = row.querySelector('[data-action="migrate-row"]');
+  if (btn) {
+    const canMigrate = item.status === 'pending' || item.status === 'error';
+    btn.disabled = !canMigrate;
+  }
+}
+
+function setItemStatus(item, status) {
+  item.status = status;
+  updateRow(item);
+}
+
+function updateStats() {
+  const done    = items.filter(i => i.status === 'done').length;
+  const failed  = items.filter(i => i.status === 'error').length;
+  const pending = items.filter(i => i.status === 'pending' || i.status === 'migrating').length;
+  document.getElementById('statFound').textContent   = items.length;
+  document.getElementById('statDone').textContent    = done;
+  document.getElementById('statFailed').textContent  = failed;
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('migSummary').style.display = items.length ? '' : 'none';
+}
+
+function showActions() {
+  document.getElementById('migActions').style.display = items.length ? '' : 'none';
+}
+
+function setProgress(done, total) {
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  document.getElementById('migProgressFill').style.width = pct + '%';
+  document.getElementById('migProgressLabel').textContent = `${done} / ${total}`;
+}
+
+function showProgress(visible) {
+  document.getElementById('migProgressWrap').classList.toggle('visible', visible);
+  if (!visible) setProgress(0, 0);
+}
+
+function setBusy(busy) {
+  document.getElementById('btnMigrateAll').disabled = busy;
+  document.getElementById('btnScan').disabled       = busy;
+  document.getElementById('btnRescan').disabled     = busy;
+}
+
+function setEmpty(state) {
+  const empty = document.getElementById('migEmpty');
+  const table = document.getElementById('migTable');
+  if (state === 'scanning') {
+    table.style.display = 'none';
+    empty.style.display = '';
+    empty.innerHTML = `<div class="icon-wrap"><div class="spinner spinner-lg"></div></div><h3>Scanning database…</h3><p>Querying question_media and question_metadata for external URLs.</p>`;
+  } else if (state === 'none') {
+    empty.style.display = '';
+    table.style.display = 'none';
+    empty.innerHTML = `<div class="icon-wrap"><i data-lucide="check-circle" style="width:40px;height:40px;color:var(--green);"></i></div><h3>All clear!</h3><p>No external media found — everything is already in Supabase Storage.</p>`;
+    lucide.createIcons({ nodes: [empty] });
+  } else if (state === 'error') {
+    empty.style.display = '';
+    table.style.display = 'none';
+    empty.innerHTML = `<div class="icon-wrap"><i data-lucide="alert-circle" style="width:40px;height:40px;color:var(--red);"></i></div><h3>Scan failed</h3><p>Check the console and try again.</p>`;
+    lucide.createIcons({ nodes: [empty] });
+  }
+}
+
+function shortUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.hostname.replace('www.','') + '/…/' + u.pathname.split('/').pop();
+  } catch { return url.slice(0, 40) + '…'; }
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

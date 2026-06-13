@@ -14,7 +14,9 @@
 const _NAV = [
   { id: 'overview', label: 'Overview',       icon: 'layout-dashboard', href: './dashboard.html'       },
   { id: 'database', label: 'Questions List',        icon: 'database',         href: './database.html'        },
-  { id: 'media',    label: 'Media Library',   icon: 'images',           href: './media.html'           },
+  { id: 'media',         label: 'Media Library',    icon: 'images',       href: './media.html'           },
+  { id: 'media-migrate', label: 'Media Migration', icon: 'cloud-upload', href: './media-migration.html',
+    gateId: 'sbNavMediaMigrate', roles: ['admin','super_admin'] },
   { id: 'activity', label: 'Activity Log',     icon: 'history',          href: './activity.html'        },
   { id: 'players',  label: 'Game Players',     icon: 'gamepad-2',        href: './players.html'         },
   { id: 'analytics',label: 'Analytics',        icon: 'bar-chart-3',      href: './analytics.html',
